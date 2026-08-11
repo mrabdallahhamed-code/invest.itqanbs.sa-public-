@@ -32,6 +32,7 @@
     <div id="requestBody"></div>
   </div>
 
+  <!-- تظهر فقط بعد قبول عرض -->
   <div class="card" id="companyInfoCard" style="display:none;">
     <h3 style="margin-bottom:10px;">بيانات الشركة</h3>
     <label>الجنسية</label>
@@ -98,4 +99,187 @@ function renderStatus(client){
   const note = document.getElementById('statusNote');
   const actionArea = document.getElementById('assessmentAction');
 
-  if(!client || !
+  if(!client || !client.assessment_completed_at){
+    actionArea.innerHTML = '<button class="btn gold" onclick="location.href=\'assessment.html\'">قيّم جاهزيتك الآن</button>';
+  } else {
+    actionArea.innerHTML = '';
+  }
+
+  if(!client || client.readiness_status === 'pending_review'){
+    badge.innerHTML = '<span class="badge pending">قيد المراجعة</span>';
+    note.textContent = 'أكمل التقييم لمعرفة مسارك.';
+  } else if(client.readiness_status === 'ready'){
+    badge.innerHTML = '<span class="badge ready">جاهز ✓</span>';
+    note.textContent = 'ملفك جاهز — أكمل الإجراءات أدناه ثم اطلب عروض الأسعار.';
+  } else {
+    badge.innerHTML = '<span class="badge notready">غير جاهز</span>';
+    note.textContent = client.readiness_notes || 'أكمل الإجراءات أدناه أولاً، ثم يمكنك طلب عروض الأسعار.';
+  }
+}
+
+async function saveClientInfo(){
+  const payload = {
+    id: profile.id,
+    nationality: document.getElementById('nationality').value,
+    company_name_abroad: document.getElementById('company_name_abroad').value,
+    activity_type: document.getElementById('activity_type_field').value,
+  };
+  const { error } = await supabase.from('clients').upsert(payload);
+  const msg = document.getElementById('infoMsg');
+  msg.className = error ? 'msg err' : 'msg ok';
+  msg.textContent = error ? error.message : 'تم الحفظ بنجاح';
+}
+
+async function uploadDoc(){
+  const fileInput = document.getElementById('doc_file');
+  const doc_type = document.getElementById('doc_type').value;
+  const msg = document.getElementById('uploadMsg');
+  if(!fileInput.files.length){ msg.className='msg err'; msg.textContent='اختر ملفاً أولاً'; return; }
+
+  const file = fileInput.files[0];
+  const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+  const filePath = `${profile.id}/${Date.now()}_${safeName}`;
+
+  const { error: upErr } = await supabase.storage.from('client-documents').upload(filePath, file);
+  if(upErr){ msg.className='msg err'; msg.textContent = upErr.message; return; }
+
+  const { error: dbErr } = await supabase.from('documents').insert({
+    client_id: profile.id, doc_type, file_path: filePath
+  });
+  if(dbErr){ msg.className='msg err'; msg.textContent = dbErr.message; return; }
+
+  msg.className='msg ok'; msg.textContent='تم رفع المستند بنجاح';
+  fileInput.value = '';
+  loadDocs();
+}
+
+async function loadDocs(){
+  const { data, error } = await supabase.from('documents').select('*').eq('client_id', profile.id).order('uploaded_at', {ascending:false});
+  const body = document.getElementById('docsBody');
+  if(error || !data || !data.length){ body.innerHTML = '<tr><td colspan="3">لا توجد مستندات مرفوعة بعد</td></tr>'; return; }
+  body.innerHTML = data.map(d => {
+    const statusMap = {pending:'<span class="badge pending">قيد المراجعة</span>', verified:'<span class="badge ready">تم التحقق</span>', rejected:'<span class="badge notready">مرفوض</span>'};
+    return `<tr><td>${d.doc_type}</td><td>${new Date(d.uploaded_at).toLocaleDateString('ar-SA')}</td><td>${statusMap[d.status]}</td></tr>`;
+  }).join('');
+}
+
+async function loadSteps(){
+  const { data, error } = await supabase.from('readiness_checklist').select('*').eq('client_id', profile.id).order('position');
+  const body = document.getElementById('stepsBody');
+  if(error || !data || !data.length){
+    body.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;">لم تظهر الإجراءات بعد — أكمل تقييم الجاهزية أولاً.</p>';
+    return;
+  }
+  body.innerHTML = data.map(item => `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);">
+      <span style="font-size:18px;">${item.is_complete ? '✅' : '⬜'}</span>
+      <span style="font-size:14px;${item.is_complete ? 'color:var(--ink-soft);text-decoration:line-through;' : ''}">${item.item}</span>
+    </div>
+  `).join('');
+}
+
+async function loadRequest(){
+  const { data: requests, error } = await supabase
+    .from('service_requests')
+    .select('*')
+    .eq('client_id', profile.id)
+    .order('created_at', {ascending:false})
+    .limit(1);
+
+  const actionArea = document.getElementById('requestActionArea');
+  const requestCard = document.getElementById('requestCard');
+  const requestBody = document.getElementById('requestBody');
+
+  if(error){ actionArea.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
+
+  if(!requests || !requests.length){
+    activeRequest = null;
+    actionArea.innerHTML = `<button class="btn gold" onclick="location.href='request-offers.html'">الحصول على عروض</button>`;
+    requestCard.style.display = 'none';
+    hideCompanySections();
+    return;
+  }
+
+  activeRequest = requests[0];
+  actionArea.innerHTML = '';
+  requestCard.style.display = 'block';
+
+  const statusMap = {
+    pending_admin_review: 'قيد المراجعة — فريق إتقان يحدد مقدمي الخدمة المناسبين',
+    open: 'مفتوح — بانتظار عروض من مقدمي الخدمة',
+    offer_selected: 'تم اختيار عرض',
+    in_progress: 'قيد التنفيذ',
+    completed: 'مكتمل',
+    cancelled: 'ملغى'
+  };
+
+  let html = `<p style="font-size:13.5px;margin-bottom:14px;">حالة الطلب: <strong>${statusMap[activeRequest.status] || activeRequest.status}</strong></p>`;
+
+  if(activeRequest.status === 'pending_admin_review'){
+    html += `<p style="color:var(--ink-soft);font-size:13.5px;">سيقوم فريق إتقان بمراجعة طلبك وتوجيهه لمقدمي الخدمة المناسبين قريباً.</p>`;
+    requestBody.innerHTML = html;
+    hideCompanySections();
+    return;
+  }
+
+  const { data: offers } = await supabase
+    .from('offers')
+    .select('id, price, duration_days, status, service_providers(company_name, rating)')
+    .eq('request_id', activeRequest.id)
+    .order('price');
+
+  if(!offers || !offers.length){
+    html += `<p style="color:var(--ink-soft);font-size:13.5px;">لا توجد عروض بعد — سيتواصل معك مقدمو الخدمة قريباً.</p>`;
+  } else {
+    html += `<table><thead><tr><th>مقدّم الخدمة</th><th>السعر</th><th>مدة التنفيذ</th><th>إجراء</th></tr></thead><tbody>`;
+    offers.forEach(o => {
+      const isAccepted = o.status === 'accepted';
+      html += `<tr>
+        <td>${o.service_providers?.company_name || '—'}</td>
+        <td>${o.price} ر.س</td>
+        <td>${o.duration_days} يوم</td>
+        <td>${isAccepted
+          ? '<span class="badge ready">تم القبول ✓</span>'
+          : (activeRequest.status === 'open'
+              ? `<button class="btn" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="acceptOffer('${o.id}','${activeRequest.id}')">قبول العرض</button>`
+              : '—')
+        }</td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+  }
+
+  requestBody.innerHTML = html;
+
+  const offerAccepted = offers && offers.some(o => o.status === 'accepted');
+  if(offerAccepted){
+    showCompanySections();
+  } else {
+    hideCompanySections();
+  }
+}
+
+function showCompanySections(){
+  document.getElementById('companyInfoCard').style.display = 'block';
+  document.getElementById('uploadCard').style.display = 'block';
+  document.getElementById('docsListCard').style.display = 'block';
+  loadDocs();
+}
+function hideCompanySections(){
+  document.getElementById('companyInfoCard').style.display = 'none';
+  document.getElementById('uploadCard').style.display = 'none';
+  document.getElementById('docsListCard').style.display = 'none';
+}
+
+async function acceptOffer(offerId, requestId){
+  const { error: offErr } = await supabase.from('offers').update({ status: 'accepted' }).eq('id', offerId);
+  if(offErr){ alert(offErr.message); return; }
+  const { error: reqErr } = await supabase.from('service_requests').update({ status: 'offer_selected' }).eq('id', requestId);
+  if(reqErr){ alert(reqErr.message); return; }
+  loadRequest();
+}
+
+init();
+</script>
+</body>
+</html>
