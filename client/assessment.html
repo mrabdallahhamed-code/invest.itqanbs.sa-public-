@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تقييم الجاهزية — إتقان</title>
+<link rel="stylesheet" href="../assets/css/itqan.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  .q-card{max-width:520px;margin:60px auto;}
+  .q-text{font-size:17px;color:var(--green-dark);font-weight:700;margin-bottom:20px;line-height:1.6;}
+  .q-options{display:flex;gap:12px;}
+  .q-options button{flex:1;padding:14px;border-radius:10px;border:1px solid var(--line);background:var(--white);font-family:inherit;font-size:14.5px;font-weight:700;cursor:pointer;}
+  .q-options button:hover{border-color:var(--gold);background:var(--green-tint);}
+  .progress{display:flex;gap:6px;margin-bottom:30px;justify-content:center;}
+  .progress span{width:26px;height:4px;border-radius:2px;background:var(--line);}
+  .progress span.done{background:var(--gold);}
+</style>
+</head>
+<body>
+<header class="top"><div class="brand"><span class="ar">إتقان لخدمات الأعمال</span></div></header>
+<main>
+  <div class="card q-card" id="qCard">
+    <div class="progress" id="progressBar"></div>
+    <div class="q-text" id="qText">جارٍ التحميل...</div>
+    <div class="q-options" id="qOptions"></div>
+  </div>
+</main>
+
+<script src="../assets/js/supabaseClient.js"></script>
+<script>
+let profile;
+let answers = {};
+
+const questions = [
+  { key: 'has_foreign_company', text: 'هل تمتلك شركة خارجية حالياً؟' },
+  { key: 'is_llc', text: 'هل الشركة ذات مسؤولية محدودة (LLC)؟' },
+  { key: 'has_incorporation_contract', text: 'هل تمتلك عقد تأسيس ساري للشركة؟' },
+  { key: 'has_audited_financials', text: 'هل لديك قوائم مالية مدققة لمدة عام على الأقل؟' },
+];
+
+let currentStep = 0;
+
+async function init(){
+  profile = await requireRole(['client']);
+  if(!profile) return;
+  renderQuestion();
+}
+
+function renderProgress(){
+  const bar = document.getElementById('progressBar');
+  bar.innerHTML = questions.map((_, i) => `<span class="${i < currentStep ? 'done' : ''}"></span>`).join('');
+}
+
+function renderQuestion(){
+  renderProgress();
+  const q = questions[currentStep];
+  document.getElementById('qText').textContent = q.text;
+  document.getElementById('qOptions').innerHTML = `
+    <button onclick="answer(true)">نعم</button>
+    <button onclick="answer(false)">لا</button>
+  `;
+}
+
+function answer(value){
+  const q = questions[currentStep];
+  answers[q.key] = value;
+
+  if(q.key === 'has_foreign_company' && value === false){
+    finish();
+    return;
+  }
+
+  currentStep++;
+  if(currentStep >= questions.length){
+    finish();
+  } else {
+    renderQuestion();
+  }
+}
+
+async function finish(){
+  document.getElementById('qCard').innerHTML = '<p style="text-align:center;color:var(--ink-soft);">جارٍ حفظ النتيجة...</p>';
+
+  let readiness_status, readiness_notes;
+  const missingItems = [];
+
+  if(answers.has_foreign_company === false){
+    readiness_status = 'not_ready';
+    readiness_notes = 'لا تمتلك شركة أجنبية حالياً — يمكنك الاستفادة من خدمة الاستحواذ على شركة عبر طلب العروض مباشرة.';
+  } else if(answers.is_llc && answers.has_incorporation_contract && answers.has_audited_financials){
+    readiness_status = 'ready';
+    readiness_notes = null;
+  } else {
+    readiness_status = 'not_ready';
+    if(!answers.is_llc) missingItems.push('تعديل الشكل القانوني للشركة ليصبح ذا مسؤولية محدودة (LLC)');
+    if(!answers.has_incorporation_contract) missingItems.push('استخراج أو تجهيز عقد تأسيس ساري للشركة');
+    if(!answers.has_audited_financials) missingItems.push('إعداد قوائم مالية مدققة لمدة عام على الأقل');
+    readiness_notes = 'ملفك يحتاج بعض النقاط قبل التأسيس — راجع الإجراءات أدناه بلوحتك.';
+  }
+
+  const payload = {
+    id: profile.id,
+    has_foreign_company: answers.has_foreign_company,
+    is_llc: answers.is_llc ?? null,
+    has_incorporation_contract: answers.has_incorporation_contract ?? null,
+    has_audited_financials: answers.has_audited_financials ?? null,
+    assessment_completed_at: new Date().toISOString(),
+    readiness_status,
+    readiness_notes
+  };
+
+  const { error } = await supabase.from('clients').upsert(payload);
+  if(error){
+    document.getElementById('qCard').innerHTML = `<p class="msg err">${error.message}</p>`;
+    return;
+  }
+
+  if(missingItems.length){
+    const rows = missingItems.map(item => ({ client_id: profile.id, item }));
+    await supabase.from('readiness_checklist').insert(rows);
+  }
+
+  window.location.href = 'dashboard.html';
+}
+
+init();
+</script>
+</body>
+</html>
