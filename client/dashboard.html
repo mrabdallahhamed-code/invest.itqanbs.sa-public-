@@ -111,7 +111,8 @@ async function uploadDoc(){
   if(!fileInput.files.length){ msg.className='msg err'; msg.textContent='اختر ملفاً أولاً'; return; }
 
   const file = fileInput.files[0];
-  const filePath = `${profile.id}/${Date.now()}_${file.name}`;
+  const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+const filePath = `${profile.id}/${Date.now()}_${safeName}`;
 
   const { error: upErr } = await supabase.storage.from('client-documents').upload(filePath, file);
   if(upErr){ msg.className='msg err'; msg.textContent = upErr.message; return; }
