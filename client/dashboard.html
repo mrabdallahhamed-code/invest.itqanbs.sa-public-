@@ -20,6 +20,16 @@
     <p id="statusNote" style="margin-top:10px;color:var(--ink-soft);font-size:13.5px;"></p>
   </div>
 
+  <div class="card" id="checklistCard" style="display:none;">
+    <h3 style="margin-bottom:10px;">خطوات تجهيز ملفك</h3>
+    <div id="checklistBody"><p style="color:var(--ink-soft);font-size:13.5px;">جارٍ التحميل...</p></div>
+  </div>
+
+  <div class="card" id="requestCard" style="display:none;">
+    <h3 style="margin-bottom:10px;">طلب خدمة التأسيس</h3>
+    <div id="requestBody"></div>
+  </div>
+
   <div class="card">
     <h3 style="margin-bottom:10px;">بيانات الشركة</h3>
     <label>الجنسية</label>
@@ -73,6 +83,16 @@ async function init(){
     document.getElementById('company_name_abroad').value = client.company_name_abroad || '';
     document.getElementById('activity_type').value = client.activity_type || '';
   }
+
+  if(client && client.readiness_status === 'not_ready'){
+    document.getElementById('checklistCard').style.display = 'block';
+    loadChecklist();
+  }
+  if(client && client.readiness_status === 'ready'){
+    document.getElementById('requestCard').style.display = 'block';
+    loadRequest();
+  }
+
   loadDocs();
 }
 
@@ -84,10 +104,10 @@ function renderStatus(client){
     note.textContent = 'فريق إتقان يراجع مستنداتك حالياً لتحديد مسارك.';
   } else if(client.readiness_status === 'ready'){
     badge.innerHTML = '<span class="badge ready">جاهز ✓</span>';
-    note.textContent = 'ملفك جاهز — يمكنك البدء باختيار مقدّم خدمة لإكمال إجراءات التأسيس.';
+    note.textContent = 'ملفك جاهز — يمكنك البدء بطلب خدمة التأسيس أدناه.';
   } else {
     badge.innerHTML = '<span class="badge notready">غير جاهز</span>';
-    note.textContent = client.readiness_notes || 'يوجد بعض النقاط التي تحتاج تجهيزاً قبل بدء التأسيس. راجع فريق إتقان لمعرفة التفاصيل.';
+    note.textContent = client.readiness_notes || 'يوجد بعض النقاط التي تحتاج تجهيزاً قبل بدء التأسيس. راجع القائمة أدناه.';
   }
 }
 
@@ -112,7 +132,7 @@ async function uploadDoc(){
 
   const file = fileInput.files[0];
   const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-const filePath = `${profile.id}/${Date.now()}_${safeName}`;
+  const filePath = `${profile.id}/${Date.now()}_${safeName}`;
 
   const { error: upErr } = await supabase.storage.from('client-documents').upload(filePath, file);
   if(upErr){ msg.className='msg err'; msg.textContent = upErr.message; return; }
@@ -135,6 +155,89 @@ async function loadDocs(){
     const statusMap = {pending:'<span class="badge pending">قيد المراجعة</span>', verified:'<span class="badge ready">تم التحقق</span>', rejected:'<span class="badge notready">مرفوض</span>'};
     return `<tr><td>${d.doc_type}</td><td>${new Date(d.uploaded_at).toLocaleDateString('ar-SA')}</td><td>${statusMap[d.status]}</td></tr>`;
   }).join('');
+}
+
+async function loadChecklist(){
+  const { data, error } = await supabase.from('readiness_checklist').select('*').eq('client_id', profile.id).order('updated_at');
+  const body = document.getElementById('checklistBody');
+  if(error || !data || !data.length){
+    body.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;">لم يضف فريق إتقان خطوات بعد — سيتم تحديثها قريباً بعد مراجعة ملفك.</p>';
+    return;
+  }
+  body.innerHTML = data.map(item => `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);">
+      <span style="font-size:18px;">${item.is_complete ? '✅' : '⬜'}</span>
+      <span style="font-size:14px;${item.is_complete ? 'color:var(--ink-soft);text-decoration:line-through;' : ''}">${item.item}</span>
+    </div>
+  `).join('');
+}
+
+async function loadRequest(){
+  const body = document.getElementById('requestBody');
+  const { data: requests, error } = await supabase
+    .from('service_requests')
+    .select('*')
+    .eq('client_id', profile.id)
+    .order('created_at', {ascending:false})
+    .limit(1);
+
+  if(error){ body.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
+
+  if(!requests || !requests.length){
+    body.innerHTML = `
+      <p style="color:var(--ink-soft);font-size:13.5px;margin-bottom:12px;">لم تبدأ طلب تأسيس بعد. اضغط الزر أدناه ليصل طلبك لمقدمي الخدمة المعتمدين.</p>
+      <button class="btn gold" onclick="createRequest()">ابدأ طلب خدمة التأسيس</button>
+    `;
+    return;
+  }
+
+  const request = requests[0];
+  const statusMap = {open:'مفتوح — بانتظار عروض', offer_selected:'تم اختيار عرض', in_progress:'قيد التنفيذ', completed:'مكتمل', cancelled:'ملغى'};
+
+  let html = `<p style="font-size:13.5px;margin-bottom:14px;">حالة الطلب: <strong>${statusMap[request.status]}</strong></p>`;
+
+  const { data: offers } = await supabase
+    .from('offers')
+    .select('id, price, duration_days, status, service_providers(company_name, rating)')
+    .eq('request_id', request.id)
+    .order('price');
+
+  if(!offers || !offers.length){
+    html += `<p style="color:var(--ink-soft);font-size:13.5px;">لا توجد عروض بعد — سيتواصل معك مقدمو الخدمة قريباً.</p>`;
+  } else {
+    html += `<table><thead><tr><th>مقدّم الخدمة</th><th>السعر</th><th>مدة التنفيذ</th><th>إجراء</th></tr></thead><tbody>`;
+    offers.forEach(o => {
+      const isAccepted = o.status === 'accepted';
+      html += `<tr>
+        <td>${o.service_providers?.company_name || '—'}</td>
+        <td>${o.price} ر.س</td>
+        <td>${o.duration_days} يوم</td>
+        <td>${isAccepted
+          ? '<span class="badge ready">تم القبول ✓</span>'
+          : (request.status === 'open'
+              ? `<button class="btn" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="acceptOffer('${o.id}','${request.id}')">قبول العرض</button>`
+              : '—')
+        }</td>
+      </tr>`;
+    });
+    html += `</tbody></table>`;
+  }
+
+  body.innerHTML = html;
+}
+
+async function createRequest(){
+  const { error } = await supabase.from('service_requests').insert({ client_id: profile.id });
+  if(error){ alert(error.message); return; }
+  loadRequest();
+}
+
+async function acceptOffer(offerId, requestId){
+  const { error: offErr } = await supabase.from('offers').update({ status: 'accepted' }).eq('id', offerId);
+  if(offErr){ alert(offErr.message); return; }
+  const { error: reqErr } = await supabase.from('service_requests').update({ status: 'offer_selected' }).eq('id', requestId);
+  if(reqErr){ alert(reqErr.message); return; }
+  loadRequest();
 }
 
 init();
