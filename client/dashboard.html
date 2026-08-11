@@ -20,13 +20,14 @@
     <p id="statusNote" style="margin-top:10px;color:var(--ink-soft);font-size:13.5px;"></p>
   </div>
 
-  <div class="card" id="checklistCard" style="display:none;">
-    <h3 style="margin-bottom:10px;">خطوات تجهيز ملفك</h3>
-    <div id="checklistBody"><p style="color:var(--ink-soft);font-size:13.5px;">جارٍ التحميل...</p></div>
+  <div class="card" id="stepsCard" style="display:none;">
+    <h3 style="margin-bottom:10px;">إجراءات الحصول على عقد التأسيس</h3>
+    <div id="stepsBody"></div>
+    <div id="requestActionArea" style="margin-top:16px;"></div>
   </div>
 
   <div class="card" id="requestCard" style="display:none;">
-    <h3 style="margin-bottom:10px;">طلب خدمة التأسيس</h3>
+    <h3 style="margin-bottom:10px;">حالة طلب العروض</h3>
     <div id="requestBody"></div>
   </div>
 
@@ -68,7 +69,7 @@
 
 <script src="../assets/js/supabaseClient.js"></script>
 <script>
-let profile, clientRow;
+let profile, clientRow, activeRequest;
 
 async function init(){
   profile = await requireRole(['client']);
@@ -84,12 +85,9 @@ async function init(){
     document.getElementById('activity_type').value = client.activity_type || '';
   }
 
-  if(client && client.readiness_status === 'not_ready'){
-    document.getElementById('checklistCard').style.display = 'block';
-    loadChecklist();
-  }
-  if(client && client.readiness_status === 'ready'){
-    document.getElementById('requestCard').style.display = 'block';
+  if(client && (client.readiness_status === 'ready' || client.readiness_status === 'not_ready')){
+    document.getElementById('stepsCard').style.display = 'block';
+    loadSteps();
     loadRequest();
   }
 
@@ -104,10 +102,10 @@ function renderStatus(client){
     note.textContent = 'فريق إتقان يراجع مستنداتك حالياً لتحديد مسارك.';
   } else if(client.readiness_status === 'ready'){
     badge.innerHTML = '<span class="badge ready">جاهز ✓</span>';
-    note.textContent = 'ملفك جاهز — يمكنك البدء بطلب خدمة التأسيس أدناه.';
+    note.textContent = 'ملفك جاهز — أكمل الإجراءات أدناه ثم اطلب عروض الأسعار.';
   } else {
     badge.innerHTML = '<span class="badge notready">غير جاهز</span>';
-    note.textContent = client.readiness_notes || 'يوجد بعض النقاط التي تحتاج تجهيزاً قبل بدء التأسيس. راجع القائمة أدناه.';
+    note.textContent = client.readiness_notes || 'أكمل الإجراءات أدناه أولاً، ثم يمكنك طلب عروض الأسعار.';
   }
 }
 
@@ -157,11 +155,11 @@ async function loadDocs(){
   }).join('');
 }
 
-async function loadChecklist(){
+async function loadSteps(){
   const { data, error } = await supabase.from('readiness_checklist').select('*').eq('client_id', profile.id).order('updated_at');
-  const body = document.getElementById('checklistBody');
+  const body = document.getElementById('stepsBody');
   if(error || !data || !data.length){
-    body.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;">لم يضف فريق إتقان خطوات بعد — سيتم تحديثها قريباً بعد مراجعة ملفك.</p>';
+    body.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;">لم يضف فريق إتقان الإجراءات بعد — سيتم تحديثها قريباً.</p>';
     return;
   }
   body.innerHTML = data.map(item => `
@@ -173,7 +171,6 @@ async function loadChecklist(){
 }
 
 async function loadRequest(){
-  const body = document.getElementById('requestBody');
   const { data: requests, error } = await supabase
     .from('service_requests')
     .select('*')
@@ -181,25 +178,44 @@ async function loadRequest(){
     .order('created_at', {ascending:false})
     .limit(1);
 
-  if(error){ body.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
+  const actionArea = document.getElementById('requestActionArea');
+  const requestCard = document.getElementById('requestCard');
+  const requestBody = document.getElementById('requestBody');
+
+  if(error){ actionArea.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
 
   if(!requests || !requests.length){
-    body.innerHTML = `
-      <p style="color:var(--ink-soft);font-size:13.5px;margin-bottom:12px;">لم تبدأ طلب تأسيس بعد. اضغط الزر أدناه ليصل طلبك لمقدمي الخدمة المعتمدين.</p>
-      <button class="btn gold" onclick="createRequest()">ابدأ طلب خدمة التأسيس</button>
-    `;
+    activeRequest = null;
+    actionArea.innerHTML = `<button class="btn gold" onclick="requestOffers()">الحصول على عروض</button>`;
+    requestCard.style.display = 'none';
     return;
   }
 
-  const request = requests[0];
-  const statusMap = {open:'مفتوح — بانتظار عروض', offer_selected:'تم اختيار عرض', in_progress:'قيد التنفيذ', completed:'مكتمل', cancelled:'ملغى'};
+  activeRequest = requests[0];
+  actionArea.innerHTML = '';
+  requestCard.style.display = 'block';
 
-  let html = `<p style="font-size:13.5px;margin-bottom:14px;">حالة الطلب: <strong>${statusMap[request.status]}</strong></p>`;
+  const statusMap = {
+    pending_admin_review: 'قيد المراجعة — فريق إتقان يحدد مقدمي الخدمة المناسبين',
+    open: 'مفتوح — بانتظار عروض من مقدمي الخدمة',
+    offer_selected: 'تم اختيار عرض',
+    in_progress: 'قيد التنفيذ',
+    completed: 'مكتمل',
+    cancelled: 'ملغى'
+  };
+
+  let html = `<p style="font-size:13.5px;margin-bottom:14px;">حالة الطلب: <strong>${statusMap[activeRequest.status] || activeRequest.status}</strong></p>`;
+
+  if(activeRequest.status === 'pending_admin_review'){
+    html += `<p style="color:var(--ink-soft);font-size:13.5px;">سيقوم فريق إتقان بمراجعة طلبك وتوجيهه لمقدمي الخدمة المناسبين قريباً.</p>`;
+    requestBody.innerHTML = html;
+    return;
+  }
 
   const { data: offers } = await supabase
     .from('offers')
     .select('id, price, duration_days, status, service_providers(company_name, rating)')
-    .eq('request_id', request.id)
+    .eq('request_id', activeRequest.id)
     .order('price');
 
   if(!offers || !offers.length){
@@ -214,8 +230,8 @@ async function loadRequest(){
         <td>${o.duration_days} يوم</td>
         <td>${isAccepted
           ? '<span class="badge ready">تم القبول ✓</span>'
-          : (request.status === 'open'
-              ? `<button class="btn" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="acceptOffer('${o.id}','${request.id}')">قبول العرض</button>`
+          : (activeRequest.status === 'open'
+              ? `<button class="btn" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="acceptOffer('${o.id}','${activeRequest.id}')">قبول العرض</button>`
               : '—')
         }</td>
       </tr>`;
@@ -223,11 +239,11 @@ async function loadRequest(){
     html += `</tbody></table>`;
   }
 
-  body.innerHTML = html;
+  requestBody.innerHTML = html;
 }
 
-async function createRequest(){
-  const { error } = await supabase.from('service_requests').insert({ client_id: profile.id });
+async function requestOffers(){
+  const { error } = await supabase.from('service_requests').insert({ client_id: profile.id, status: 'pending_admin_review' });
   if(error){ alert(error.message); return; }
   loadRequest();
 }
