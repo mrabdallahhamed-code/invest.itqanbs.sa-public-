@@ -2,39 +2,31 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>لوحة الإدارة — إتقان</title>
+<title>لوحة مقدّم الخدمة — إتقان</title>
 <link rel="stylesheet" href="../assets/css/itqan.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="ar">إتقان — إدارة</span></div>
+  <div class="brand"><span class="ar">إتقان — مقدّم خدمة</span></div>
   <button class="btn ghost" onclick="signOut()">تسجيل الخروج</button>
 </header>
 <main>
-  <h1 class="page-title">مركز التحقق والإدارة</h1>
+  <h1 class="page-title">طلبات العملاء الجاهزين</h1>
 
-  <div class="tabs">
-    <button class="active" onclick="switchTab('docs')">مستندات بانتظار المراجعة</button>
-    <button onclick="switchTab('clients')">تصنيف العملاء</button>
+  <div class="card">
+    <table>
+      <thead><tr><th>رقم الطلب</th><th>تاريخ الفتح</th><th>إجراء</th></tr></thead>
+      <tbody id="reqBody"><tr><td colspan="3">جارٍ التحميل...</td></tr></tbody>
+    </table>
   </div>
 
-  <div id="tab-docs">
-    <div class="card">
-      <table>
-        <thead><tr><th>العميل</th><th>المستند</th><th>التاريخ</th><th>إجراء</th></tr></thead>
-        <tbody id="docsBody"><tr><td colspan="4">جارٍ التحميل...</td></tr></tbody>
-      </table>
-    </div>
-  </div>
-
-  <div id="tab-clients" style="display:none;">
-    <div class="card">
-      <table>
-        <thead><tr><th>العميل</th><th>الجنسية</th><th>الحالة الحالية</th><th>تحديث التصنيف</th></tr></thead>
-        <tbody id="clientsBody"><tr><td colspan="4">جارٍ التحميل...</td></tr></tbody>
-      </table>
-    </div>
+  <div class="card">
+    <h3 style="margin-bottom:10px;">عروضي المُقدَّمة</h3>
+    <table>
+      <thead><tr><th>الطلب</th><th>السعر</th><th>مدة التنفيذ</th><th>الحالة</th></tr></thead>
+      <tbody id="offersBody"><tr><td colspan="4">جارٍ التحميل...</td></tr></tbody>
+    </table>
   </div>
 </main>
 
@@ -42,81 +34,62 @@
 <script>
 let profile;
 
-function switchTab(tab){
-  document.getElementById('tab-docs').style.display = tab==='docs' ? 'block':'none';
-  document.getElementById('tab-clients').style.display = tab==='clients' ? 'block':'none';
-  document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
-  event.target.classList.add('active');
-}
-
 async function init(){
-  profile = await requireRole(['admin']);
+  profile = await requireRole(['provider']);
   if(!profile) return;
-  loadDocs();
-  loadClients();
+  loadRequests();
+  loadOffers();
 }
 
-async function loadDocs(){
+async function loadRequests(){
   const { data, error } = await supabase
-    .from('documents')
-    .select('id, doc_type, uploaded_at, status, file_path, client_id, clients(id, profiles(full_name))')
-    .eq('status', 'pending')
-    .order('uploaded_at');
-
-  const body = document.getElementById('docsBody');
-  if(error || !data || !data.length){ body.innerHTML = '<tr><td colspan="4">لا توجد مستندات بانتظار المراجعة</td></tr>'; return; }
-
-  body.innerHTML = data.map(d => `
-    <tr>
-      <td>${d.clients?.profiles?.full_name || d.client_id}</td>
-      <td>${d.doc_type}</td>
-      <td>${new Date(d.uploaded_at).toLocaleDateString('ar-SA')}</td>
-      <td>
-        <button class="btn" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="reviewDoc('${d.id}','verified')">اعتماد</button>
-        <button class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="reviewDoc('${d.id}','rejected')">رفض</button>
-      </td>
-    </tr>`).join('');
-}
-
-async function reviewDoc(id, status){
-  const { error } = await supabase.from('documents').update({
-    status, reviewed_by: profile.id, reviewed_at: new Date().toISOString()
-  }).eq('id', id);
-  if(error){ alert(error.message); return; }
-  loadDocs();
-}
-
-async function loadClients(){
-  const { data, error } = await supabase
-    .from('clients')
-    .select('id, nationality, readiness_status, profiles(full_name)')
+    .from('service_requests')
+    .select('id, created_at')
+    .eq('status', 'open')
     .order('created_at', {ascending:false});
 
-  const body = document.getElementById('clientsBody');
-  if(error || !data || !data.length){ body.innerHTML = '<tr><td colspan="4">لا يوجد عملاء بعد</td></tr>'; return; }
+  const body = document.getElementById('reqBody');
+  if(error || !data || !data.length){ body.innerHTML = '<tr><td colspan="3">لا توجد طلبات مفتوحة حالياً</td></tr>'; return; }
 
-  const statusMap = {pending_review:'قيد المراجعة', ready:'جاهز', not_ready:'غير جاهز'};
-  body.innerHTML = data.map(c => `
+  body.innerHTML = data.map(r => `
     <tr>
-      <td>${c.profiles?.full_name || c.id}</td>
-      <td>${c.nationality || '—'}</td>
-      <td>${statusMap[c.readiness_status]}</td>
+      <td>#${r.id.slice(0,8)}</td>
+      <td>${new Date(r.created_at).toLocaleDateString('ar-SA')}</td>
       <td>
-        <select onchange="updateReadiness('${c.id}', this.value)" style="width:auto;padding:5px 8px;">
-          <option value="">تغيير إلى...</option>
-          <option value="ready">جاهز</option>
-          <option value="not_ready">غير جاهز</option>
-          <option value="pending_review">قيد المراجعة</option>
-        </select>
+        <input type="number" placeholder="السعر (ر.س)" id="price-${r.id}" style="width:110px;display:inline-block;padding:6px;">
+        <input type="number" placeholder="أيام التنفيذ" id="days-${r.id}" style="width:110px;display:inline-block;padding:6px;">
+        <button class="btn" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="submitOffer('${r.id}')">إرسال عرض</button>
       </td>
     </tr>`).join('');
 }
 
-async function updateReadiness(clientId, status){
-  if(!status) return;
-  const { error } = await supabase.from('clients').update({ readiness_status: status }).eq('id', clientId);
+async function submitOffer(requestId){
+  const price = document.getElementById(`price-${requestId}`).value;
+  const days = document.getElementById(`days-${requestId}`).value;
+  if(!price || !days){ alert('أدخل السعر ومدة التنفيذ'); return; }
+
+  const { error } = await supabase.from('offers').insert({
+    request_id: requestId, provider_id: profile.id, price, duration_days: days
+  });
   if(error){ alert(error.message); return; }
-  loadClients();
+  alert('تم إرسال العرض');
+  loadOffers();
+}
+
+async function loadOffers(){
+  const { data, error } = await supabase
+    .from('offers')
+    .select('id, price, duration_days, status, request_id')
+    .eq('provider_id', profile.id)
+    .order('created_at', {ascending:false});
+
+  const body = document.getElementById('offersBody');
+  if(error || !data || !data.length){ body.innerHTML = '<tr><td colspan="4">لم تقدّم أي عروض بعد</td></tr>'; return; }
+
+  const statusMap = {submitted:'مُرسَل', accepted:'مقبول ✓', rejected:'مرفوض'};
+  body.innerHTML = data.map(o => `
+    <tr><td>#${o.request_id.slice(0,8)}</td><td>${o.price} ر.س</td><td>${o.duration_days} يوم</td><td>${statusMap[o.status]}</td></tr>
+  `).join('');
 }
 
 init();
