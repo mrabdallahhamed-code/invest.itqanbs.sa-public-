@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>إنشاء حساب — إتقان</title>
+<link rel="stylesheet" href="../assets/css/itqan.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<header class="top"><div class="brand"><span class="ar">إتقان لخدمات الأعمال</span></div></header>
+<main style="max-width:480px;">
+  <h1 class="page-title">إنشاء حساب جديد</h1>
+  <div class="card">
+    <label>نوع الحساب</label>
+    <select id="role">
+      <option value="client">عميل (مستثمر)</option>
+      <option value="provider">مقدّم خدمة</option>
+    </select>
+    <label>الاسم الكامل</label>
+    <input id="full_name" type="text" placeholder="اسمك الثلاثي أو اسم الشركة">
+    <label>البريد الإلكتروني</label>
+    <input id="email" type="email" placeholder="you@example.com">
+    <label>كلمة المرور</label>
+    <input id="password" type="password" placeholder="8 أحرف على الأقل">
+    <button class="btn" onclick="register()">إنشاء الحساب</button>
+    <div id="msg"></div>
+    <p style="margin-top:16px;font-size:13px;">لديك حساب؟ <a href="login.html">تسجيل الدخول</a></p>
+  </div>
+</main>
+<script src="../assets/js/supabaseClient.js"></script>
+<script>
+async function register(){
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const full_name = document.getElementById('full_name').value.trim();
+  const role = document.getElementById('role').value;
+  const msg = document.getElementById('msg');
+  msg.className = 'msg'; msg.textContent = '';
+
+  if(!email || !password || !full_name){
+    msg.className='msg err'; msg.textContent='الرجاء تعبئة كل الحقول'; return;
+  }
+
+  const { data, error } = await supabase.auth.signUp({ email, password });
+  if(error){ msg.className='msg err'; msg.textContent = error.message; return; }
+
+  const userId = data.user.id;
+  // إنشاء صف في profiles
+  const { error: profErr } = await supabase.from('profiles').insert({ id: userId, full_name, role });
+  if(profErr){ msg.className='msg err'; msg.textContent = profErr.message; return; }
+
+  // إنشاء صف في الجدول المرتبط بالدور
+  if(role === 'client'){
+    await supabase.from('clients').insert({ id: userId });
+  } else {
+    await supabase.from('service_providers').insert({ id: userId, company_name: full_name });
+  }
+
+  msg.className='msg ok';
+  msg.textContent='تم إنشاء الحساب! تحقق من بريدك لتأكيد الحساب ثم سجّل الدخول.';
+}
+</script>
+</body>
+</html>
