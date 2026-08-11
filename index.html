@@ -25,9 +25,12 @@
   .services-grid{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
   @media(max-width:640px){.services-grid{grid-template-columns:1fr;}}
   .service-card{background:var(--white); border:1px solid var(--line); border-radius:var(--radius); padding:22px;}
-  .service-card .icon{font-size:24px; margin-bottom:8px;}
+  .icon-circle{width:46px;height:46px;border-radius:50%;background:var(--green-tint);display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:12px;}
   .service-card h3{font-size:15.5px; color:var(--green-dark); margin-bottom:6px;}
   .service-card p{font-size:13px; color:var(--ink-soft); line-height:1.7;}
+  .service-list{list-style:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);}
+  .service-list li{font-size:12.5px;color:var(--ink-soft);padding:4px 0;}
+  .service-list li::before{content:'— ';color:var(--gold);}
 
   .kingdom-section{background:var(--green-dark); padding:50px 20px; margin:50px 0;}
   .kingdom-text{max-width:600px; margin:0 auto; text-align:center;}
@@ -82,24 +85,48 @@
   <h2 class="section-title">خدماتنا</h2>
   <div class="services-grid">
     <div class="service-card">
-      <div class="icon">📜</div>
+      <div class="icon-circle">📜</div>
       <h3>رخصة الاستثمار الأجنبي (MISA)</h3>
-      <p>نستحصل نيابة عنك على رخصة الاستثمار من وزارة الاستثمار السعودية، من تقييم الأهلية حتى صدور الرخصة.</p>
+      <p>نستحصل نيابة عنك على رخصة الاستثمار من وزارة الاستثمار السعودية بأسرع وقت وأقل تعقيد.</p>
+      <ul class="service-list">
+        <li>تقييم أهلية المستثمر والقطاع</li>
+        <li>إعداد وتقديم الملف كاملاً</li>
+        <li>تواصل مباشر مع الجهات الرسمية</li>
+        <li>متابعة حتى صدور الرخصة</li>
+      </ul>
     </div>
     <div class="service-card">
-      <div class="icon">🏢</div>
+      <div class="icon-circle">🏢</div>
       <h3>تأسيس شركة بملكية 100%</h3>
-      <p>تأسيس كيان قانوني سعودي بملكية أجنبية كاملة بدون شريك محلي، من التسجيل حتى فتح الحساب البنكي.</p>
+      <p>كيان قانوني سعودي بملكية أجنبية كاملة، بدون شريك محلي، من التسجيل حتى فتح الحساب البنكي.</p>
+      <ul class="service-list">
+        <li>تسجيل في وزارة التجارة</li>
+        <li>فتح الحساب البنكي التجاري</li>
+        <li>التسجيل الضريبي وهيئة الزكاة</li>
+        <li>استخراج السجل التجاري</li>
+      </ul>
     </div>
     <div class="service-card">
-      <div class="icon">🌍</div>
+      <div class="icon-circle">🌍</div>
       <h3>الاستحواذ على شركات خارجية</h3>
-      <p>فريقنا في 14 دولة يساعدك على الاستحواذ على شركات نظامية متوافقة مع اشتراطات الاستثمار السعودية.</p>
+      <p>فريقنا في 14 دولة حول العالم يساعدك على الاستحواذ على شركات نظامية متوافقة مع اشتراطات MISA.</p>
+      <ul class="service-list">
+        <li>كشف الفرص وتحديد الأهداف</li>
+        <li>تدقيق قانوني ومالي (Due Diligence)</li>
+        <li>إدارة التفاوض والإغلاق</li>
+        <li>دمج ما بعد الاستحواذ</li>
+      </ul>
     </div>
     <div class="service-card">
-      <div class="icon">🗂️</div>
+      <div class="icon-circle">🗂️</div>
       <h3>خدمات الدعم المتكامل</h3>
-      <p>موارد بشرية، محاسبة وإقرارات ضريبية، وتسويق رقمي — نرافقك بعد التأسيس أيضاً.</p>
+      <p>نرافقك في إدارة أعمالك بعد التأسيس، بفريق متخصص في كل جانب من جوانب التشغيل.</p>
+      <ul class="service-list">
+        <li>👥 موارد بشرية: توظيف، عقود، سعودة</li>
+        <li>📊 حسابات ومالية: محاسبة وإقرارات ضريبية</li>
+        <li>📱 تسويق رقمي: SEO وإدارة منصات</li>
+        <li>🗂️ إدارة مشاريع: تخطيط ومتابعة الأداء</li>
+      </ul>
     </div>
   </div>
 </section>
@@ -114,7 +141,7 @@
   </div>
 </section>
 
-<section class="paths-section" id="contact">
+<section class="paths-section" id="paths">
   <h2 class="paths-title">ابدأ من هنا</h2>
   <p class="paths-sub">اختر المسار المناسب لك</p>
   <div class="paths-grid">
@@ -141,7 +168,7 @@
   </div>
 </section>
 
-<section class="contact-section">
+<section class="contact-section" id="contact">
   <h2 class="section-title" style="margin-bottom:14px;">تواصل معنا</h2>
   <div class="contact-row">
     <span>📍 الرياض، المملكة العربية السعودية</span>
