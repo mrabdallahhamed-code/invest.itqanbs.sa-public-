@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة العميل — إتقان</title>
+<link rel="stylesheet" href="../assets/css/itqan.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="ar">إتقان لخدمات الأعمال</span></div>
+  <button class="btn ghost" onclick="signOut()">تسجيل الخروج</button>
+</header>
+<main>
+  <h1 class="page-title">مرحباً، <span id="uname">...</span></h1>
+
+  <div class="card" id="statusCard">
+    <h3 style="margin-bottom:10px;">حالة ملفك</h3>
+    <div id="statusBadge"></div>
+    <p id="statusNote" style="margin-top:10px;color:var(--ink-soft);font-size:13.5px;"></p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom:10px;">بيانات الشركة</h3>
+    <label>الجنسية</label>
+    <input id="nationality">
+    <label>اسم الشركة الأجنبية الحالية (إن وجدت)</label>
+    <input id="company_name_abroad">
+    <label>نوع النشاط المطلوب في المملكة</label>
+    <input id="activity_type">
+    <button class="btn" onclick="saveClientInfo()">حفظ البيانات</button>
+    <div id="infoMsg"></div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom:10px;">رفع مستند</h3>
+    <label>نوع المستند</label>
+    <select id="doc_type">
+      <option>عقد التأسيس (الشركة الأم)</option>
+      <option>جواز سفر ممثل الشركة</option>
+      <option>السجل التجاري الأجنبي</option>
+      <option>مستند آخر</option>
+    </select>
+    <label>الملف</label>
+    <input id="doc_file" type="file">
+    <button class="btn gold" onclick="uploadDoc()">رفع المستند</button>
+    <div id="uploadMsg"></div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom:10px;">مستنداتي</h3>
+    <table>
+      <thead><tr><th>النوع</th><th>تاريخ الرفع</th><th>الحالة</th></tr></thead>
+      <tbody id="docsBody"><tr><td colspan="3">جارٍ التحميل...</td></tr></tbody>
+    </table>
+  </div>
+</main>
+
+<script src="../assets/js/supabaseClient.js"></script>
+<script>
+let profile, clientRow;
+
+async function init(){
+  profile = await requireRole(['client']);
+  if(!profile) return;
+  document.getElementById('uname').textContent = profile.full_name;
+
+  const { data: client } = await supabase.from('clients').select('*').eq('id', profile.id).single();
+  clientRow = client;
+  renderStatus(client);
+  if(client){
+    document.getElementById('nationality').value = client.nationality || '';
+    document.getElementById('company_name_abroad').value = client.company_name_abroad || '';
+    document.getElementById('activity_type').value = client.activity_type || '';
+  }
+  loadDocs();
+}
+
+function renderStatus(client){
+  const badge = document.getElementById('statusBadge');
+  const note = document.getElementById('statusNote');
+  if(!client || client.readiness_status === 'pending_review'){
+    badge.innerHTML = '<span class="badge pending">قيد المراجعة</span>';
+    note.textContent = 'فريق إتقان يراجع مستنداتك حالياً لتحديد مسارك.';
+  } else if(client.readiness_status === 'ready'){
+    badge.innerHTML = '<span class="badge ready">جاهز ✓</span>';
+    note.textContent = 'ملفك جاهز — يمكنك البدء باختيار مقدّم خدمة لإكمال إجراءات التأسيس.';
+  } else {
+    badge.innerHTML = '<span class="badge notready">غير جاهز</span>';
+    note.textContent = client.readiness_notes || 'يوجد بعض النقاط التي تحتاج تجهيزاً قبل بدء التأسيس. راجع فريق إتقان لمعرفة التفاصيل.';
+  }
+}
+
+async function saveClientInfo(){
+  const payload = {
+    id: profile.id,
+    nationality: document.getElementById('nationality').value,
+    company_name_abroad: document.getElementById('company_name_abroad').value,
+    activity_type: document.getElementById('activity_type').value,
+  };
+  const { error } = await supabase.from('clients').upsert(payload);
+  const msg = document.getElementById('infoMsg');
+  msg.className = error ? 'msg err' : 'msg ok';
+  msg.textContent = error ? error.message : 'تم الحفظ بنجاح';
+}
+
+async function uploadDoc(){
+  const fileInput = document.getElementById('doc_file');
+  const doc_type = document.getElementById('doc_type').value;
+  const msg = document.getElementById('uploadMsg');
+  if(!fileInput.files.length){ msg.className='msg err'; msg.textContent='اختر ملفاً أولاً'; return; }
+
+  const file = fileInput.files[0];
+  const filePath = `${profile.id}/${Date.now()}_${file.name}`;
+
+  const { error: upErr } = await supabase.storage.from('client-documents').upload(filePath, file);
+  if(upErr){ msg.className='msg err'; msg.textContent = upErr.message; return; }
+
+  const { error: dbErr } = await supabase.from('documents').insert({
+    client_id: profile.id, doc_type, file_path: filePath
+  });
+  if(dbErr){ msg.className='msg err'; msg.textContent = dbErr.message; return; }
+
+  msg.className='msg ok'; msg.textContent='تم رفع المستند بنجاح';
+  fileInput.value = '';
+  loadDocs();
+}
+
+async function loadDocs(){
+  const { data, error } = await supabase.from('documents').select('*').eq('client_id', profile.id).order('uploaded_at', {ascending:false});
+  const body = document.getElementById('docsBody');
+  if(error || !data || !data.length){ body.innerHTML = '<tr><td colspan="3">لا توجد مستندات مرفوعة بعد</td></tr>'; return; }
+  body.innerHTML = data.map(d => {
+    const statusMap = {pending:'<span class="badge pending">قيد المراجعة</span>', verified:'<span class="badge ready">تم التحقق</span>', rejected:'<span class="badge notready">مرفوض</span>'};
+    return `<tr><td>${d.doc_type}</td><td>${new Date(d.uploaded_at).toLocaleDateString('ar-SA')}</td><td>${statusMap[d.status]}</td></tr>`;
+  }).join('');
+}
+
+init();
+</script>
+</body>
+</html>
