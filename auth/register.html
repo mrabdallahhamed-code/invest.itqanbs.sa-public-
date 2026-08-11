@@ -42,6 +42,7 @@ async function register(){
   }
 
   const { data, error } = await supabase.auth.signUp({ email, password });
+  await new Promise(resolve => setTimeout(resolve, 800));
   if(error){ msg.className='msg err'; msg.textContent = error.message; return; }
 
   const userId = data.user.id;
