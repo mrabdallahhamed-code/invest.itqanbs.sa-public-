@@ -17,7 +17,7 @@
 </style>
 </head>
 <body>
-<header class="top"><div class="brand"><span class="ar">إتقان لخدمات الأعمال</span></div></header>
+<header class="top"><div class="brand"><img src="../assets/images/logo.jpeg" alt="إتقان"></div></header>
 <main>
   <div class="card q-card" id="qCard">
     <div class="progress" id="progressBar"></div>
@@ -36,6 +36,17 @@ const questions = [
   { key: 'is_llc', text: 'هل الشركة ذات مسؤولية محدودة (LLC)؟' },
   { key: 'has_incorporation_contract', text: 'هل تمتلك عقد تأسيس ساري للشركة؟' },
   { key: 'has_audited_financials', text: 'هل لديك قوائم مالية مدققة لمدة عام على الأقل؟' },
+];
+
+const journeySteps = [
+  'تصديق الوثائق من السفارة السعودية بالبلد الأم',
+  'شحن الوثائق',
+  'التقديم على رخصة الاستثمار',
+  'الحصول على رخصة الاستثمار',
+  'حجز الاسم التجاري',
+  'تأسيس الشركة وعقد التأسيس',
+  'فتح ملف الموارد البشرية',
+  'فتح الملفات الحكومية',
 ];
 
 let currentStep = 0;
@@ -82,20 +93,23 @@ async function finish(){
   document.getElementById('qCard').innerHTML = '<p style="text-align:center;color:var(--ink-soft);">جارٍ حفظ النتيجة...</p>';
 
   let readiness_status, readiness_notes;
-  const missingItems = [];
+  const checklistItems = [];
 
   if(answers.has_foreign_company === false){
     readiness_status = 'not_ready';
     readiness_notes = 'لا تمتلك شركة أجنبية حالياً — يمكنك الاستفادة من خدمة الاستحواذ على شركة عبر طلب العروض مباشرة.';
-  } else if(answers.is_llc && answers.has_incorporation_contract && answers.has_audited_financials){
-    readiness_status = 'ready';
-    readiness_notes = null;
   } else {
-    readiness_status = 'not_ready';
-    if(!answers.is_llc) missingItems.push('تعديل الشكل القانوني للشركة ليصبح ذا مسؤولية محدودة (LLC)');
-    if(!answers.has_incorporation_contract) missingItems.push('استخراج أو تجهيز عقد تأسيس ساري للشركة');
-    if(!answers.has_audited_financials) missingItems.push('إعداد قوائم مالية مدققة لمدة عام على الأقل');
-    readiness_notes = 'ملفك يحتاج بعض النقاط قبل التأسيس — راجع الإجراءات أدناه بلوحتك.';
+    if(answers.is_llc && answers.has_incorporation_contract && answers.has_audited_financials){
+      readiness_status = 'ready';
+      readiness_notes = null;
+    } else {
+      readiness_status = 'not_ready';
+      if(!answers.is_llc) checklistItems.push('تعديل الشكل القانوني للشركة ليصبح ذا مسؤولية محدودة (LLC)');
+      if(!answers.has_incorporation_contract) checklistItems.push('استخراج أو تجهيز عقد تأسيس ساري للشركة');
+      if(!answers.has_audited_financials) checklistItems.push('إعداد قوائم مالية مدققة لمدة عام على الأقل');
+      readiness_notes = 'ملفك يحتاج بعض النقاط قبل التأسيس — راجع الإجراءات أدناه بلوحتك.';
+    }
+    checklistItems.push(...journeySteps);
   }
 
   const payload = {
@@ -115,8 +129,8 @@ async function finish(){
     return;
   }
 
-  if(missingItems.length){
-    const rows = missingItems.map(item => ({ client_id: profile.id, item }));
+  if(checklistItems.length){
+    const rows = checklistItems.map((item, i) => ({ client_id: profile.id, item, position: i }));
     await supabase.from('readiness_checklist').insert(rows);
   }
 
