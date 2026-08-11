@@ -14,26 +14,60 @@
     هذه الأسئلة تساعد مقدمي الخدمة على تقديم عرض دقيق لحالتك — لا حاجة لرفع أي مستندات الآن.
   </p>
   <div class="card">
-    <label>نوع النشاط المطلوب تأسيسه</label>
-    <input id="activity_type" placeholder="مثال: تجارة إلكترونية، استشارات إدارية">
 
-    <label>الميزانية التقريبية للخدمة</label>
-    <select id="budget_range">
+    <label>ما نوع النشاط المطلوب؟</label>
+    <select id="activity_type">
       <option value="">اختر...</option>
-      <option>أقل من 5,000 ر.س</option>
-      <option>5,000 - 10,000 ر.س</option>
-      <option>10,000 - 20,000 ر.س</option>
-      <option>أكثر من 20,000 ر.س</option>
-      <option>غير محدد بعد</option>
+      <option>خدمي</option>
+      <option>صناعي</option>
+      <option>زراعي</option>
+      <option>تجاري</option>
     </select>
 
-    <label>الجدول الزمني المطلوب</label>
-    <select id="timeline">
+    <label>ما هي آخر ميزانية مدققة للشركة؟</label>
+    <input id="last_audited_budget" placeholder="مثال: 500,000 دولار">
+
+    <label>هل تم تصديق الأوراق من الخارجية في البلد الأم؟</label>
+    <select id="docs_certified_home_country">
       <option value="">اختر...</option>
-      <option>عاجل — أقل من أسبوعين</option>
-      <option>خلال شهر</option>
-      <option>خلال 2-3 أشهر</option>
-      <option>لا يوجد استعجال</option>
+      <option value="true">نعم</option>
+      <option value="false">لا</option>
+    </select>
+
+    <label>هل تم تصديق المستندات من السفارة السعودية؟</label>
+    <select id="docs_certified_embassy">
+      <option value="">اختر...</option>
+      <option value="true">نعم</option>
+      <option value="false">لا</option>
+    </select>
+
+    <label>هل أنت زائر حالي بالمملكة، أم مقيم، أم خارج المملكة؟</label>
+    <select id="residency_status">
+      <option value="">اختر...</option>
+      <option>زائر حالي بالمملكة</option>
+      <option>مقيم بالمملكة</option>
+      <option>خارج المملكة</option>
+    </select>
+
+    <label>هل ترغب بالاستحواذ على شركة سعودية قائمة أم إنشاء شركة جديدة؟</label>
+    <select id="acquisition_or_new">
+      <option value="">اختر...</option>
+      <option>استحواذ على شركة قائمة</option>
+      <option>إنشاء شركة جديدة</option>
+    </select>
+
+    <label>هل المدير العام المعيّن بالشركة مقيم داخل المملكة أم خارجها؟</label>
+    <select id="gm_residency">
+      <option value="">اختر...</option>
+      <option>مقيم داخل المملكة</option>
+      <option>مقيم خارج المملكة</option>
+    </select>
+
+    <label>هل يملك المدير العام بالشركة الأم صلاحيات تأسيس شركة بالخارج؟</label>
+    <select id="gm_has_authority">
+      <option value="">اختر...</option>
+      <option value="true">نعم</option>
+      <option value="false">لا</option>
     </select>
 
     <label>ملاحظات إضافية (اختياري)</label>
@@ -52,21 +86,40 @@ async function init(){
   profile = await requireRole(['client']);
 }
 
+function boolOrNull(val){
+  if(val === 'true') return true;
+  if(val === 'false') return false;
+  return null;
+}
+
 async function submitRequest(){
-  const activity_type = document.getElementById('activity_type').value.trim();
-  const budget_range = document.getElementById('budget_range').value;
-  const timeline = document.getElementById('timeline').value;
+  const activity_type = document.getElementById('activity_type').value;
+  const last_audited_budget = document.getElementById('last_audited_budget').value.trim();
+  const docs_certified_home_country = document.getElementById('docs_certified_home_country').value;
+  const docs_certified_embassy = document.getElementById('docs_certified_embassy').value;
+  const residency_status = document.getElementById('residency_status').value;
+  const acquisition_or_new = document.getElementById('acquisition_or_new').value;
+  const gm_residency = document.getElementById('gm_residency').value;
+  const gm_has_authority = document.getElementById('gm_has_authority').value;
   const notes = document.getElementById('notes').value.trim();
   const msg = document.getElementById('msg');
 
-  if(!activity_type || !budget_range || !timeline){
-    msg.className = 'msg err'; msg.textContent = 'الرجاء تعبئة نوع النشاط والميزانية والجدول الزمني'; return;
+  if(!activity_type || !residency_status || !acquisition_or_new){
+    msg.className = 'msg err'; msg.textContent = 'الرجاء تعبئة الحقول الأساسية على الأقل'; return;
   }
 
   const { error } = await supabase.from('service_requests').insert({
     client_id: profile.id,
     status: 'pending_admin_review',
-    activity_type, budget_range, timeline, notes
+    activity_type,
+    last_audited_budget,
+    docs_certified_home_country: boolOrNull(docs_certified_home_country),
+    docs_certified_embassy: boolOrNull(docs_certified_embassy),
+    residency_status,
+    acquisition_or_new,
+    gm_residency,
+    gm_has_authority: boolOrNull(gm_has_authority),
+    notes
   });
 
   if(error){ msg.className = 'msg err'; msg.textContent = error.message; return; }
