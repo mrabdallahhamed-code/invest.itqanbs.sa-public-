@@ -98,6 +98,14 @@ async function init(){
 function renderStatus(client){
   const badge = document.getElementById('statusBadge');
   const note = document.getElementById('statusNote');
+  const actionArea = document.getElementById('assessmentAction');
+
+  if(!client || !client.assessment_completed_at){
+    actionArea.innerHTML = '<button class="btn gold" onclick="location.href=\'assessment.html\'">قيّم جاهزيتك الآن</button>';
+  } else {
+    actionArea.innerHTML = '';
+  }
+
   if(!client || client.readiness_status === 'pending_review'){
     badge.innerHTML = '<span class="badge pending">قيد المراجعة</span>';
     note.textContent = 'فريق إتقان يراجع مستنداتك حالياً لتحديد مسارك.';
