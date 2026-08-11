@@ -1,7 +1,7 @@
 const SUPABASE_URL = "https://fpjaupjwikaaxehcqprk.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_b_EiVWdAwTJDk-IGufOEBw_AzUMObDT";
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+window.supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function getCurrentProfile() {
   const { data: { user } } = await supabase.auth.getUser();
