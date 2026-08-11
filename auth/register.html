@@ -58,6 +58,8 @@ async function register(){
   msg.className='msg ok';
   msg.textContent='تم إنشاء الحساب! تحقق من بريدك لتأكيد الحساب ثم سجّل الدخول.';
 }
+  const urlRole = new URLSearchParams(window.location.search).get('role');
+if(urlRole === 'client' || urlRole === 'provider'){ document.getElementById('role').value = urlRole; }
 </script>
 </body>
 </html>
