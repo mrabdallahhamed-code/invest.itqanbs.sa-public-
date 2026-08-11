@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>طلب عروض — إتقان</title>
+<link rel="stylesheet" href="../assets/css/itqan.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<header class="top"><div class="brand"><img src="../assets/images/logo.jpeg" alt="إتقان"></div></header>
+<main style="max-width:560px;">
+  <h1 class="page-title">أخبرنا أكثر عن طلبك</h1>
+  <p style="color:var(--ink-soft);font-size:13.5px;margin-bottom:20px;">
+    هذه الأسئلة تساعد مقدمي الخدمة على تقديم عرض دقيق لحالتك — لا حاجة لرفع أي مستندات الآن.
+  </p>
+  <div class="card">
+    <label>نوع النشاط المطلوب تأسيسه</label>
+    <input id="activity_type" placeholder="مثال: تجارة إلكترونية، استشارات إدارية">
+
+    <label>الميزانية التقريبية للخدمة</label>
+    <select id="budget_range">
+      <option value="">اختر...</option>
+      <option>أقل من 5,000 ر.س</option>
+      <option>5,000 - 10,000 ر.س</option>
+      <option>10,000 - 20,000 ر.س</option>
+      <option>أكثر من 20,000 ر.س</option>
+      <option>غير محدد بعد</option>
+    </select>
+
+    <label>الجدول الزمني المطلوب</label>
+    <select id="timeline">
+      <option value="">اختر...</option>
+      <option>عاجل — أقل من أسبوعين</option>
+      <option>خلال شهر</option>
+      <option>خلال 2-3 أشهر</option>
+      <option>لا يوجد استعجال</option>
+    </select>
+
+    <label>ملاحظات إضافية (اختياري)</label>
+    <textarea id="notes" rows="3" placeholder="أي تفاصيل تحب تشاركها مع مقدمي الخدمة"></textarea>
+
+    <button class="btn gold" onclick="submitRequest()">إرسال الطلب</button>
+    <div id="msg"></div>
+  </div>
+</main>
+
+<script src="../assets/js/supabaseClient.js"></script>
+<script>
+let profile;
+
+async function init(){
+  profile = await requireRole(['client']);
+}
+
+async function submitRequest(){
+  const activity_type = document.getElementById('activity_type').value.trim();
+  const budget_range = document.getElementById('budget_range').value;
+  const timeline = document.getElementById('timeline').value;
+  const notes = document.getElementById('notes').value.trim();
+  const msg = document.getElementById('msg');
+
+  if(!activity_type || !budget_range || !timeline){
+    msg.className = 'msg err'; msg.textContent = 'الرجاء تعبئة نوع النشاط والميزانية والجدول الزمني'; return;
+  }
+
+  const { error } = await supabase.from('service_requests').insert({
+    client_id: profile.id,
+    status: 'pending_admin_review',
+    activity_type, budget_range, timeline, notes
+  });
+
+  if(error){ msg.className = 'msg err'; msg.textContent = error.message; return; }
+
+  window.location.href = 'dashboard.html';
+}
+
+init();
+</script>
+</body>
+</html>
