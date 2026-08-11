@@ -5,29 +5,33 @@
 <title>إتقان لخدمات الأعمال — تأسيس شركات بملكية أجنبية في السعودية</title>
 <link rel="stylesheet" href="assets/css/itqan.css">
 <style>
-  .hero{padding:60px 20px 50px; text-align:center; max-width:720px; margin:0 auto;}
-  .hero .logo-mark{width:64px;height:64px;margin:0 auto 20px;}
-  .hero h1{font-family:'Amiri',serif; font-size:36px; color:var(--green-dark); line-height:1.3; margin-bottom:16px;}
-  .hero p{color:var(--ink-soft); font-size:16px; line-height:1.8; margin-bottom:28px;}
-  .hero-actions{display:flex; gap:12px; justify-content:center; flex-wrap:wrap;}
-  section.block{max-width:900px; margin:0 auto; padding:40px 20px;}
-  .section-eyebrow{font-size:12px; font-weight:700; color:var(--gold); letter-spacing:1.5px; text-transform:uppercase; display:block; text-align:center; margin-bottom:10px;}
-  .section-title{font-family:'Amiri',serif; font-size:26px; color:var(--green-dark); text-align:center; margin-bottom:36px;}
-  .about-grid{display:grid; grid-template-columns:1fr 1fr; gap:20px;}
-  @media(max-width:700px){.about-grid{grid-template-columns:1fr;}}
-  .about-card{background:var(--white); border:1px solid var(--line); border-radius:var(--radius); padding:24px;}
-  .about-card .num{font-family:'Amiri',serif; font-size:22px; color:var(--gold); margin-bottom:8px;}
-  .about-card h3{font-size:16px; color:var(--green-dark); margin-bottom:8px;}
-  .about-card p{font-size:13.5px; color:var(--ink-soft); line-height:1.7;}
-  .steps{display:flex; flex-direction:column; gap:0; max-width:600px; margin:0 auto;}
-  .step{display:flex; gap:16px; padding:18px 0; border-bottom:1px solid var(--line);}
-  .step:last-child{border-bottom:none;}
-  .step .n{font-family:'Amiri',serif; font-size:20px; color:var(--gold); font-weight:700; min-width:32px;}
-  .step .t h4{font-size:14.5px; color:var(--ink); margin-bottom:4px;}
-  .step .t p{font-size:13px; color:var(--ink-soft);}
-  .closing{background:var(--green-dark); color:var(--white); text-align:center; padding:50px 20px;}
-  .closing h2{font-family:'Amiri',serif; font-size:26px; margin-bottom:14px;}
-  .closing p{color:#C7CFC5; font-size:14.5px; margin-bottom:24px;}
+  header.top{flex-wrap:wrap; gap:12px;}
+  .top-nav{display:flex; gap:26px; align-items:center;}
+  .top-nav a{color:var(--ink); font-size:14px; text-decoration:none; font-weight:500;}
+  .top-nav a:hover{color:var(--gold);}
+  .top-actions{display:flex; gap:10px;}
+
+  .intro{max-width:760px; margin:0 auto; padding:56px 20px 20px; text-align:center;}
+  .intro .logo-mark{width:60px;height:60px;margin:0 auto 18px;}
+  .intro h1{font-family:'Amiri',serif; font-size:32px; color:var(--green-dark); line-height:1.35; margin-bottom:16px;}
+  .intro p{color:var(--ink-soft); font-size:15.5px; line-height:1.85;}
+
+  .kingdom-section{background:var(--green-dark); padding:50px 20px; margin:50px 0; position:relative; overflow:hidden;}
+  .skyline{max-width:720px; margin:0 auto 26px; display:block;}
+  .kingdom-text{max-width:600px; margin:0 auto; text-align:center; position:relative; z-index:1;}
+  .kingdom-text h2{font-family:'Amiri',serif; color:var(--gold); font-size:24px; margin-bottom:12px;}
+  .kingdom-text p{color:#D9E0D6; font-size:14.5px; line-height:1.8;}
+
+  .paths-section{max-width:920px; margin:0 auto; padding:20px 20px 60px;}
+  .paths-title{font-family:'Amiri',serif; font-size:24px; color:var(--green-dark); text-align:center; margin-bottom:8px;}
+  .paths-sub{text-align:center; color:var(--ink-soft); font-size:14px; margin-bottom:34px;}
+  .paths-grid{display:grid; grid-template-columns:1fr 1fr; gap:20px;}
+  @media(max-width:640px){.paths-grid{grid-template-columns:1fr;}}
+  .path-card{background:var(--white); border:1px solid var(--line); border-radius:var(--radius); padding:26px; text-align:center;}
+  .path-card .icon{font-size:30px; margin-bottom:10px;}
+  .path-card h3{font-size:16.5px; color:var(--green-dark); margin-bottom:14px;}
+  .path-card .row{display:flex; gap:10px; justify-content:center;}
+
   footer.site{text-align:center; padding:24px; color:var(--ink-soft); font-size:12px; border-top:1px solid var(--line);}
 </style>
 </head>
@@ -41,72 +45,82 @@
     </svg>
     <span class="ar" style="font-size:20px;">إتقان لخدمات الأعمال</span>
   </div>
-  <div>
-    <a href="auth/login.html" class="btn ghost" style="margin-top:0;">دخول</a>
-    <a href="auth/register.html" class="btn" style="margin-top:0;">إنشاء حساب</a>
-  </div>
+  <nav class="top-nav">
+    <a href="#about">عن الشركة</a>
+    <a href="#services">خدماتنا</a>
+    <a href="#contact">تواصل معنا</a>
+  </nav>
 </header>
 
-<section class="hero">
+<section class="intro" id="about">
   <svg class="logo-mark" viewBox="0 0 100 100">
     <polygon points="50,4 90,27 90,73 50,96 10,73 10,27" fill="none" stroke="#3D5240" stroke-width="5"/>
     <polygon points="50,20 76,35 76,65 50,80 24,65 24,35" fill="none" stroke="#C9A227" stroke-width="3.5"/>
   </svg>
-  <h1>استثمر في السعودية بملكية أجنبية كاملة</h1>
+  <h1 id="services">إتقان لخدمات الأعمال</h1>
   <p>
-    تفتح رؤية المملكة 2030 الباب أمام المستثمرين الأجانب لتأسيس شركاتهم داخل السعودية بنسبة تملك 100%،
-    في قطاعات متعددة وبإجراءات أصبحت أوضح وأسرع من أي وقت مضى. إتقان تختصر عليك الطريق:
-    نراجع ملفك، نحدد جاهزيتك، ونربطك مباشرة بأفضل مقدمي الخدمة لإنجاز التأسيس من البداية للنهاية.
+    منصة وسيطة تربط المستثمرين الأجانب الراغبين في تأسيس شركاتهم داخل المملكة العربية السعودية
+    بأفضل مقدمي الخدمة المعتمدين. نتحقق من مستنداتك، نقيّم جاهزيتك بدقة، ونوجّه طلبك لمن يناسب
+    حالتك تحديداً — بدلاً من البحث العشوائي بين عشرات المكاتب والمكتبات القانونية.
   </p>
-  <div class="hero-actions">
-    <a href="auth/register.html" class="btn gold" style="margin-top:0;font-size:15px;padding:13px 28px;">ابدأ الآن</a>
-    <a href="#about" class="btn ghost" style="margin-top:0;font-size:15px;padding:13px 28px;">تعرّف على الخدمة</a>
+</section>
+
+<section class="kingdom-section">
+  <svg class="skyline" viewBox="0 0 720 160" preserveAspectRatio="xMidYMax meet">
+    <rect x="0" y="0" width="720" height="160" fill="none"/>
+    <g fill="none" stroke="#C9A227" stroke-width="2" opacity="0.85">
+      <rect x="40" y="70" width="26" height="90"/>
+      <rect x="90" y="40" width="20" height="120"/>
+      <polygon points="150,160 150,30 165,10 180,30 180,160"/>
+      <rect x="220" y="90" width="24" height="70"/>
+      <rect x="270" y="55" width="18" height="105"/>
+      <rect x="320" y="20" width="22" height="140"/>
+      <circle cx="331" cy="8" r="6"/>
+      <rect x="380" y="75" width="26" height="85"/>
+      <rect x="430" y="45" width="20" height="115"/>
+      <polygon points="490,160 490,35 505,15 520,35 520,160"/>
+      <rect x="560" y="85" width="24" height="75"/>
+      <rect x="610" y="50" width="18" height="110"/>
+      <rect x="655" y="65" width="26" height="95"/>
+    </g>
+    <line x1="0" y1="160" x2="720" y2="160" stroke="#C9A227" stroke-width="1.5" opacity="0.6"/>
+  </svg>
+  <div class="kingdom-text">
+    <h2>استثمر في اقتصاد يتوسع بثقة</h2>
+    <p>
+      ضمن رؤية المملكة 2030، أصبح بإمكان المستثمر الأجنبي تأسيس شركته بنسبة تملك 100%
+      في عدد واسع من القطاعات، بإجراءات نظامية واضحة ودعم مؤسسي متنامٍ. إتقان هنا لتبسّط
+      عليك كل خطوة في هذا المسار.
+    </p>
   </div>
 </section>
 
-<section class="block" id="about">
-  <span class="section-eyebrow">عن إتقان</span>
-  <h2 class="section-title">وسيط موثوق بينك وبين التأسيس</h2>
-  <div class="about-grid">
-    <div class="about-card">
-      <div class="num">01</div>
-      <h3>التحقق من المستندات</h3>
-      <p>نراجع أوراقك ومستنداتك بدقة، ونحدد ما إذا كان ملفك جاهزاً للانطلاق مباشرة أو يحتاج بعض الترتيب أولاً.</p>
+<section class="paths-section" id="contact">
+  <h2 class="paths-title">ابدأ من هنا</h2>
+  <p class="paths-sub">اختر المسار المناسب لك</p>
+  <div class="paths-grid">
+    <div class="path-card">
+      <div class="icon">👤</div>
+      <h3>حساب عميل حالي</h3>
+      <div class="row"><a href="auth/login.html?role=client" class="btn" style="margin-top:0;">تسجيل الدخول</a></div>
     </div>
-    <div class="about-card">
-      <div class="num">02</div>
-      <h3>مسار واضح لكل حالة</h3>
-      <p>سواء كان ملفك جاهزاً أو يحتاج تجهيزاً إضافياً، نعطيك خطوات واضحة ومتابَعة حتى الوصول لعقد تأسيس شركتك.</p>
+    <div class="path-card">
+      <div class="icon">🆕</div>
+      <h3>حساب عميل جديد</h3>
+      <div class="row"><a href="auth/register.html?role=client" class="btn gold" style="margin-top:0;">إنشاء حساب</a></div>
     </div>
-    <div class="about-card">
-      <div class="num">03</div>
-      <h3>مطابقة مع مقدمي خدمة</h3>
-      <p>فريقنا يراجع طلبك ويوجهه لمقدمي الخدمة الأنسب لحالتك تحديداً، بدل ما تبحث بنفسك بين خيارات عشوائية.</p>
+    <div class="path-card">
+      <div class="icon">🏢</div>
+      <h3>حساب مقدّم خدمة حالي</h3>
+      <div class="row"><a href="auth/login.html?role=provider" class="btn" style="margin-top:0;">تسجيل الدخول</a></div>
     </div>
-    <div class="about-card">
-      <div class="num">04</div>
-      <h3>عروض تقارن بينها بنفسك</h3>
-      <p>تستقبل عروض أسعار وجداول زمنية من مقدمي خدمة معتمدين، وتختار من يناسبك أنت — القرار الأخير لك دائماً.</p>
+    <div class="path-card">
+      <div class="icon">➕</div>
+      <h3>حساب مقدّم خدمة جديد</h3>
+      <div class="row"><a href="auth/register.html?role=provider" class="btn gold" style="margin-top:0;">إنشاء حساب</a></div>
     </div>
   </div>
 </section>
-
-<section class="block">
-  <span class="section-eyebrow">كيف تعمل المنصة</span>
-  <h2 class="section-title">رحلتك معنا خطوة بخطوة</h2>
-  <div class="steps">
-    <div class="step"><div class="n">١</div><div class="t"><h4>إنشاء حساب ورفع المستندات</h4><p>تسجّل بياناتك الأساسية وترفع مستندات شركتك أو خطتك الاستثمارية.</p></div></div>
-    <div class="step"><div class="n">٢</div><div class="t"><h4>مراجعة وتصنيف الجاهزية</h4><p>فريق إتقان يراجع ملفك ويوضح لك الخطوات اللازمة للوصول لعقد التأسيس.</p></div></div>
-    <div class="step"><div class="n">٣</div><div class="t"><h4>طلب عروض</h4><p>بعد إكمال الخطوات، تطلب عروض ويوجّه فريقنا طلبك لمقدمي الخدمة الأنسب لحالتك.</p></div></div>
-    <div class="step"><div class="n">٤</div><div class="t"><h4>اختيار مقدّم الخدمة</h4><p>تستقبل العروض وتختار من يناسبك ليكمل إجراءات التأسيس نيابة عنك.</p></div></div>
-  </div>
-</section>
-
-<div class="closing">
-  <h2>جاهز تبدأ رحلة استثمارك؟</h2>
-  <p>يستغرق إنشاء الحساب أقل من دقيقتين</p>
-  <a href="auth/register.html" class="btn gold" style="margin-top:0;font-size:15px;padding:13px 30px;">إنشاء حساب مجاني</a>
-</div>
 
 <footer class="site">© إتقان لخدمات الأعمال — Itqan Business Services</footer>
 
