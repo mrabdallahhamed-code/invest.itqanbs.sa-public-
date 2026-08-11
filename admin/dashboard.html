@@ -16,7 +16,7 @@
 
   <div class="tabs">
     <button class="active" onclick="switchTab('docs')">مستندات بانتظار المراجعة</button>
-    <button onclick="switchTab('clients')">تصنيف العملاء</button>
+    <button onclick="switchTab('clients')">تصنيف العملاء وخطوات التجهيز</button>
   </div>
 
   <div id="tab-docs">
@@ -31,8 +31,8 @@
   <div id="tab-clients" style="display:none;">
     <div class="card">
       <table>
-        <thead><tr><th>العميل</th><th>الجنسية</th><th>الحالة الحالية</th><th>تحديث التصنيف</th></tr></thead>
-        <tbody id="clientsBody"><tr><td colspan="4">جارٍ التحميل...</td></tr></tbody>
+        <thead><tr><th>العميل</th><th>الجنسية</th><th>الحالة الحالية</th><th>تحديث التصنيف</th><th>خطوات التجهيز</th></tr></thead>
+        <tbody id="clientsBody"><tr><td colspan="5">جارٍ التحميل...</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -93,9 +93,10 @@ async function loadClients(){
     .order('created_at', {ascending:false});
 
   const body = document.getElementById('clientsBody');
-  if(error || !data || !data.length){ body.innerHTML = '<tr><td colspan="4">لا يوجد عملاء بعد</td></tr>'; return; }
+  if(error || !data || !data.length){ body.innerHTML = '<tr><td colspan="5">لا يوجد عملاء بعد</td></tr>'; return; }
 
   const statusMap = {pending_review:'قيد المراجعة', ready:'جاهز', not_ready:'غير جاهز'};
+
   body.innerHTML = data.map(c => `
     <tr>
       <td>${c.profiles?.full_name || c.id}</td>
@@ -109,6 +110,20 @@ async function loadClients(){
           <option value="pending_review">قيد المراجعة</option>
         </select>
       </td>
+      <td>
+        <button class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="toggleChecklist('${c.id}')">إدارة الخطوات</button>
+      </td>
+    </tr>
+    <tr id="checklist-row-${c.id}" style="display:none;">
+      <td colspan="5">
+        <div style="background:var(--cream);border-radius:10px;padding:14px;">
+          <div id="checklist-items-${c.id}"><p style="font-size:13px;color:var(--ink-soft);">جارٍ التحميل...</p></div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <input id="new-item-${c.id}" placeholder="مثال: تعديل عقد التأسيس" style="flex:1;">
+            <button class="btn" style="margin-top:0;padding:9px 16px;" onclick="addChecklistItem('${c.id}')">إضافة خطوة</button>
+          </div>
+        </div>
+      </td>
     </tr>`).join('');
 }
 
@@ -117,6 +132,44 @@ async function updateReadiness(clientId, status){
   const { error } = await supabase.from('clients').update({ readiness_status: status }).eq('id', clientId);
   if(error){ alert(error.message); return; }
   loadClients();
+}
+
+function toggleChecklist(clientId){
+  const row = document.getElementById(`checklist-row-${clientId}`);
+  const isHidden = row.style.display === 'none';
+  row.style.display = isHidden ? 'table-row' : 'none';
+  if(isHidden) loadChecklistItems(clientId);
+}
+
+async function loadChecklistItems(clientId){
+  const { data, error } = await supabase.from('readiness_checklist').select('*').eq('client_id', clientId).order('updated_at');
+  const container = document.getElementById(`checklist-items-${clientId}`);
+  if(error || !data || !data.length){
+    container.innerHTML = '<p style="font-size:13px;color:var(--ink-soft);">لا توجد خطوات مضافة بعد.</p>';
+    return;
+  }
+  container.innerHTML = data.map(item => `
+    <div style="display:flex;align-items:center;gap:10px;padding:6px 0;">
+      <input type="checkbox" ${item.is_complete ? 'checked' : ''} onchange="toggleItem('${item.id}', this.checked, '${clientId}')">
+      <span style="font-size:13.5px;${item.is_complete ? 'color:var(--ink-soft);text-decoration:line-through;' : ''}">${item.item}</span>
+    </div>
+  `).join('');
+}
+
+async function addChecklistItem(clientId){
+  const input = document.getElementById(`new-item-${clientId}`);
+  const text = input.value.trim();
+  if(!text) return;
+  const { error } = await supabase.from('readiness_checklist').insert({ client_id: clientId, item: text });
+  if(error){ alert(error.message); return; }
+  input.value = '';
+  loadChecklistItems(clientId);
+}
+
+async function toggleItem(itemId, isComplete, clientId){
+  const { error } = await supabase.from('readiness_checklist').update({ is_complete: isComplete, updated_at: new Date().toISOString() }).eq('id', itemId);
+  if(error){ alert(error.message); return; }
+  loadChecklistItems(clientId);
 }
 
 init();
