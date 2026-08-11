@@ -8,16 +8,16 @@
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="ar">إتقان — مقدّم خدمة</span></div>
+  <div class="brand"><img src="../assets/images/logo.jpeg" alt="إتقان"></div>
   <button class="btn ghost" onclick="signOut()">تسجيل الخروج</button>
 </header>
 <main>
-  <h1 class="page-title">طلبات العملاء الجاهزين</h1>
+  <h1 class="page-title">طلبات العملاء</h1>
 
   <div class="card">
     <table>
-      <thead><tr><th>رقم الطلب</th><th>تاريخ الفتح</th><th>إجراء</th></tr></thead>
-      <tbody id="reqBody"><tr><td colspan="3">جارٍ التحميل...</td></tr></tbody>
+      <thead><tr><th>رقم الطلب</th><th>نوع النشاط</th><th>الميزانية</th><th>الجدول الزمني</th><th>إجراء</th></tr></thead>
+      <tbody id="reqBody"><tr><td colspan="5">جارٍ التحميل...</td></tr></tbody>
     </table>
   </div>
 
@@ -44,20 +44,22 @@ async function init(){
 async function loadRequests(){
   const { data, error } = await supabase
     .from('service_requests')
-    .select('id, created_at')
+    .select('id, created_at, activity_type, budget_range, timeline')
     .eq('status', 'open')
     .order('created_at', {ascending:false});
 
   const body = document.getElementById('reqBody');
-  if(error || !data || !data.length){ body.innerHTML = '<tr><td colspan="3">لا توجد طلبات مفتوحة حالياً</td></tr>'; return; }
+  if(error || !data || !data.length){ body.innerHTML = '<tr><td colspan="5">لا توجد طلبات مفتوحة حالياً</td></tr>'; return; }
 
   body.innerHTML = data.map(r => `
     <tr>
       <td>#${r.id.slice(0,8)}</td>
-      <td>${new Date(r.created_at).toLocaleDateString('ar-SA')}</td>
+      <td>${r.activity_type || '—'}</td>
+      <td>${r.budget_range || '—'}</td>
+      <td>${r.timeline || '—'}</td>
       <td>
-        <input type="number" placeholder="السعر (ر.س)" id="price-${r.id}" style="width:110px;display:inline-block;padding:6px;">
-        <input type="number" placeholder="أيام التنفيذ" id="days-${r.id}" style="width:110px;display:inline-block;padding:6px;">
+        <input type="number" placeholder="السعر (ر.س)" id="price-${r.id}" style="width:100px;display:inline-block;padding:6px;">
+        <input type="number" placeholder="أيام" id="days-${r.id}" style="width:80px;display:inline-block;padding:6px;">
         <button class="btn" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="submitOffer('${r.id}')">إرسال عرض</button>
       </td>
     </tr>`).join('');

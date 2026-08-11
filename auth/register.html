@@ -7,7 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-<header class="top"><div class="brand"><span class="ar">إتقان لخدمات الأعمال</span></div></header>
+<header class="top"><div class="brand"><img src="../assets/images/logo.jpeg" alt="إتقان"></div></header>
 <main style="max-width:480px;">
   <h1 class="page-title">إنشاء حساب جديد</h1>
   <div class="card">
@@ -29,6 +29,9 @@
 </main>
 <script src="../assets/js/supabaseClient.js"></script>
 <script>
+const urlRole = new URLSearchParams(window.location.search).get('role');
+if(urlRole === 'client' || urlRole === 'provider'){ document.getElementById('role').value = urlRole; }
+
 async function register(){
   const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
@@ -42,7 +45,6 @@ async function register(){
   }
 
   const { data, error } = await supabase.auth.signUp({ email, password });
-  await new Promise(resolve => setTimeout(resolve, 800));
   if(error){ msg.className='msg err'; msg.textContent = error.message; return; }
 
   const userId = data.user.id;
@@ -58,8 +60,6 @@ async function register(){
   msg.className='msg ok';
   msg.textContent='تم إنشاء الحساب! تحقق من بريدك لتأكيد الحساب ثم سجّل الدخول.';
 }
-  const urlRole = new URLSearchParams(window.location.search).get('role');
-if(urlRole === 'client' || urlRole === 'provider'){ document.getElementById('role').value = urlRole; }
 </script>
 </body>
 </html>

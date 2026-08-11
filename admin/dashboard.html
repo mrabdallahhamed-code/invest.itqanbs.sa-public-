@@ -182,6 +182,7 @@ async function toggleItem(itemId, isComplete, clientId){
   loadChecklistItems(clientId);
 }
 
+// ---------- توجيه طلبات العروض ----------
 async function loadPendingRequests(){
   const body = document.getElementById('requestsBody');
   const { data: requests, error } = await supabase

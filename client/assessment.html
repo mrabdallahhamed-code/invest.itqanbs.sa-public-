@@ -38,6 +38,7 @@ const questions = [
   { key: 'has_audited_financials', text: 'هل لديك قوائم مالية مدققة لمدة عام على الأقل؟' },
 ];
 
+// المسار الثابت للحصول على عقد التأسيس (يظهر لكل من يملك شركة خارجية)
 const journeySteps = [
   'تصديق الوثائق من السفارة السعودية بالبلد الأم',
   'شحن الوثائق',
@@ -109,6 +110,7 @@ async function finish(){
       if(!answers.has_audited_financials) checklistItems.push('إعداد قوائم مالية مدققة لمدة عام على الأقل');
       readiness_notes = 'ملفك يحتاج بعض النقاط قبل التأسيس — راجع الإجراءات أدناه بلوحتك.';
     }
+    // مسار الحصول على عقد التأسيس يظهر لكل من يملك شركة خارجية
     checklistItems.push(...journeySteps);
   }
 
