@@ -33,7 +33,11 @@
   <div class="card" id="stepsCard" style="display:none;">
     <h3 style="margin-bottom:10px;">إجراءات الحصول على عقد التأسيس</h3>
     <div id="stepsBody"></div>
-    <div id="requestActionArea" style="margin-top:16px;"></div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom:10px;">طلب العروض</h3>
+    <div id="requestActionArea"></div>
   </div>
 
   <div class="card" id="requestCard" style="display:none;">
@@ -113,8 +117,9 @@ async function init(){
   if(client && (client.readiness_status === 'ready' || client.readiness_status === 'not_ready')){
     document.getElementById('stepsCard').style.display = 'block';
     loadSteps();
-    loadRequest();
   }
+
+  loadRequest();
 
   loadAdminMsgs();
 }
@@ -220,7 +225,28 @@ async function loadSteps(){
   `).join('');
 }
 
+function goToOffers(){
+  if(!clientRow || !clientRow.assessment_completed_at){
+    alert('فضلاً أكمل تقييم الجاهزية أولاً للحصول على عروض.');
+    return;
+  }
+  window.location.href = 'request-offers.html';
+}
+
+function alreadyRequested(){
+  const statusLabels = {
+    pending_admin_review: 'قيد المراجعة — بانتظار توجيه فريق إتقان',
+    open: 'تم توجيه طلبك — بانتظار عروض من مقدمي الخدمة',
+    offer_selected: 'تم اختيار عرض بالفعل',
+    in_progress: 'قيد التنفيذ',
+    completed: 'مكتمل',
+    cancelled: 'ملغى'
+  };
+  alert('لديك طلب بالفعل: ' + (statusLabels[activeRequest?.status] || 'بانتظار التوجيه'));
+}
+
 async function loadRequest(){
+
   const { data: requests, error } = await supabase
     .from('service_requests')
     .select('*')
@@ -236,11 +262,13 @@ async function loadRequest(){
 
   if(!requests || !requests.length){
     activeRequest = null;
-    actionArea.innerHTML = `<button class="btn gold" onclick="location.href='request-offers.html'">الحصول على عروض</button>`;
+    actionArea.innerHTML = `<button class="btn gold" onclick="goToOffers()">الحصول على عروض</button>`;
     requestCard.style.display = 'none';
     hideCompanySections();
     return;
   }
+
+  actionArea.innerHTML = `<button class="btn ghost" onclick="alreadyRequested()">الحصول على عروض</button>`;
 
   activeRequest = requests[0];
   actionArea.innerHTML = '';
