@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تفاصيل العرض — إتقان</title>
+<link rel="stylesheet" href="assets/css/itqan.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  .offer-doc{max-width:680px;margin:0 auto;background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:36px;}
+  .offer-doc h2{font-family:'Amiri',serif;color:var(--green-dark);font-size:22px;margin-bottom:4px;}
+  .offer-doc .sub{color:var(--ink-soft);font-size:13px;margin-bottom:24px;}
+  .offer-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px;}
+  .offer-row strong{color:var(--ink);}
+  .section-h{font-size:14.5px;font-weight:700;color:var(--green-dark);margin:22px 0 8px;}
+  .total-row{display:flex;justify-content:space-between;padding:12px 0;margin-top:6px;border-top:2px solid var(--green);font-size:16px;font-weight:700;color:var(--green-dark);}
+  .print-actions{max-width:680px;margin:0 auto 16px;display:flex;gap:10px;justify-content:flex-end;}
+  @media print{
+    header.top, .print-actions, footer.site{display:none !important;}
+    body{background:var(--white);}
+    .offer-doc{border:none;box-shadow:none;}
+  }
+</style>
+</head>
+<body>
+<header class="top"><div class="brand"><img src="assets/images/logo.jpeg" alt="إتقان"></div></header>
+<main>
+  <div class="print-actions">
+    <button class="btn gold" onclick="window.print()">🖨️ طباعة / حفظ PDF</button>
+  </div>
+
+  <div class="offer-doc" id="offerDoc">
+    <p style="text-align:center;color:var(--ink-soft);">جارٍ التحميل...</p>
+  </div>
+</main>
+
+<script src="assets/js/supabaseClient.js"></script>
+<script>
+const offerId = new URLSearchParams(window.location.search).get('id');
+
+async function init(){
+  const { data: { user } } = await supabase.auth.getUser();
+  if(!user){ window.location.href = 'auth/login.html'; return; }
+
+  if(!offerId){ document.getElementById('offerDoc').innerHTML = '<p>لم يتم تحديد عرض.</p>'; return; }
+
+  const { data: offer, error } = await supabase
+    .from('offers')
+    .select('*, service_providers(company_name, specialty), service_requests(activity_type, activity_description)')
+    .eq('id', offerId)
+    .single();
+
+  const doc = document.getElementById('offerDoc');
+  if(error || !offer){ doc.innerHTML = '<p>تعذر عرض هذا العرض (قد لا تملك صلاحية الوصول إليه).</p>'; return; }
+
+  const paymentMap = {};
+  const money = n => (n || 0).toLocaleString('ar-SA');
+
+  doc.innerHTML = `
+    <h2>عرض سعر — ${offer.service_providers?.company_name || ''}</h2>
+    <p class="sub">النشاط: ${offer.service_requests?.activity_type || '—'} · تاريخ العرض: ${new Date(offer.created_at).toLocaleDateString('ar-SA')}</p>
+
+    <div class="section-h">تفصيل السعر</div>
+    ${offer.acquisition_cost ? `<div class="offer-row"><span>تكلفة الاستحواذ</span><strong>${money(offer.acquisition_cost)} ر.س</strong></div>` : ''}
+    ${offer.government_services_cost ? `<div class="offer-row"><span>تكلفة الخدمات الحكومية</span><strong>${money(offer.government_services_cost)} ر.س</strong></div>` : ''}
+    ${offer.licensing_cost ? `<div class="offer-row"><span>تكلفة الترخيص</span><strong>${money(offer.licensing_cost)} ر.س</strong></div>` : ''}
+    ${offer.other_costs ? `<div class="offer-row"><span>تكاليف أخرى</span><strong>${money(offer.other_costs)} ر.س</strong></div>` : ''}
+    <div class="total-row"><span>الإجمالي</span><span>${money(offer.price)} ر.س</span></div>
+
+    <div class="section-h">شروط التنفيذ</div>
+    <div class="offer-row"><span>مدة التنفيذ</span><strong>${offer.duration_days} يوم</strong></div>
+    <div class="offer-row"><span>وسيلة الدفع</span><strong>${offer.payment_method || '—'}</strong></div>
+    <div class="offer-row"><span>عدد مرات الدفع</span><strong>${offer.payment_installments || '—'}</strong></div>
+
+    ${offer.service_guarantee ? `<div class="section-h">ضمان الخدمة</div><p style="font-size:13px;color:var(--ink-soft);">${offer.service_guarantee}</p>` : ''}
+    ${offer.refund_policy ? `<div class="section-h">سياسة الإرجاع</div><p style="font-size:13px;color:var(--ink-soft);">${offer.refund_policy}</p>` : ''}
+    ${offer.required_documents ? `<div class="section-h">مستندات مطلوبة منك</div><p style="font-size:13px;color:var(--ink-soft);">${offer.required_documents}</p>` : ''}
+
+    ${offer.pdf_file_path ? `<div class="section-h">ملف مرفق</div><button class="btn ghost" style="padding:8px 16px;font-size:12.5px;" onclick="downloadAttachment('${offer.pdf_file_path}')">تحميل الملف المرفق</button>` : ''}
+  `;
+}
+
+async function downloadAttachment(path){
+  const { data, error } = await supabase.storage.from('offer-attachments').createSignedUrl(path, 60);
+  if(error){ alert(error.message); return; }
+  window.open(data.signedUrl, '_blank');
+}
+
+init();
+</script>
+</body>
+</html>

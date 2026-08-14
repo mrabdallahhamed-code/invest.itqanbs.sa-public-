@@ -307,6 +307,7 @@ async function loadRequest(){
         <td>${o.duration_days} يوم</td>
         <td>
           ${isAccepted ? '<span class="badge ready">تم القبول ✓</span>' : (activeRequest.status === 'open' ? `<button class="btn" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="acceptOffer('${o.id}','${activeRequest.id}')">قبول العرض</button>` : '—')}
+          <a href="../offer-view.html?id=${o.id}" class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;">عرض التفاصيل</a>
           <button class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="toggleChat('${o.id}')">محادثة</button>
         </td>
       </tr>
