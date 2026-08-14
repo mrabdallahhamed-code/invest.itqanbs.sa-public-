@@ -38,7 +38,7 @@
   .section-title{font-family:'Amiri',serif; font-size:clamp(22px,4vw,26px); color:var(--green-dark); text-align:center; margin-bottom:14px;}
   .section-sub{text-align:center; color:var(--ink-soft); font-size:13.5px; margin-bottom:34px;}
 
-  .services-grid{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
+  .services-grid{display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start;}
   @media(max-width:680px){.services-grid{grid-template-columns:1fr;}}
   .service-card{background:var(--white); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow); transition:box-shadow .2s;}
   .service-card.open{box-shadow:0 8px 24px rgba(61,82,64,0.12);}
@@ -48,12 +48,15 @@
   .chevron{font-size:14px; color:var(--gold); transition:transform .25s;}
   .service-card.open .chevron{transform:rotate(180deg);}
   .service-body{max-height:0; overflow:hidden; transition:max-height .3s ease;}
-  .service-card.open .service-body{max-height:300px;}
+  .service-card.open .service-body{max-height:500px;}
+  .service-card.static .service-body{max-height:220px;}
   .service-body-inner{padding:0 22px 20px 22px;}
   .service-body-inner p{font-size:13px; color:var(--ink-soft); line-height:1.7; margin-bottom:10px;}
   .service-list{list-style:none;padding-top:10px;border-top:1px solid var(--line);}
   .service-list li{font-size:12.5px;color:var(--ink-soft);padding:4px 0;}
   .service-list li::before{content:'— ';color:var(--gold);}
+  .service-card.static .service-head{cursor:default;}
+  .service-card.static .chevron{display:none;}
 
   .kingdom-section{background:var(--green-tint); padding:50px 20px; margin:0;}
   .kingdom-text{max-width:600px; margin:0 auto; text-align:center;}
@@ -196,15 +199,68 @@
       </button>
       <div class="service-body">
         <div class="service-body-inner">
-          <p>نرافقك في إدارة أعمالك بعد التأسيس.</p>
+          <p>نرافقك في إدارة أعمالك بعد التأسيس عبر أربعة محاور رئيسية:</p>
           <ul class="service-list">
-            <li>موارد بشرية: توظيف وعقود</li>
-            <li>إدارة المنصات الحكومية</li>
+            <li><strong>موارد بشرية:</strong> توظيف وعقود وإدارة منصات حكومية</li>
+            <li><strong>حسابات عامة:</strong> مسك دفاتر، إعداد القوائم المالية، والإقرارات الضريبية وفق الأنظمة السعودية</li>
+            <li><strong>تسويق رقمي:</strong> إدارة حسابات التواصل الاجتماعي، تحسين محركات البحث، وحملات إعلانية تناسب السوق المحلي</li>
+            <li><strong>إدارة وتشغيل وحوكمة:</strong> بناء الهيكل التنظيمي، السياسات الداخلية، ولوائح الحوكمة المتوافقة مع الأنظمة السعودية</li>
           </ul>
         </div>
       </div>
     </div>
 
+  </div>
+</section>
+
+<section class="block" style="padding-top:0;">
+  <span class="section-eyebrow">لماذا الآن</span>
+  <h2 class="section-title">لماذا الاستثمار في السعودية الآن؟</h2>
+  <div class="services-grid">
+    <div class="service-card static open">
+      <div class="service-head" style="cursor:default;">
+        <span class="icon-circle">📈</span>
+        <h3>اقتصاد متسارع النمو</h3>
+      </div>
+      <div class="service-body">
+        <div class="service-body-inner">
+          <p>ناتج محلي يتجاوز 1.1 تريليون دولار، وخطط توسع ضخمة ضمن رؤية 2030 بمختلف القطاعات.</p>
+        </div>
+      </div>
+    </div>
+    <div class="service-card static open">
+      <div class="service-head" style="cursor:default;">
+        <span class="icon-circle">🔓</span>
+        <h3>انفتاح تنظيمي غير مسبوق</h3>
+      </div>
+      <div class="service-body">
+        <div class="service-body-inner">
+          <p>ملكية أجنبية كاملة 100% بمعظم القطاعات، بإجراءات مبسّطة عبر منصات حكومية رقمية.</p>
+        </div>
+      </div>
+    </div>
+    <div class="service-card static open">
+      <div class="service-head" style="cursor:default;">
+        <span class="icon-circle">🌐</span>
+        <h3>موقع استراتيجي</h3>
+      </div>
+      <div class="service-body">
+        <div class="service-body-inner">
+          <p>بوابة لأسواق الخليج والشرق الأوسط، بقربها من ثلاث قارات وشبكة طرق ومطارات متطورة.</p>
+        </div>
+      </div>
+    </div>
+    <div class="service-card static open">
+      <div class="service-head" style="cursor:default;">
+        <span class="icon-circle">💰</span>
+        <h3>حوافز استثمارية</h3>
+      </div>
+      <div class="service-body">
+        <div class="service-body-inner">
+          <p>إعفاءات ضريبية بمناطق معينة، تمويل حكومي لمشاريع محددة، ودعم مباشر من صناديق التنمية.</p>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -219,31 +275,38 @@
 </section>
 
 <section class="block" id="paths">
-  <span class="section-eyebrow">ابدأ من هنا</span>
-  <h2 class="section-title">اختر المسار المناسب لك</h2>
+  <span class="section-eyebrow">ابدأ الآن</span>
+  <h2 class="section-title">هل أنت مستثمر يبحث عن التأسيس؟</h2>
   <div class="paths-grid">
     <div class="path-card">
       <div class="icon">👤</div>
-      <h3>حساب عميل حالي</h3>
+      <h3>عميل حالي</h3>
       <p>لديك حساب مسبق؟</p>
       <a href="auth/login.html?role=client" class="btn" style="margin-top:0;">تسجيل الدخول</a>
     </div>
     <div class="path-card">
       <div class="icon">🆕</div>
-      <h3>حساب عميل جديد</h3>
+      <h3>عميل جديد</h3>
       <p>ابدأ رحلة استثمارك الآن</p>
       <a href="auth/register.html?role=client" class="btn gold" style="margin-top:0;">إنشاء حساب</a>
     </div>
+  </div>
+</section>
+
+<section class="block" style="padding-top:0;">
+  <span class="section-eyebrow">كن شريكاً لنا</span>
+  <h2 class="section-title">هل أنت مقدّم خدمة تأسيس شركات؟</h2>
+  <div class="paths-grid">
     <div class="path-card">
       <div class="icon">🤝</div>
-      <h3>شريك حالي</h3>
-      <p>سجّل دخولك كمقدّم خدمة</p>
+      <h3>مقدّم خدمة حالي</h3>
+      <p>سجّل دخولك للاطلاع على الطلبات</p>
       <a href="auth/login.html?role=provider" class="btn" style="margin-top:0;">تسجيل الدخول</a>
     </div>
     <div class="path-card">
       <div class="icon">✨</div>
-      <h3>كن شريكاً لنا</h3>
-      <p>انضم كمقدّم خدمة معتمد</p>
+      <h3>مقدّم خدمة جديد</h3>
+      <p>انضم كشريك معتمد لدى إتقان</p>
       <a href="auth/register.html?role=provider" class="btn gold" style="margin-top:0;">انضمام كشريك</a>
     </div>
   </div>
