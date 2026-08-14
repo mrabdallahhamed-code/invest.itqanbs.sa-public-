@@ -225,24 +225,24 @@ async function loadSteps(){
   `).join('');
 }
 
-function goToOffers(){
+function handleOffersClick(){
+  if(activeRequest){
+    const statusLabels = {
+      pending_admin_review: 'قيد المراجعة — بانتظار توجيه فريق إتقان',
+      open: 'تم توجيه طلبك — بانتظار عروض من مقدمي الخدمة',
+      offer_selected: 'تم اختيار عرض بالفعل',
+      in_progress: 'قيد التنفيذ',
+      completed: 'مكتمل',
+      cancelled: 'ملغى'
+    };
+    alert('لديك طلب بالفعل: ' + (statusLabels[activeRequest.status] || 'بانتظار التوجيه'));
+    return;
+  }
   if(!clientRow || !clientRow.assessment_completed_at){
     alert('فضلاً أكمل تقييم الجاهزية أولاً للحصول على عروض.');
     return;
   }
   window.location.href = 'request-offers.html';
-}
-
-function alreadyRequested(){
-  const statusLabels = {
-    pending_admin_review: 'قيد المراجعة — بانتظار توجيه فريق إتقان',
-    open: 'تم توجيه طلبك — بانتظار عروض من مقدمي الخدمة',
-    offer_selected: 'تم اختيار عرض بالفعل',
-    in_progress: 'قيد التنفيذ',
-    completed: 'مكتمل',
-    cancelled: 'ملغى'
-  };
-  alert('لديك طلب بالفعل: ' + (statusLabels[activeRequest?.status] || 'بانتظار التوجيه'));
 }
 
 async function loadRequest(){
@@ -259,19 +259,16 @@ async function loadRequest(){
   const requestBody = document.getElementById('requestBody');
 
   if(error){ actionArea.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
+  actionArea.innerHTML = `<button class="btn gold" onclick="handleOffersClick()">الحصول على عروض</button>`;
 
   if(!requests || !requests.length){
     activeRequest = null;
-    actionArea.innerHTML = `<button class="btn gold" onclick="goToOffers()">الحصول على عروض</button>`;
     requestCard.style.display = 'none';
     hideCompanySections();
     return;
   }
 
-  actionArea.innerHTML = `<button class="btn ghost" onclick="alreadyRequested()">الحصول على عروض</button>`;
-
   activeRequest = requests[0];
-  actionArea.innerHTML = '';
   requestCard.style.display = 'block';
 
   const statusMap = {
