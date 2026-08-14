@@ -8,7 +8,7 @@
 </head>
 <body>
 <header class="top">
-  <div class="brand"><span class="ar">إتقان — إدارة</span></div>
+  <div class="brand"><img src="../assets/images/logo.jpeg" alt="إتقان"></div>
   <button class="btn ghost" onclick="signOut()">تسجيل الخروج</button>
 </header>
 <main>
@@ -98,10 +98,7 @@ async function loadProviders(){
       <td>${p.specialty || '—'}</td>
       <td>${p.is_verified ? '<span class="badge ready">معتمد ✓</span>' : '<span class="badge pending">غير معتمد</span>'}</td>
       <td>
-        ${p.is_verified
-          ? `<button class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="toggleProviderVerification('${p.id}', false)">إلغاء الاعتماد</button>`
-          : `<button class="btn" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="toggleProviderVerification('${p.id}', true)">اعتماد</button>`
-        }
+        <a href="provider-detail.html?id=${p.id}" class="btn" style="padding:6px 12px;font-size:12px;margin-top:0;">عرض الملف الكامل</a>
       </td>
     </tr>`).join('');
 }
@@ -204,18 +201,7 @@ async function loadClients(){
         </select>
       </td>
       <td>
-        <button class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="toggleChecklist('${c.id}')">إدارة الإجراءات</button>
-      </td>
-    </tr>
-    <tr id="checklist-row-${c.id}" style="display:none;">
-      <td colspan="5">
-        <div style="background:var(--cream);border-radius:10px;padding:14px;">
-          <div id="checklist-items-${c.id}"><p style="font-size:13px;color:var(--ink-soft);">جارٍ التحميل...</p></div>
-          <div style="display:flex;gap:8px;margin-top:10px;">
-            <input id="new-item-${c.id}" placeholder="مثال: تعديل عقد التأسيس" style="flex:1;">
-            <button class="btn" style="margin-top:0;padding:9px 16px;" onclick="addChecklistItem('${c.id}')">إضافة</button>
-          </div>
-        </div>
+        <a href="client-detail.html?id=${c.id}" class="btn" style="padding:6px 12px;font-size:12px;margin-top:0;">عرض الملف الكامل</a>
       </td>
     </tr>`).join('');
 }

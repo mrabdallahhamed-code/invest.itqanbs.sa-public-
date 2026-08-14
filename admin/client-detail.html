@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ملف العميل — إتقان</title>
+<link rel="stylesheet" href="../assets/css/itqan.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><img src="../assets/images/logo.jpeg" alt="إتقان"></div>
+  <button class="btn ghost" onclick="signOut()">تسجيل الخروج</button>
+</header>
+<main>
+  <a href="dashboard.html" style="font-size:13px;color:var(--ink-soft);text-decoration:none;">← رجوع للوحة الرئيسية</a>
+  <h1 class="page-title" style="margin-top:10px;">ملف العميل: <span id="clientName">...</span></h1>
+
+  <div class="card">
+    <h3 style="margin-bottom:10px;">بيانات التواصل والتصنيف</h3>
+    <p style="font-size:13.5px;margin-bottom:6px;">📞 <span id="clientPhone">—</span> · 📮 الوسيلة المفضلة: <span id="clientPreferred">—</span></p>
+    <p style="font-size:13.5px;margin-bottom:12px;">الجنسية: <span id="clientNationality">—</span></p>
+    <label>تصنيف الجاهزية</label>
+    <select id="statusSelect" onchange="updateStatus()">
+      <option value="pending_review">قيد المراجعة</option>
+      <option value="ready">جاهز</option>
+      <option value="not_ready">غير جاهز</option>
+    </select>
+    <div id="statusMsg"></div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom:10px;">إجراءات العميل</h3>
+    <div id="checklistItems"><p style="font-size:13px;color:var(--ink-soft);">جارٍ التحميل...</p></div>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <input id="newItem" placeholder="مثال: تعديل عقد التأسيس">
+      <button class="btn" style="margin:0;padding:10px 16px;" onclick="addChecklistItem()">إضافة</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom:10px;">مستندات العميل</h3>
+    <table>
+      <thead><tr><th>النوع</th><th>التاريخ</th><th>الحالة</th><th>إجراء</th></tr></thead>
+      <tbody id="docsBody"><tr><td colspan="4">جارٍ التحميل...</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom:10px;">مراسلة العميل</h3>
+    <p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:10px;">مفيدة مثلاً لطلب إكمال مستنداته قبل اعتماده.</p>
+    <div id="msgsList"><p style="font-size:13px;color:var(--ink-soft);">جارٍ التحميل...</p></div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <input id="msgInput" placeholder="اكتب رسالة للعميل...">
+      <button class="btn gold" style="margin:0;padding:10px 18px;" onclick="sendMsg()">إرسال</button>
+    </div>
+  </div>
+</main>
+
+<script src="../assets/js/supabaseClient.js"></script>
+<script>
+let admin, clientId, clientProfileId;
+
+async function init(){
+  admin = await requireRole(['admin']);
+  if(!admin) return;
+
+  clientId = new URLSearchParams(window.location.search).get('id');
+  if(!clientId){ document.body.innerHTML = '<p style="padding:40px;text-align:center;">لم يتم تحديد عميل.</p>'; return; }
+  clientProfileId = clientId;
+
+  const { data: profileData } = await supabase.from('profiles').select('*').eq('id', clientId).single();
+  const { data: clientData } = await supabase.from('clients').select('*').eq('id', clientId).single();
+
+  document.getElementById('clientName').textContent = profileData?.full_name || clientId;
+  document.getElementById('clientPhone').textContent = profileData?.contact_phone || 'غير مُدخَل';
+  document.getElementById('clientPreferred').textContent = profileData?.preferred_contact === 'whatsapp' ? 'واتساب' : 'البريد الإلكتروني';
+  document.getElementById('clientNationality').textContent = clientData?.nationality || '—';
+  document.getElementById('statusSelect').value = clientData?.readiness_status || 'pending_review';
+
+  loadChecklist();
+  loadDocs();
+  loadMsgs();
+}
+
+async function updateStatus(){
+  const status = document.getElementById('statusSelect').value;
+  const { error } = await supabase.from('clients').update({ readiness_status: status }).eq('id', clientId);
+  const msg = document.getElementById('statusMsg');
+  msg.className = error ? 'msg err' : 'msg ok';
+  msg.textContent = error ? error.message : 'تم تحديث التصنيف';
+}
+
+async function loadChecklist(){
+  const { data, error } = await supabase.from('readiness_checklist').select('*').eq('client_id', clientId).order('position');
+  const container = document.getElementById('checklistItems');
+  if(error || !data || !data.length){ container.innerHTML = '<p style="font-size:13px;color:var(--ink-soft);">لا توجد إجراءات مضافة بعد.</p>'; return; }
+  container.innerHTML = data.map(item => `
+    <div style="display:flex;align-items:center;gap:10px;padding:6px 0;">
+      <input type="checkbox" ${item.is_complete ? 'checked' : ''} onchange="toggleItem('${item.id}', this.checked)">
+      <span style="font-size:13.5px;${item.is_complete ? 'color:var(--ink-soft);text-decoration:line-through;' : ''}">${item.item}</span>
+    </div>
+  `).join('');
+}
+
+async function addChecklistItem(){
+  const input = document.getElementById('newItem');
+  const text = input.value.trim();
+  if(!text) return;
+  const { error } = await supabase.from('readiness_checklist').insert({ client_id: clientId, item: text });
+  if(error){ alert(error.message); return; }
+  input.value = '';
+  loadChecklist();
+}
+
+async function toggleItem(itemId, isComplete){
+  const { error } = await supabase.from('readiness_checklist').update({ is_complete: isComplete, updated_at: new Date().toISOString() }).eq('id', itemId);
+  if(error){ alert(error.message); return; }
+  loadChecklist();
+}
+
+async function loadDocs(){
+  const { data, error } = await supabase.from('documents').select('*').eq('client_id', clientId).order('uploaded_at', {ascending:false});
+  const body = document.getElementById('docsBody');
+  if(error || !data || !data.length){ body.innerHTML = '<tr><td colspan="4">لا توجد مستندات مرفوعة بعد</td></tr>'; return; }
+  const statusMap = {pending:'<span class="badge pending">قيد المراجعة</span>', verified:'<span class="badge ready">تم التحقق</span>', rejected:'<span class="badge notready">مرفوض</span>'};
+  body.innerHTML = data.map(d => `
+    <tr>
+      <td>${d.doc_type}</td>
+      <td>${new Date(d.uploaded_at).toLocaleDateString('ar-SA')}</td>
+      <td>${statusMap[d.status]}</td>
+      <td>
+        ${d.status==='pending' ? `
+          <button class="btn" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="reviewDoc('${d.id}','verified')">اعتماد</button>
+          <button class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="reviewDoc('${d.id}','rejected')">رفض</button>
+        ` : '—'}
+      </td>
+    </tr>`).join('');
+}
+
+async function reviewDoc(id, status){
+  const { error } = await supabase.from('documents').update({ status, reviewed_by: admin.id, reviewed_at: new Date().toISOString() }).eq('id', id);
+  if(error){ alert(error.message); return; }
+  loadDocs();
+}
+
+async function loadMsgs(){
+  const { data, error } = await supabase.from('admin_messages').select('*').eq('recipient_id', clientId).order('created_at');
+  const list = document.getElementById('msgsList');
+  if(error){ list.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
+  if(!data || !data.length){ list.innerHTML = '<p style="font-size:13px;color:var(--ink-soft);">لا توجد رسائل بعد.</p>'; return; }
+  list.innerHTML = data.map(m => `<div style="font-size:13px;padding:8px 12px;border-radius:8px;margin-bottom:6px;background:${m.sender_id===admin.id?'var(--green-tint)':'var(--cream)'};border:1px solid var(--line);">${m.message}</div>`).join('');
+}
+
+async function sendMsg(){
+  const input = document.getElementById('msgInput');
+  const text = input.value.trim();
+  if(!text) return;
+  const { error } = await supabase.from('admin_messages').insert({ recipient_id: clientId, sender_id: admin.id, message: text });
+  if(error){ alert(error.message); return; }
+  input.value = '';
+  loadMsgs();
+}
+
+init();
+</script>
+</body>
+</html>

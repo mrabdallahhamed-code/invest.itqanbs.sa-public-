@@ -24,6 +24,10 @@
       <option>تجاري</option>
     </select>
 
+    <label>صف نشاطك الفعلي بالتفصيل</label>
+    <textarea id="activity_description" rows="3" placeholder="مثال: استيراد وتوزيع مواد غذائية معلّبة داخل السعودية"></textarea>
+    <p style="font-size:11.5px;color:var(--ink-soft);margin-top:-6px;">هذا الوصف يساعد مقدمي الخدمة على تحديد السعر والمدة بدقة أكبر.</p>
+
     <label>ما هي سنة آخر ميزانية مدققة للشركة؟</label>
     <select id="last_audited_budget">
       <option value="">اختر...</option>
@@ -101,6 +105,7 @@ function boolOrNull(val){
 
 async function submitRequest(){
   const activity_type = document.getElementById('activity_type').value;
+  const activity_description = document.getElementById('activity_description').value.trim();
   const last_audited_budget = document.getElementById('last_audited_budget').value.trim();
   const docs_certified_home_country = document.getElementById('docs_certified_home_country').value;
   const docs_certified_embassy = document.getElementById('docs_certified_embassy').value;
@@ -119,6 +124,7 @@ async function submitRequest(){
     client_id: profile.id,
     status: 'pending_admin_review',
     activity_type,
+    activity_description,
     last_audited_budget,
     docs_certified_home_country: boolOrNull(docs_certified_home_country),
     docs_certified_embassy: boolOrNull(docs_certified_embassy),

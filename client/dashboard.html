@@ -41,6 +41,20 @@
     <div id="requestBody"></div>
   </div>
 
+  <div class="card" id="stagesCard" style="display:none;">
+    <h3 style="margin-bottom:10px;">مراحل تنفيذ طلبك</h3>
+    <div id="stagesArea"></div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom:10px;">رسائل من فريق إتقان</h3>
+    <div id="adminMsgsList"><p style="font-size:13px;color:var(--ink-soft);">جارٍ التحميل...</p></div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <input id="adminMsgInput" placeholder="اكتب ردّك هنا...">
+      <button class="btn" style="margin:0;padding:10px 18px;" onclick="sendAdminMsg()">إرسال</button>
+    </div>
+  </div>
+
   <!-- تظهر فقط بعد قبول عرض -->
   <div class="card" id="companyInfoCard" style="display:none;">
     <h3 style="margin-bottom:10px;">بيانات الشركة</h3>
@@ -101,6 +115,28 @@ async function init(){
     loadSteps();
     loadRequest();
   }
+
+  loadAdminMsgs();
+}
+
+async function loadAdminMsgs(){
+  const { data, error } = await supabase.from('admin_messages').select('*').eq('recipient_id', profile.id).order('created_at');
+  const list = document.getElementById('adminMsgsList');
+  if(error){ list.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
+  if(!data || !data.length){ list.innerHTML = '<p style="font-size:13px;color:var(--ink-soft);">لا توجد رسائل حتى الآن.</p>'; return; }
+  list.innerHTML = data.map(m => `<div style="font-size:13px;padding:8px 12px;border-radius:8px;margin-bottom:6px;background:${m.sender_id===profile.id?'var(--green-tint)':'var(--cream)'};border:1px solid var(--line);">${m.message}</div>`).join('');
+}
+
+async function sendAdminMsg(){
+  const input = document.getElementById('adminMsgInput');
+  const text = input.value.trim();
+  if(!text) return;
+  const { data: admins } = await supabase.from('profiles').select('id').eq('role','admin').limit(1);
+  if(!admins || !admins.length){ alert('تعذر تحديد جهة الإدارة'); return; }
+  const { error } = await supabase.from('admin_messages').insert({ recipient_id: admins[0].id, sender_id: profile.id, message: text });
+  if(error){ alert(error.message); return; }
+  input.value = '';
+  loadAdminMsgs();
 }
 
 function renderStatus(client){
@@ -258,8 +294,11 @@ async function loadRequest(){
   requestBody.innerHTML = html;
   if(offerAccepted){
     showCompanySections();
+    document.getElementById('stagesCard').style.display = 'block';
+    loadStages(activeRequest.id, 'stagesArea');
   } else {
     hideCompanySections();
+    document.getElementById('stagesCard').style.display = 'none';
   }
 }
 
@@ -313,7 +352,55 @@ async function acceptOffer(offerId, requestId){
   if(offErr){ alert(offErr.message); return; }
   const { error: reqErr } = await supabase.from('service_requests').update({ status: 'offer_selected' }).eq('id', requestId);
   if(reqErr){ alert(reqErr.message); return; }
+  await createStagesIfNeeded(requestId);
   loadRequest();
+}
+
+async function createStagesIfNeeded(requestId){
+  const { data: existing } = await supabase.from('request_stages').select('id').eq('request_id', requestId).limit(1);
+  if(existing && existing.length) return;
+  const stageNames = [
+    'بدء إجراءات الاستحواذ',
+    'بدء إجراءات نقل الملكية للشركة الخارجية',
+    'تصديق المستندات',
+    'شحن المستندات',
+    'التقديم على رخصة الاستثمار',
+    'حجز الاسم التجاري',
+    'التقديم على عقد التأسيس والسجل التجاري',
+    'صدور عقد التأسيس والسجل التجاري'
+  ];
+  const rows = stageNames.map((name,i)=>({ request_id: requestId, stage_order: i+1, stage_name: name }));
+  await supabase.from('request_stages').insert(rows);
+}
+
+async function loadStages(requestId, containerId){
+  const container = document.getElementById(containerId);
+  const { data: req } = await supabase.from('service_requests').select('id, created_at, status, client_id').eq('id', requestId).single();
+  const { data: offersData } = await supabase.from('offers').select('created_at, status').eq('request_id', requestId).order('created_at');
+  const { data: clientRow } = await supabase.from('clients').select('created_at, assessment_completed_at').eq('id', req.client_id).single();
+
+  const autoStages = [
+    { name:'تم التسجيل', done:true, date: clientRow?.created_at },
+    { name:'تم اعتماد طلبه', done: !!clientRow?.assessment_completed_at, date: clientRow?.assessment_completed_at },
+    { name:'تم الرفع للعروض', done: req.status !== 'pending_admin_review', date: req.created_at },
+    { name:'تم إرسال عروض', done: !!(offersData && offersData.length), date: offersData?.[0]?.created_at },
+    { name:'اعتماد العروض', done: !!(offersData && offersData.some(o=>o.status==='accepted')), date: offersData?.find(o=>o.status==='accepted')?.created_at },
+  ];
+
+  const { data: stages } = await supabase.from('request_stages').select('*').eq('request_id', requestId).order('stage_order');
+
+  let html = '<div class="timeline">';
+  autoStages.forEach(s => {
+    html += `<div class="tl-item ${s.done?'done':''}"><span class="tl-dot"></span><div class="tl-text"><strong>${s.name}</strong>${s.date?` <span class="tl-date">${new Date(s.date).toLocaleDateString('ar-SA')}</span>`:''}</div></div>`;
+  });
+  if(stages && stages.length){
+    stages.forEach(s => {
+      const cls = s.status === 'completed' ? 'done' : (s.status==='in_progress' ? 'active' : '');
+      html += `<div class="tl-item ${cls}"><span class="tl-dot"></span><div class="tl-text"><strong>${s.stage_name}</strong>${s.completed_at?` <span class="tl-date">${new Date(s.completed_at).toLocaleDateString('ar-SA')}</span>`:''}</div></div>`;
+    });
+  }
+  html += '</div>';
+  container.innerHTML = html;
 }
 
 init();

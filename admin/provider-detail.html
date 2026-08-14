@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ملف مقدّم الخدمة — إتقان</title>
+<link rel="stylesheet" href="../assets/css/itqan.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><img src="../assets/images/logo.jpeg" alt="إتقان"></div>
+  <button class="btn ghost" onclick="signOut()">تسجيل الخروج</button>
+</header>
+<main>
+  <a href="dashboard.html" style="font-size:13px;color:var(--ink-soft);text-decoration:none;">← رجوع للوحة الرئيسية</a>
+  <h1 class="page-title" style="margin-top:10px;">ملف مقدّم الخدمة: <span id="providerName">...</span></h1>
+
+  <div class="card">
+    <h3 style="margin-bottom:10px;">بيانات التواصل وحالة الاعتماد</h3>
+    <p style="font-size:13.5px;margin-bottom:6px;">📞 <span id="pPhone">—</span> · 📮 الوسيلة المفضلة: <span id="pPreferred">—</span></p>
+    <p style="font-size:13.5px;margin-bottom:14px;">التخصص: <span id="pSpecialty">—</span></p>
+    <div id="verifyBadge"></div>
+    <button class="btn" id="verifyBtn" style="margin-top:12px;" onclick="toggleVerify()"></button>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom:10px;">مستندات مقدّم الخدمة</h3>
+    <table>
+      <thead><tr><th>النوع</th><th>التاريخ</th><th>الحالة</th><th>إجراء</th></tr></thead>
+      <tbody id="docsBody"><tr><td colspan="4">جارٍ التحميل...</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom:10px;">مراسلة مقدّم الخدمة</h3>
+    <p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:10px;">مفيدة مثلاً لطلب إكمال مستنداته قبل اعتماده.</p>
+    <div id="msgsList"><p style="font-size:13px;color:var(--ink-soft);">جارٍ التحميل...</p></div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <input id="msgInput" placeholder="اكتب رسالة لمقدّم الخدمة...">
+      <button class="btn gold" style="margin:0;padding:10px 18px;" onclick="sendMsg()">إرسال</button>
+    </div>
+  </div>
+</main>
+
+<script src="../assets/js/supabaseClient.js"></script>
+<script>
+let admin, providerId, isVerified;
+
+async function init(){
+  admin = await requireRole(['admin']);
+  if(!admin) return;
+
+  providerId = new URLSearchParams(window.location.search).get('id');
+  if(!providerId){ document.body.innerHTML = '<p style="padding:40px;text-align:center;">لم يتم تحديد مقدّم خدمة.</p>'; return; }
+
+  const { data: profileData } = await supabase.from('profiles').select('*').eq('id', providerId).single();
+  const { data: providerData } = await supabase.from('service_providers').select('*').eq('id', providerId).single();
+
+  document.getElementById('providerName').textContent = providerData?.company_name || profileData?.full_name || providerId;
+  document.getElementById('pPhone').textContent = profileData?.contact_phone || 'غير مُدخَل';
+  document.getElementById('pPreferred').textContent = profileData?.preferred_contact === 'whatsapp' ? 'واتساب' : 'البريد الإلكتروني';
+  document.getElementById('pSpecialty').textContent = providerData?.specialty || '—';
+
+  isVerified = providerData?.is_verified || false;
+  renderVerify();
+  loadDocs();
+  loadMsgs();
+}
+
+function renderVerify(){
+  document.getElementById('verifyBadge').innerHTML = isVerified ? '<span class="badge ready">معتمد ✓</span>' : '<span class="badge pending">غير معتمد</span>';
+  const btn = document.getElementById('verifyBtn');
+  btn.textContent = isVerified ? 'إلغاء الاعتماد' : 'اعتماد مقدّم الخدمة';
+  btn.className = isVerified ? 'btn ghost' : 'btn gold';
+}
+
+async function toggleVerify(){
+  const { error } = await supabase.from('service_providers').update({ is_verified: !isVerified }).eq('id', providerId);
+  if(error){ alert(error.message); return; }
+  isVerified = !isVerified;
+  renderVerify();
+}
+
+async function loadDocs(){
+  const { data, error } = await supabase.from('provider_documents').select('*').eq('provider_id', providerId).order('uploaded_at', {ascending:false});
+  const body = document.getElementById('docsBody');
+  if(error || !data || !data.length){ body.innerHTML = '<tr><td colspan="4">لا توجد مستندات مرفوعة بعد</td></tr>'; return; }
+  const statusMap = {pending:'<span class="badge pending">قيد المراجعة</span>', verified:'<span class="badge ready">تم التحقق</span>', rejected:'<span class="badge notready">مرفوض</span>'};
+  body.innerHTML = data.map(d => `
+    <tr>
+      <td>${d.doc_type}</td>
+      <td>${new Date(d.uploaded_at).toLocaleDateString('ar-SA')}</td>
+      <td>${statusMap[d.status]}</td>
+      <td>
+        ${d.status==='pending' ? `
+          <button class="btn" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="reviewDoc('${d.id}','verified')">اعتماد</button>
+          <button class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="reviewDoc('${d.id}','rejected')">رفض</button>
+        ` : '—'}
+      </td>
+    </tr>`).join('');
+}
+
+async function reviewDoc(id, status){
+  const { error } = await supabase.from('provider_documents').update({ status, reviewed_by: admin.id, reviewed_at: new Date().toISOString() }).eq('id', id);
+  if(error){ alert(error.message); return; }
+  loadDocs();
+}
+
+async function loadMsgs(){
+  const { data, error } = await supabase.from('admin_messages').select('*').eq('recipient_id', providerId).order('created_at');
+  const list = document.getElementById('msgsList');
+  if(error){ list.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
+  if(!data || !data.length){ list.innerHTML = '<p style="font-size:13px;color:var(--ink-soft);">لا توجد رسائل بعد.</p>'; return; }
+  list.innerHTML = data.map(m => `<div style="font-size:13px;padding:8px 12px;border-radius:8px;margin-bottom:6px;background:${m.sender_id===admin.id?'var(--green-tint)':'var(--cream)'};border:1px solid var(--line);">${m.message}</div>`).join('');
+}
+
+async function sendMsg(){
+  const input = document.getElementById('msgInput');
+  const text = input.value.trim();
+  if(!text) return;
+  const { error } = await supabase.from('admin_messages').insert({ recipient_id: providerId, sender_id: admin.id, message: text });
+  if(error){ alert(error.message); return; }
+  input.value = '';
+  loadMsgs();
+}
+
+init();
+</script>
+</body>
+</html>

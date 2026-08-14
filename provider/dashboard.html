@@ -27,6 +27,7 @@
     <button class="active" onclick="switchTab('requests')">الطلبات المتاحة</button>
     <button onclick="switchTab('offers')">عروضي ومحادثاتي</button>
     <button onclick="switchTab('docs')">مستنداتي</button>
+    <button onclick="switchTab('messages')">رسائل من إتقان</button>
   </div>
 
   <div id="tab-requests">
@@ -65,6 +66,17 @@
       </table>
     </div>
   </div>
+
+  <div id="tab-messages" style="display:none;">
+    <div class="card">
+      <h3 style="margin-bottom:10px;">رسائل من فريق إتقان</h3>
+      <div id="adminMsgsList"><p style="font-size:13px;color:var(--ink-soft);">جارٍ التحميل...</p></div>
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <input id="adminMsgInput" placeholder="اكتب ردّك هنا...">
+        <button class="btn" style="margin:0;padding:10px 18px;" onclick="sendAdminMsg()">إرسال</button>
+      </div>
+    </div>
+  </div>
 </main>
 
 <script src="../assets/js/supabaseClient.js"></script>
@@ -75,10 +87,32 @@ function switchTab(tab){
   document.getElementById('tab-requests').style.display = tab==='requests' ? 'block':'none';
   document.getElementById('tab-offers').style.display = tab==='offers' ? 'block':'none';
   document.getElementById('tab-docs').style.display = tab==='docs' ? 'block':'none';
+  document.getElementById('tab-messages').style.display = tab==='messages' ? 'block':'none';
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
   event.target.classList.add('active');
   if(tab==='offers') loadOffers();
   if(tab==='docs') loadProviderDocs();
+  if(tab==='messages') loadAdminMsgs();
+}
+
+async function loadAdminMsgs(){
+  const { data, error } = await supabase.from('admin_messages').select('*').eq('recipient_id', profile.id).order('created_at');
+  const list = document.getElementById('adminMsgsList');
+  if(error){ list.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
+  if(!data || !data.length){ list.innerHTML = '<p style="font-size:13px;color:var(--ink-soft);">لا توجد رسائل حتى الآن.</p>'; return; }
+  list.innerHTML = data.map(m => `<div class="chat-msg ${m.sender_id===profile.id?'mine':'theirs'}">${m.message}</div>`).join('');
+}
+
+async function sendAdminMsg(){
+  const input = document.getElementById('adminMsgInput');
+  const text = input.value.trim();
+  if(!text) return;
+  const { data: admins } = await supabase.from('profiles').select('id').eq('role','admin').limit(1);
+  if(!admins || !admins.length){ alert('تعذر تحديد جهة الإدارة'); return; }
+  const { error } = await supabase.from('admin_messages').insert({ recipient_id: admins[0].id, sender_id: profile.id, message: text });
+  if(error){ alert(error.message); return; }
+  input.value = '';
+  loadAdminMsgs();
 }
 
 async function init(){
@@ -138,9 +172,64 @@ async function loadOffers(){
       <p style="font-size:14px;font-weight:700;margin-bottom:4px;">طلب #${o.request_id.slice(0,8)} — ${o.service_requests?.activity_type || ''}</p>
       <p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:10px;">السعر: ${o.price} ر.س · المدة: ${o.duration_days} يوم · الحالة: ${statusMap[o.status]}</p>
       <button class="btn ghost" style="padding:7px 14px;font-size:12.5px;margin-top:0;" onclick="toggleChat('${o.id}')">فتح المحادثة</button>
+      ${o.status === 'accepted' ? `<button class="btn ghost" style="padding:7px 14px;font-size:12.5px;margin-top:0;" onclick="toggleStages('${o.id}','${o.request_id}')">متابعة المراحل</button>` : ''}
       <div id="chat-${o.id}" style="display:none;"></div>
+      ${o.status === 'accepted' ? `<div id="stages-${o.id}" style="display:none;margin-top:10px;"></div>` : ''}
     </div>
   `).join('');
+}
+
+function toggleStages(offerId, requestId){
+  const el = document.getElementById(`stages-${offerId}`);
+  const isHidden = el.style.display === 'none';
+  el.style.display = isHidden ? 'block' : 'none';
+  if(isHidden){ el.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);">جارٍ التحميل...</p>'; loadStages(requestId, `stages-${offerId}`, true); }
+}
+
+async function loadStages(requestId, containerId, canEdit){
+  const container = document.getElementById(containerId);
+  const { data: req } = await supabase.from('service_requests').select('id, created_at, status, client_id').eq('id', requestId).single();
+  const { data: offersData } = await supabase.from('offers').select('created_at, status').eq('request_id', requestId).order('created_at');
+  const { data: clientRow } = await supabase.from('clients').select('created_at, assessment_completed_at').eq('id', req.client_id).single();
+
+  const autoStages = [
+    { name:'تم التسجيل', done:true, date: clientRow?.created_at },
+    { name:'تم اعتماد طلبه', done: !!clientRow?.assessment_completed_at, date: clientRow?.assessment_completed_at },
+    { name:'تم الرفع للعروض', done: req.status !== 'pending_admin_review', date: req.created_at },
+    { name:'تم إرسال عروض', done: !!(offersData && offersData.length), date: offersData?.[0]?.created_at },
+    { name:'اعتماد العروض', done: !!(offersData && offersData.some(o=>o.status==='accepted')), date: offersData?.find(o=>o.status==='accepted')?.created_at },
+  ];
+
+  const { data: stages } = await supabase.from('request_stages').select('*').eq('request_id', requestId).order('stage_order');
+
+  let html = '<div class="timeline">';
+  autoStages.forEach(s => {
+    html += `<div class="tl-item ${s.done?'done':''}"><span class="tl-dot"></span><div class="tl-text"><strong>${s.name}</strong>${s.date?` <span class="tl-date">${new Date(s.date).toLocaleDateString('ar-SA')}</span>`:''}</div></div>`;
+  });
+  if(stages && stages.length){
+    stages.forEach(s => {
+      const cls = s.status === 'completed' ? 'done' : (s.status==='in_progress' ? 'active' : '');
+      let actionBtn = '';
+      if(canEdit && s.status !== 'completed'){
+        if(s.status === 'pending') actionBtn = `<button class="btn ghost" style="padding:5px 10px;font-size:11px;margin-top:4px;" onclick="updateStage('${s.id}','in_progress','${requestId}','${containerId}',${canEdit})">بدء المرحلة</button>`;
+        else actionBtn = `<button class="btn" style="padding:5px 10px;font-size:11px;margin-top:4px;" onclick="updateStage('${s.id}','completed','${requestId}','${containerId}',${canEdit})">إنهاء المرحلة</button>`;
+      }
+      html += `<div class="tl-item ${cls}"><span class="tl-dot"></span><div class="tl-text"><strong>${s.stage_name}</strong>${s.completed_at?` <span class="tl-date">${new Date(s.completed_at).toLocaleDateString('ar-SA')}</span>`:''}<br>${actionBtn}</div></div>`;
+    });
+  } else {
+    html += '<p style="font-size:12px;color:var(--ink-soft);">لم تبدأ مراحل التنفيذ بعد.</p>';
+  }
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+async function updateStage(stageId, newStatus, requestId, containerId, canEdit){
+  const payload = { status: newStatus };
+  if(newStatus==='in_progress') payload.started_at = new Date().toISOString();
+  if(newStatus==='completed') payload.completed_at = new Date().toISOString();
+  const { error } = await supabase.from('request_stages').update(payload).eq('id', stageId);
+  if(error){ alert(error.message); return; }
+  loadStages(requestId, containerId, canEdit);
 }
 
 function toggleChat(offerId){
