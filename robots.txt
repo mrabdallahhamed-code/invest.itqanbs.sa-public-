@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /client/
+Disallow: /admin/
+Disallow: /provider/
+Disallow: /offer-view.html
+
+Sitemap: https://start.itqanbs.sa/sitemap.xml

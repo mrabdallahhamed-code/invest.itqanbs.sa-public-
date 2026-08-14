@@ -30,11 +30,6 @@
     <div id="assessmentAction"></div>
   </div>
 
-  <div class="card" id="stepsCard" style="display:none;">
-    <h3 style="margin-bottom:10px;">إجراءات الحصول على عقد التأسيس</h3>
-    <div id="stepsBody"></div>
-  </div>
-
   <div class="card">
     <h3 style="margin-bottom:10px;">طلب العروض</h3>
     <div id="requestActionArea"></div>
@@ -58,42 +53,6 @@
       <button class="btn" style="margin:0;padding:10px 18px;" onclick="sendAdminMsg()">إرسال</button>
     </div>
   </div>
-
-  <!-- تظهر فقط بعد قبول عرض -->
-  <div class="card" id="companyInfoCard" style="display:none;">
-    <h3 style="margin-bottom:10px;">بيانات الشركة</h3>
-    <label>الجنسية</label>
-    <input id="nationality">
-    <label>اسم الشركة الأجنبية الحالية (إن وجدت)</label>
-    <input id="company_name_abroad">
-    <label>نوع النشاط المطلوب في المملكة</label>
-    <input id="activity_type_field">
-    <button class="btn" onclick="saveClientInfo()">حفظ البيانات</button>
-    <div id="infoMsg"></div>
-  </div>
-
-  <div class="card" id="uploadCard" style="display:none;">
-    <h3 style="margin-bottom:10px;">رفع مستند</h3>
-    <label>نوع المستند</label>
-    <select id="doc_type">
-      <option>عقد التأسيس (الشركة الأم)</option>
-      <option>جواز سفر ممثل الشركة</option>
-      <option>السجل التجاري الأجنبي</option>
-      <option>مستند آخر</option>
-    </select>
-    <label>الملف</label>
-    <input id="doc_file" type="file">
-    <button class="btn gold" onclick="uploadDoc()">رفع المستند</button>
-    <div id="uploadMsg"></div>
-  </div>
-
-  <div class="card" id="docsListCard" style="display:none;">
-    <h3 style="margin-bottom:10px;">مستنداتي</h3>
-    <table>
-      <thead><tr><th>النوع</th><th>تاريخ الرفع</th><th>الحالة</th></tr></thead>
-      <tbody id="docsBody"><tr><td colspan="3">جارٍ التحميل...</td></tr></tbody>
-    </table>
-  </div>
 </main>
 
 <script src="../assets/js/supabaseClient.js"></script>
@@ -108,20 +67,29 @@ async function init(){
   const { data: client } = await supabase.from('clients').select('*').eq('id', profile.id).single();
   clientRow = client;
   renderStatus(client);
-  if(client){
-    document.getElementById('nationality').value = client.nationality || '';
-    document.getElementById('company_name_abroad').value = client.company_name_abroad || '';
-    document.getElementById('activity_type_field').value = client.activity_type || '';
-  }
-
-  if(client && (client.readiness_status === 'ready' || client.readiness_status === 'not_ready')){
-    document.getElementById('stepsCard').style.display = 'block';
-    loadSteps();
-  }
 
   loadRequest();
-
   loadAdminMsgs();
+}
+
+function renderStatus(client){
+  const badge = document.getElementById('statusBadge');
+  const note = document.getElementById('statusNote');
+  const actionArea = document.getElementById('assessmentAction');
+
+  const btnLabel = (client && client.assessment_completed_at) ? 'إعادة تقييم الجاهزية' : 'قيّم جاهزيتك الآن';
+  actionArea.innerHTML = `<button class="btn gold" onclick="location.href='assessment.html'">${btnLabel}</button>`;
+
+  if(!client || client.readiness_status === 'pending_review'){
+    badge.innerHTML = '<span class="badge pending">قيد المراجعة</span>';
+    note.textContent = 'أكمل التقييم لمعرفة مسارك.';
+  } else if(client.readiness_status === 'ready'){
+    badge.innerHTML = '<span class="badge ready">جاهز ✓</span>';
+    note.textContent = 'ملفك جاهز — يمكنك طلب عروض الأسعار أدناه.';
+  } else {
+    badge.innerHTML = '<span class="badge notready">غير جاهز</span>';
+    note.textContent = client.readiness_notes || 'راجع مراحل التنفيذ أدناه بعد طلب العروض.';
+  }
 }
 
 async function loadAdminMsgs(){
@@ -142,87 +110,6 @@ async function sendAdminMsg(){
   if(error){ alert(error.message); return; }
   input.value = '';
   loadAdminMsgs();
-}
-
-function renderStatus(client){
-  const badge = document.getElementById('statusBadge');
-  const note = document.getElementById('statusNote');
-  const actionArea = document.getElementById('assessmentAction');
-
-  const btnLabel = (client && client.assessment_completed_at) ? 'إعادة تقييم الجاهزية' : 'قيّم جاهزيتك الآن';
-  actionArea.innerHTML = `<button class="btn gold" onclick="location.href='assessment.html'">${btnLabel}</button>`;
-
-  if(!client || client.readiness_status === 'pending_review'){
-    badge.innerHTML = '<span class="badge pending">قيد المراجعة</span>';
-    note.textContent = 'أكمل التقييم لمعرفة مسارك.';
-  } else if(client.readiness_status === 'ready'){
-    badge.innerHTML = '<span class="badge ready">جاهز ✓</span>';
-    note.textContent = 'ملفك جاهز — أكمل الإجراءات أدناه ثم اطلب عروض الأسعار.';
-  } else {
-    badge.innerHTML = '<span class="badge notready">غير جاهز</span>';
-    note.textContent = client.readiness_notes || 'أكمل الإجراءات أدناه أولاً، ثم يمكنك طلب عروض الأسعار.';
-  }
-}
-
-async function saveClientInfo(){
-  const payload = {
-    id: profile.id,
-    nationality: document.getElementById('nationality').value,
-    company_name_abroad: document.getElementById('company_name_abroad').value,
-    activity_type: document.getElementById('activity_type_field').value,
-  };
-  const { error } = await supabase.from('clients').upsert(payload);
-  const msg = document.getElementById('infoMsg');
-  msg.className = error ? 'msg err' : 'msg ok';
-  msg.textContent = error ? error.message : 'تم الحفظ بنجاح';
-}
-
-async function uploadDoc(){
-  const fileInput = document.getElementById('doc_file');
-  const doc_type = document.getElementById('doc_type').value;
-  const msg = document.getElementById('uploadMsg');
-  if(!fileInput.files.length){ msg.className='msg err'; msg.textContent='اختر ملفاً أولاً'; return; }
-
-  const file = fileInput.files[0];
-  const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-  const filePath = `${profile.id}/${Date.now()}_${safeName}`;
-
-  const { error: upErr } = await supabase.storage.from('client-documents').upload(filePath, file);
-  if(upErr){ msg.className='msg err'; msg.textContent = upErr.message; return; }
-
-  const { error: dbErr } = await supabase.from('documents').insert({
-    client_id: profile.id, doc_type, file_path: filePath
-  });
-  if(dbErr){ msg.className='msg err'; msg.textContent = dbErr.message; return; }
-
-  msg.className='msg ok'; msg.textContent='تم رفع المستند بنجاح';
-  fileInput.value = '';
-  loadDocs();
-}
-
-async function loadDocs(){
-  const { data, error } = await supabase.from('documents').select('*').eq('client_id', profile.id).order('uploaded_at', {ascending:false});
-  const body = document.getElementById('docsBody');
-  if(error || !data || !data.length){ body.innerHTML = '<tr><td colspan="3">لا توجد مستندات مرفوعة بعد</td></tr>'; return; }
-  body.innerHTML = data.map(d => {
-    const statusMap = {pending:'<span class="badge pending">قيد المراجعة</span>', verified:'<span class="badge ready">تم التحقق</span>', rejected:'<span class="badge notready">مرفوض</span>'};
-    return `<tr><td>${d.doc_type}</td><td>${new Date(d.uploaded_at).toLocaleDateString('ar-SA')}</td><td>${statusMap[d.status]}</td></tr>`;
-  }).join('');
-}
-
-async function loadSteps(){
-  const { data, error } = await supabase.from('readiness_checklist').select('*').eq('client_id', profile.id).order('position');
-  const body = document.getElementById('stepsBody');
-  if(error || !data || !data.length){
-    body.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;">لم تظهر الإجراءات بعد — أكمل تقييم الجاهزية أولاً.</p>';
-    return;
-  }
-  body.innerHTML = data.map(item => `
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);">
-      <span style="font-size:18px;">${item.is_complete ? '✅' : '⬜'}</span>
-      <span style="font-size:14px;${item.is_complete ? 'color:var(--ink-soft);text-decoration:line-through;' : ''}">${item.item}</span>
-    </div>
-  `).join('');
 }
 
 function handleOffersClick(){
@@ -246,7 +133,6 @@ function handleOffersClick(){
 }
 
 async function loadRequest(){
-
   const { data: requests, error } = await supabase
     .from('service_requests')
     .select('*')
@@ -257,6 +143,7 @@ async function loadRequest(){
   const actionArea = document.getElementById('requestActionArea');
   const requestCard = document.getElementById('requestCard');
   const requestBody = document.getElementById('requestBody');
+  const stagesCard = document.getElementById('stagesCard');
 
   if(error){ actionArea.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
   actionArea.innerHTML = `<button class="btn gold" onclick="handleOffersClick()">الحصول على عروض</button>`;
@@ -264,7 +151,7 @@ async function loadRequest(){
   if(!requests || !requests.length){
     activeRequest = null;
     requestCard.style.display = 'none';
-    hideCompanySections();
+    stagesCard.style.display = 'none';
     return;
   }
 
@@ -285,7 +172,7 @@ async function loadRequest(){
   if(activeRequest.status === 'pending_admin_review'){
     html += `<p style="color:var(--ink-soft);font-size:13.5px;">سيقوم فريق إتقان بمراجعة طلبك وتوجيهه لمقدمي الخدمة المناسبين قريباً.</p>`;
     requestBody.innerHTML = html;
-    hideCompanySections();
+    stagesCard.style.display = 'none';
     return;
   }
 
@@ -319,12 +206,10 @@ async function loadRequest(){
   const offerAccepted = offers && offers.some(o => o.status === 'accepted');
   requestBody.innerHTML = html;
   if(offerAccepted){
-    showCompanySections();
-    document.getElementById('stagesCard').style.display = 'block';
+    stagesCard.style.display = 'block';
     loadStages(activeRequest.id, 'stagesArea');
   } else {
-    hideCompanySections();
-    document.getElementById('stagesCard').style.display = 'none';
+    stagesCard.style.display = 'none';
   }
 }
 
@@ -361,18 +246,6 @@ async function sendMessage(offerId){
   loadMessages(offerId);
 }
 
-function showCompanySections(){
-  document.getElementById('companyInfoCard').style.display = 'block';
-  document.getElementById('uploadCard').style.display = 'block';
-  document.getElementById('docsListCard').style.display = 'block';
-  loadDocs();
-}
-function hideCompanySections(){
-  document.getElementById('companyInfoCard').style.display = 'none';
-  document.getElementById('uploadCard').style.display = 'none';
-  document.getElementById('docsListCard').style.display = 'none';
-}
-
 async function acceptOffer(offerId, requestId){
   const { error: offErr } = await supabase.from('offers').update({ status: 'accepted', client_approved_at: new Date().toISOString() }).eq('id', offerId);
   if(offErr){ alert(offErr.message); return; }
@@ -403,11 +276,11 @@ async function loadStages(requestId, containerId){
   const container = document.getElementById(containerId);
   const { data: req } = await supabase.from('service_requests').select('id, created_at, status, client_id').eq('id', requestId).single();
   const { data: offersData } = await supabase.from('offers').select('created_at, status').eq('request_id', requestId).order('created_at');
-  const { data: clientRow } = await supabase.from('clients').select('created_at, assessment_completed_at').eq('id', req.client_id).single();
+  const { data: clientData } = await supabase.from('clients').select('created_at, assessment_completed_at').eq('id', req.client_id).single();
 
   const autoStages = [
-    { name:'تم التسجيل', done:true, date: clientRow?.created_at },
-    { name:'تم اعتماد طلبه', done: !!clientRow?.assessment_completed_at, date: clientRow?.assessment_completed_at },
+    { name:'تم التسجيل', done:true, date: clientData?.created_at },
+    { name:'تم اعتماد طلبه', done: !!clientData?.assessment_completed_at, date: clientData?.assessment_completed_at },
     { name:'تم الرفع للعروض', done: req.status !== 'pending_admin_review', date: req.created_at },
     { name:'تم إرسال عروض', done: !!(offersData && offersData.length), date: offersData?.[0]?.created_at },
     { name:'اعتماد العروض', done: !!(offersData && offersData.some(o=>o.status==='accepted')), date: offersData?.find(o=>o.status==='accepted')?.created_at },

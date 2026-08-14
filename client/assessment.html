@@ -6,14 +6,18 @@
 <link rel="stylesheet" href="../assets/css/itqan.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  .q-card{max-width:520px;margin:60px auto;}
+  .q-card{max-width:540px;margin:50px auto;}
   .q-text{font-size:17px;color:var(--green-dark);font-weight:700;margin-bottom:20px;line-height:1.6;}
+  .q-sub{font-size:12.5px;color:var(--ink-soft);margin-top:-14px;margin-bottom:18px;}
   .q-options{display:flex;gap:12px;}
-  .q-options button{flex:1;padding:14px;border-radius:10px;border:1px solid var(--line);background:var(--white);font-family:inherit;font-size:14.5px;font-weight:700;cursor:pointer;}
+  .q-options button{flex:1;padding:14px;border-radius:10px;border:1px solid var(--line);background:var(--white);font-family:inherit;font-size:14.5px;font-weight:700;cursor:pointer;transition:.15s;}
   .q-options button:hover{border-color:var(--gold);background:var(--green-tint);}
-  .progress{display:flex;gap:6px;margin-bottom:30px;justify-content:center;}
-  .progress span{width:26px;height:4px;border-radius:2px;background:var(--line);}
+  .progress{display:flex;gap:6px;margin-bottom:30px;justify-content:center;flex-wrap:wrap;}
+  .progress span{width:22px;height:4px;border-radius:2px;background:var(--line);}
   .progress span.done{background:var(--gold);}
+  .doc-upload-row{border:1px dashed var(--line);border-radius:10px;padding:14px;margin-bottom:12px;}
+  .doc-upload-row.uploaded{border-color:var(--green);background:var(--green-tint);}
+  .doc-upload-row h4{font-size:13.5px;margin-bottom:8px;}
 </style>
 </head>
 <body>
@@ -21,8 +25,7 @@
 <main>
   <div class="card q-card" id="qCard">
     <div class="progress" id="progressBar"></div>
-    <div class="q-text" id="qText">جارٍ التحميل...</div>
-    <div class="q-options" id="qOptions"></div>
+    <div id="qBody"><p style="text-align:center;color:var(--ink-soft);">جارٍ التحميل...</p></div>
   </div>
 </main>
 
@@ -38,7 +41,6 @@ const questions = [
   { key: 'has_audited_financials', text: 'هل لديك قوائم مالية مدققة لمدة عام على الأقل؟' },
 ];
 
-// المسار الثابت للحصول على عقد التأسيس (يظهر لكل من يملك شركة خارجية)
 const journeySteps = [
   'تصديق الوثائق من السفارة السعودية بالبلد الأم',
   'شحن الوثائق',
@@ -50,7 +52,11 @@ const journeySteps = [
   'فتح الملفات الحكومية',
 ];
 
+const requiredDocTypes = ['عقد التأسيس (الشركة الأم)', 'جواز سفر ممثل الشركة', 'السجل التجاري الأجنبي'];
+const uploadedFiles = {};
+
 let currentStep = 0;
+let totalSteps = questions.length;
 
 async function init(){
   profile = await requireRole(['client']);
@@ -59,18 +65,19 @@ async function init(){
 }
 
 function renderProgress(){
-  const bar = document.getElementById('progressBar');
-  bar.innerHTML = questions.map((_, i) => `<span class="${i < currentStep ? 'done' : ''}"></span>`).join('');
+  document.getElementById('progressBar').innerHTML =
+    Array.from({length: totalSteps}, (_,i) => `<span class="${i < currentStep ? 'done' : ''}"></span>`).join('');
 }
 
 function renderQuestion(){
   renderProgress();
   const q = questions[currentStep];
-  document.getElementById('qText').textContent = q.text;
-  document.getElementById('qOptions').innerHTML = `
-    <button onclick="answer(true)">نعم</button>
-    <button onclick="answer(false)">لا</button>
-  `;
+  document.getElementById('qBody').innerHTML = `
+    <div class="q-text">${q.text}</div>
+    <div class="q-options">
+      <button onclick="answer(true)">نعم</button>
+      <button onclick="answer(false)">لا</button>
+    </div>`;
 }
 
 function answer(value){
@@ -78,27 +85,99 @@ function answer(value){
   answers[q.key] = value;
 
   if(q.key === 'has_foreign_company' && value === false){
-    finish();
+    totalSteps = questions.length + 1;
+    currentStep = questions.length;
+    renderPreferredCountryStep();
     return;
   }
 
   currentStep++;
   if(currentStep >= questions.length){
-    finish();
+    totalSteps = questions.length + 2 + requiredDocTypes.length;
+    renderCompanyNameStep();
   } else {
     renderQuestion();
   }
 }
 
+function renderPreferredCountryStep(){
+  renderProgress();
+  document.getElementById('qBody').innerHTML = `
+    <div class="q-text">من أي دولة تفضل أن تكون شركتك الخارجية؟</div>
+    <p class="q-sub">بما إنك لا تملك شركة خارجية حالياً، سيقوم فريق إتقان بتوفير شركة مناسبة لك ضمن العروض القادمة.</p>
+    <input id="countryInput" placeholder="مثال: الإمارات، مصر، بريطانيا...">
+    <button class="btn gold" style="width:100%;margin-top:16px;" onclick="savePreferredCountry()">متابعة</button>`;
+}
+
+function savePreferredCountry(){
+  answers.preferred_company_country = document.getElementById('countryInput').value.trim();
+  currentStep++;
+  finish();
+}
+
+function renderCompanyNameStep(){
+  currentStep++;
+  renderProgress();
+  document.getElementById('qBody').innerHTML = `
+    <div class="q-text">ما اسم شركتك الأجنبية؟</div>
+    <input id="companyNameInput" placeholder="اسم الشركة">
+    <button class="btn gold" style="width:100%;margin-top:16px;" onclick="saveCompanyName()">متابعة</button>`;
+}
+
+function saveCompanyName(){
+  answers.foreign_company_name = document.getElementById('companyNameInput').value.trim();
+  renderCompanyCountryStep();
+}
+
+function renderCompanyCountryStep(){
+  currentStep++;
+  renderProgress();
+  document.getElementById('qBody').innerHTML = `
+    <div class="q-text">في أي دولة الشركة مسجّلة؟</div>
+    <input id="companyCountryInput" placeholder="مثال: الإمارات، مصر، بريطانيا...">
+    <button class="btn gold" style="width:100%;margin-top:16px;" onclick="saveCompanyCountry()">متابعة</button>`;
+}
+
+function saveCompanyCountry(){
+  answers.foreign_company_country = document.getElementById('companyCountryInput').value.trim();
+  renderDocsStep();
+}
+
+function renderDocsStep(){
+  currentStep++;
+  renderProgress();
+  document.getElementById('qBody').innerHTML = `
+    <div class="q-text">ارفع مستندات شركتك الخارجية</div>
+    <p class="q-sub">هذي المستندات تساعد فريق إتقان يراجع ملفك بدقة أكبر.</p>
+    <div id="docUploadRows"></div>
+    <button class="btn gold" style="width:100%;margin-top:10px;" onclick="finish()">إنهاء التقييم</button>
+    <p style="text-align:center;font-size:12px;color:var(--ink-soft);margin-top:8px;">يمكنك رفع المستندات لاحقاً من لوحتك إن أحببت</p>`;
+
+  const rows = document.getElementById('docUploadRows');
+  requiredDocTypes.forEach((docType, i) => {
+    const row = document.createElement('div');
+    row.className = 'doc-upload-row';
+    row.id = `docrow-${i}`;
+    row.innerHTML = `<h4>${docType}</h4><input type="file" onchange="handleDocFile(${i}, '${docType}', this)">`;
+    rows.appendChild(row);
+  });
+}
+
+function handleDocFile(index, docType, input){
+  if(!input.files.length) return;
+  uploadedFiles[index] = { docType, file: input.files[0] };
+  document.getElementById(`docrow-${index}`).classList.add('uploaded');
+}
+
 async function finish(){
-  document.getElementById('qCard').innerHTML = '<p style="text-align:center;color:var(--ink-soft);">جارٍ حفظ النتيجة...</p>';
+  document.getElementById('qBody').innerHTML = '<p style="text-align:center;color:var(--ink-soft);">جارٍ حفظ النتيجة...</p>';
 
   let readiness_status, readiness_notes;
   const checklistItems = [];
 
   if(answers.has_foreign_company === false){
     readiness_status = 'not_ready';
-    readiness_notes = 'لا تمتلك شركة أجنبية حالياً — يمكنك الاستفادة من خدمة الاستحواذ على شركة عبر طلب العروض مباشرة.';
+    readiness_notes = 'لا تمتلك شركة أجنبية حالياً — سيقوم فريق إتقان بتوفير شركة مناسبة لك، ويمكنك طلب العروض مباشرة.';
   } else {
     if(answers.is_llc && answers.has_incorporation_contract && answers.has_audited_financials){
       readiness_status = 'ready';
@@ -108,9 +187,8 @@ async function finish(){
       if(!answers.is_llc) checklistItems.push('تعديل الشكل القانوني للشركة ليصبح ذا مسؤولية محدودة (LLC)');
       if(!answers.has_incorporation_contract) checklistItems.push('استخراج أو تجهيز عقد تأسيس ساري للشركة');
       if(!answers.has_audited_financials) checklistItems.push('إعداد قوائم مالية مدققة لمدة عام على الأقل');
-      readiness_notes = 'ملفك يحتاج بعض النقاط قبل التأسيس — راجع الإجراءات أدناه بلوحتك.';
+      readiness_notes = 'ملفك يحتاج بعض النقاط قبل التأسيس — راجع مراحل التنفيذ بلوحتك.';
     }
-    // مسار الحصول على عقد التأسيس يظهر لكل من يملك شركة خارجية
     checklistItems.push(...journeySteps);
   }
 
@@ -120,6 +198,9 @@ async function finish(){
     is_llc: answers.is_llc ?? null,
     has_incorporation_contract: answers.has_incorporation_contract ?? null,
     has_audited_financials: answers.has_audited_financials ?? null,
+    foreign_company_name: answers.foreign_company_name || null,
+    foreign_company_country: answers.foreign_company_country || null,
+    preferred_company_country: answers.preferred_company_country || null,
     assessment_completed_at: new Date().toISOString(),
     readiness_status,
     readiness_notes
@@ -127,13 +208,23 @@ async function finish(){
 
   const { error } = await supabase.from('clients').upsert(payload);
   if(error){
-    document.getElementById('qCard').innerHTML = `<p class="msg err">${error.message}</p>`;
+    document.getElementById('qBody').innerHTML = `<p class="msg err">${error.message}</p>`;
     return;
   }
 
   if(checklistItems.length){
     const rows = checklistItems.map((item, i) => ({ client_id: profile.id, item, position: i }));
     await supabase.from('readiness_checklist').insert(rows);
+  }
+
+  for(const key in uploadedFiles){
+    const { docType, file } = uploadedFiles[key];
+    const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+    const filePath = `${profile.id}/${Date.now()}_${safeName}`;
+    const { error: upErr } = await supabase.storage.from('client-documents').upload(filePath, file);
+    if(!upErr){
+      await supabase.from('documents').insert({ client_id: profile.id, doc_type: docType, file_path: filePath });
+    }
   }
 
   window.location.href = 'dashboard.html';
