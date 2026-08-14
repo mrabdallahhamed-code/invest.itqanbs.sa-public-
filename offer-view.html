@@ -68,6 +68,11 @@ async function init(){
     const { data } = await supabase.storage.from('offer-attachments').createSignedUrl(offer.provider_stamp_path, 3600);
     stampUrl = data?.signedUrl;
   }
+  let signatureUrl = null;
+  if(offer.provider_signature_path){
+    const { data } = await supabase.storage.from('offer-attachments').createSignedUrl(offer.provider_signature_path, 3600);
+    signatureUrl = data?.signedUrl;
+  }
 
   const scopeHtml = (offer.scope_items || []).map(s => `<div class="scope-item"><span class="check">✔</span><span>${s}</span></div>`).join('') || '<p style="font-size:12.5px;color:var(--ink-soft);">لم يحدَّد نطاق خدمات.</p>';
 
@@ -112,9 +117,10 @@ async function init(){
 
     <div class="sign-section">
       <div class="sign-box">
-        ${stampUrl ? `<img src="${stampUrl}">` : ''}
+        ${signatureUrl ? `<img src="${signatureUrl}">` : ''}
         <div class="sign-line">${offer.provider_signature_name || 'التوقيع المعتمد'}</div>
         <p style="font-size:11.5px;color:var(--ink-soft);">عن ${offer.service_providers?.company_name || 'مقدّم الخدمة'}</p>
+        ${stampUrl ? `<img src="${stampUrl}" style="margin-top:8px;">` : ''}
       </div>
       <div class="sign-box">
         ${offer.status === 'accepted' ? `<div class="approved-stamp">تم اعتماد العرض ${offer.client_approved_at ? '— ' + new Date(offer.client_approved_at).toLocaleDateString('ar-SA') : ''}</div>` : '<p style="font-size:11.5px;color:var(--ink-soft);">بانتظار اعتماد العميل</p>'}

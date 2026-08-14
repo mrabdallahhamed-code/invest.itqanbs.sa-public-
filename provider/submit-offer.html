@@ -10,9 +10,10 @@
   .check-item:last-child{border-bottom:none;}
   .check-item input{margin:0;width:18px;height:18px;justify-self:start;}
   .check-item label{margin:0;font-weight:400;font-size:13.5px;color:var(--ink);line-height:1.6;}
-  .fee-row{display:flex;gap:8px;align-items:center;padding:6px 0;}
-  .fee-row input[type="text"]{flex:1;}
-  .fee-row input[type="number"]{width:110px;}
+  .fee-row{display:grid;grid-template-columns:24px 1fr 100px auto 26px;gap:8px;align-items:center;padding:7px 0;}
+  .fee-row input[type="checkbox"]{width:18px;height:18px;justify-self:start;}
+  .fee-row input[type="text"], .fee-row input[type="number"]{width:100%;padding:8px 10px;}
+  .fee-row .unit{font-size:12px;color:var(--ink-soft);}
   .fee-row button{background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px;padding:4px 8px;}
 </style>
 </head>
@@ -71,6 +72,8 @@
     <h3 style="margin-bottom:10px;">التوقيع والختم الرسمي</h3>
     <label>اسم المفوّض بالتوقيع</label>
     <input id="provider_signature_name" placeholder="الاسم الكامل">
+    <label>توقيع ممثل الشركة (صورة، اختياري)</label>
+    <input id="signature_file" type="file" accept="image/*">
     <label>ختم/شعار الشركة (صورة، اختياري)</label>
     <input id="stamp_file" type="file" accept="image/*">
   </div>
@@ -148,7 +151,7 @@ function addFeeRow(name, fee){
     <input type="checkbox" checked>
     <input type="text" placeholder="اسم الخدمة" value="${name}">
     <input type="number" placeholder="الرسم" value="${fee}">
-    <span style="font-size:12px;color:var(--ink-soft);">ر.س</span>
+    <span class="unit">ر.س</span>
     <button onclick="this.parentElement.remove()">✕</button>
   `;
   list.appendChild(row);
@@ -189,6 +192,15 @@ async function submitOffer(){
   }).select().single();
 
   if(error){ msg.className = 'msg err'; msg.textContent = error.message; return; }
+
+  const signatureInput = document.getElementById('signature_file');
+  if(signatureInput.files.length){
+    const file = signatureInput.files[0];
+    const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+    const filePath = `${profile.id}/signature_${offerRow.id}_${safeName}`;
+    const { error: upErr } = await supabase.storage.from('offer-attachments').upload(filePath, file);
+    if(!upErr) await supabase.from('offers').update({ provider_signature_path: filePath }).eq('id', offerRow.id);
+  }
 
   const stampInput = document.getElementById('stamp_file');
   if(stampInput.files.length){
