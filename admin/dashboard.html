@@ -15,52 +15,42 @@
   <h1 class="page-title">مركز التحقق والإدارة</h1>
 
   <div class="tabs">
-    <button class="active" onclick="switchTab('docs')">مستندات العملاء</button>
-    <button onclick="switchTab('clients')">تصنيف العملاء والإجراءات</button>
-    <button onclick="switchTab('requests')">توجيه طلبات العروض</button>
-    <button onclick="switchTab('providerDocs')">مستندات مقدمي الخدمة</button>
+    <button class="active" onclick="switchTab('clients')">العملاء وتصنيفاتها</button>
+    <button onclick="switchTab('requests')">طلبات العروض</button>
     <button onclick="switchTab('providers')">مقدمو الخدمة</button>
   </div>
 
-  <div id="tab-docs">
+  <!-- ===================== العملاء وتصنيفاتها ===================== -->
+  <div id="tab-clients">
     <div class="card">
       <table>
-        <thead><tr><th>العميل</th><th>المستند</th><th>التاريخ</th><th>إجراء</th></tr></thead>
-        <tbody id="docsBody"><tr><td colspan="4">جارٍ التحميل...</td></tr></tbody>
-      </table>
-    </div>
-  </div>
-
-  <div id="tab-clients" style="display:none;">
-    <div class="card">
-      <table>
-        <thead><tr><th>العميل</th><th>الجنسية</th><th>الحالة الحالية</th><th>تحديث التصنيف</th><th>الإجراءات</th></tr></thead>
+        <thead><tr><th>العميل</th><th>الجنسية</th><th>الحالة الحالية</th><th>مستندات العميل</th><th>الإجراءات</th></tr></thead>
         <tbody id="clientsBody"><tr><td colspan="5">جارٍ التحميل...</td></tr></tbody>
       </table>
     </div>
   </div>
 
+  <!-- ===================== طلبات العروض ===================== -->
   <div id="tab-requests" style="display:none;">
     <div class="card">
       <h3 style="margin-bottom:12px;">طلبات بانتظار التوجيه</h3>
-      <div id="requestsBody"><p style="font-size:13.5px;color:var(--ink-soft);">جارٍ التحميل...</p></div>
+      <div id="pendingRequestsBody"><p style="font-size:13.5px;color:var(--ink-soft);">جارٍ التحميل...</p></div>
     </div>
-  </div>
-
-  <div id="tab-providerDocs" style="display:none;">
     <div class="card">
+      <h3 style="margin-bottom:12px;">كل طلبات العروض</h3>
       <table>
-        <thead><tr><th>مقدّم الخدمة</th><th>المستند</th><th>التاريخ</th><th>إجراء</th></tr></thead>
-        <tbody id="providerDocsBody"><tr><td colspan="4">جارٍ التحميل...</td></tr></tbody>
+        <thead><tr><th>العميل</th><th>النشاط</th><th>التوجيه</th><th>العروض</th><th>حالة الطلب</th></tr></thead>
+        <tbody id="allRequestsBody"><tr><td colspan="5">جارٍ التحميل...</td></tr></tbody>
       </table>
     </div>
   </div>
 
+  <!-- ===================== مقدمو الخدمة ===================== -->
   <div id="tab-providers" style="display:none;">
     <div class="card">
       <table>
-        <thead><tr><th>اسم الشركة</th><th>التخصص</th><th>الحالة</th><th>إجراء</th></tr></thead>
-        <tbody id="providersBody"><tr><td colspan="4">جارٍ التحميل...</td></tr></tbody>
+        <thead><tr><th>اسم الشركة</th><th>التخصص</th><th>الحالة</th><th>المستندات</th><th>إجراء</th></tr></thead>
+        <tbody id="providersBody"><tr><td colspan="5">جارٍ التحميل...</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -71,111 +61,22 @@
 let profile;
 
 function switchTab(tab){
-  document.getElementById('tab-docs').style.display = tab==='docs' ? 'block':'none';
   document.getElementById('tab-clients').style.display = tab==='clients' ? 'block':'none';
   document.getElementById('tab-requests').style.display = tab==='requests' ? 'block':'none';
-  document.getElementById('tab-providerDocs').style.display = tab==='providerDocs' ? 'block':'none';
   document.getElementById('tab-providers').style.display = tab==='providers' ? 'block':'none';
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
   event.target.classList.add('active');
-  if(tab==='requests') loadPendingRequests();
-  if(tab==='providerDocs') loadProviderDocs();
+  if(tab==='requests'){ loadPendingRequests(); loadAllRequests(); }
   if(tab==='providers') loadProviders();
-}
-
-async function loadProviders(){
-  const { data, error } = await supabase
-    .from('service_providers')
-    .select('id, company_name, specialty, is_verified')
-    .order('company_name');
-
-  const body = document.getElementById('providersBody');
-  if(error || !data || !data.length){ body.innerHTML = '<tr><td colspan="4">لا يوجد مقدمو خدمة مسجلون بعد</td></tr>'; return; }
-
-  body.innerHTML = data.map(p => `
-    <tr>
-      <td>${p.company_name}</td>
-      <td>${p.specialty || '—'}</td>
-      <td>${p.is_verified ? '<span class="badge ready">معتمد ✓</span>' : '<span class="badge pending">غير معتمد</span>'}</td>
-      <td>
-        <a href="provider-detail.html?id=${p.id}" class="btn" style="padding:6px 12px;font-size:12px;margin-top:0;">عرض الملف الكامل</a>
-      </td>
-    </tr>`).join('');
-}
-
-async function toggleProviderVerification(providerId, verify){
-  const { error } = await supabase.from('service_providers').update({ is_verified: verify }).eq('id', providerId);
-  if(error){ alert(error.message); return; }
-  loadProviders();
-}
-
-async function loadProviderDocs(){
-  const { data, error } = await supabase
-    .from('provider_documents')
-    .select('id, doc_type, uploaded_at, status, provider_id, service_providers(company_name)')
-    .eq('status', 'pending')
-    .order('uploaded_at');
-
-  const body = document.getElementById('providerDocsBody');
-  if(error || !data || !data.length){ body.innerHTML = '<tr><td colspan="4">لا توجد مستندات بانتظار المراجعة</td></tr>'; return; }
-
-  body.innerHTML = data.map(d => `
-    <tr>
-      <td>${d.service_providers?.company_name || d.provider_id}</td>
-      <td>${d.doc_type}</td>
-      <td>${new Date(d.uploaded_at).toLocaleDateString('ar-SA')}</td>
-      <td>
-        <button class="btn" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="reviewProviderDoc('${d.id}','verified')">اعتماد</button>
-        <button class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="reviewProviderDoc('${d.id}','rejected')">رفض</button>
-      </td>
-    </tr>`).join('');
-}
-
-async function reviewProviderDoc(id, status){
-  const { error } = await supabase.from('provider_documents').update({
-    status, reviewed_by: profile.id, reviewed_at: new Date().toISOString()
-  }).eq('id', id);
-  if(error){ alert(error.message); return; }
-  loadProviderDocs();
 }
 
 async function init(){
   profile = await requireRole(['admin']);
   if(!profile) return;
-  loadDocs();
   loadClients();
 }
 
-async function loadDocs(){
-  const { data, error } = await supabase
-    .from('documents')
-    .select('id, doc_type, uploaded_at, status, file_path, client_id, clients(id, profiles(full_name))')
-    .eq('status', 'pending')
-    .order('uploaded_at');
-
-  const body = document.getElementById('docsBody');
-  if(error || !data || !data.length){ body.innerHTML = '<tr><td colspan="4">لا توجد مستندات بانتظار المراجعة</td></tr>'; return; }
-
-  body.innerHTML = data.map(d => `
-    <tr>
-      <td>${d.clients?.profiles?.full_name || d.client_id}</td>
-      <td>${d.doc_type}</td>
-      <td>${new Date(d.uploaded_at).toLocaleDateString('ar-SA')}</td>
-      <td>
-        <button class="btn" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="reviewDoc('${d.id}','verified')">اعتماد</button>
-        <button class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="reviewDoc('${d.id}','rejected')">رفض</button>
-      </td>
-    </tr>`).join('');
-}
-
-async function reviewDoc(id, status){
-  const { error } = await supabase.from('documents').update({
-    status, reviewed_by: profile.id, reviewed_at: new Date().toISOString()
-  }).eq('id', id);
-  if(error){ alert(error.message); return; }
-  loadDocs();
-}
-
+// ---------- العملاء وتصنيفاتها ----------
 async function loadClients(){
   const { data, error } = await supabase
     .from('clients')
@@ -185,75 +86,21 @@ async function loadClients(){
   const body = document.getElementById('clientsBody');
   if(error || !data || !data.length){ body.innerHTML = '<tr><td colspan="5">لا يوجد عملاء بعد</td></tr>'; return; }
 
-  const statusMap = {pending_review:'قيد المراجعة', ready:'جاهز', not_ready:'غير جاهز'};
+  const statusMap = {pending_review:'<span class="badge pending">قيد المراجعة</span>', ready:'<span class="badge ready">جاهز</span>', not_ready:'<span class="badge notready">غير جاهز</span>'};
 
   body.innerHTML = data.map(c => `
     <tr>
       <td>${c.profiles?.full_name || c.id}</td>
       <td>${c.nationality || '—'}</td>
-      <td>${statusMap[c.readiness_status]}</td>
-      <td>
-        <select onchange="updateReadiness('${c.id}', this.value)" style="width:auto;padding:5px 8px;">
-          <option value="">تغيير إلى...</option>
-          <option value="ready">جاهز</option>
-          <option value="not_ready">غير جاهز</option>
-          <option value="pending_review">قيد المراجعة</option>
-        </select>
-      </td>
-      <td>
-        <a href="client-detail.html?id=${c.id}" class="btn" style="padding:6px 12px;font-size:12px;margin-top:0;">عرض الملف الكامل</a>
-      </td>
+      <td>${statusMap[c.readiness_status] || '—'}</td>
+      <td><a href="client-detail.html?id=${c.id}#docsSection" class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;">عرض المستندات</a></td>
+      <td><a href="client-detail.html?id=${c.id}#checklistSection" class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;">عرض الإجراءات</a></td>
     </tr>`).join('');
 }
 
-async function updateReadiness(clientId, status){
-  if(!status) return;
-  const { error } = await supabase.from('clients').update({ readiness_status: status }).eq('id', clientId);
-  if(error){ alert(error.message); return; }
-  loadClients();
-}
-
-function toggleChecklist(clientId){
-  const row = document.getElementById(`checklist-row-${clientId}`);
-  const isHidden = row.style.display === 'none';
-  row.style.display = isHidden ? 'table-row' : 'none';
-  if(isHidden) loadChecklistItems(clientId);
-}
-
-async function loadChecklistItems(clientId){
-  const { data, error } = await supabase.from('readiness_checklist').select('*').eq('client_id', clientId).order('updated_at');
-  const container = document.getElementById(`checklist-items-${clientId}`);
-  if(error || !data || !data.length){
-    container.innerHTML = '<p style="font-size:13px;color:var(--ink-soft);">لا توجد إجراءات مضافة بعد.</p>';
-    return;
-  }
-  container.innerHTML = data.map(item => `
-    <div style="display:flex;align-items:center;gap:10px;padding:6px 0;">
-      <input type="checkbox" ${item.is_complete ? 'checked' : ''} onchange="toggleItem('${item.id}', this.checked, '${clientId}')">
-      <span style="font-size:13.5px;${item.is_complete ? 'color:var(--ink-soft);text-decoration:line-through;' : ''}">${item.item}</span>
-    </div>
-  `).join('');
-}
-
-async function addChecklistItem(clientId){
-  const input = document.getElementById(`new-item-${clientId}`);
-  const text = input.value.trim();
-  if(!text) return;
-  const { error } = await supabase.from('readiness_checklist').insert({ client_id: clientId, item: text });
-  if(error){ alert(error.message); return; }
-  input.value = '';
-  loadChecklistItems(clientId);
-}
-
-async function toggleItem(itemId, isComplete, clientId){
-  const { error } = await supabase.from('readiness_checklist').update({ is_complete: isComplete, updated_at: new Date().toISOString() }).eq('id', itemId);
-  if(error){ alert(error.message); return; }
-  loadChecklistItems(clientId);
-}
-
-// ---------- توجيه طلبات العروض ----------
+// ---------- طلبات العروض: قائمة بانتظار التوجيه ----------
 async function loadPendingRequests(){
-  const body = document.getElementById('requestsBody');
+  const body = document.getElementById('pendingRequestsBody');
   const { data: requests, error } = await supabase
     .from('service_requests')
     .select('id, created_at, client_id, clients(readiness_status, profiles(full_name))')
@@ -277,7 +124,7 @@ async function loadPendingRequests(){
           <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;">
             <input type="checkbox" value="${p.id}"> ${p.company_name} ${p.specialty ? '— ' + p.specialty : ''}
           </label>
-        `).join('') : '<p style="font-size:13px;color:var(--ink-soft);">لا يوجد مقدمو خدمة معتمدون حالياً.</p>'}
+        `).join('') : '<p style="font-size:13px;color:var(--ink-soft);">لا يوجد مقدمو خدمة معتمدون حالياً — اذهب لتبويب "مقدمو الخدمة" واعتمد واحداً أولاً.</p>'}
       </div>
       <button class="btn" style="padding:8px 18px;font-size:13px;" onclick="routeRequest('${r.id}')">توجيه الطلب</button>
       <div id="routeMsg-${r.id}"></div>
@@ -300,7 +147,68 @@ async function routeRequest(requestId){
   if(reqErr){ msg.className='msg err'; msg.textContent = reqErr.message; return; }
 
   msg.className='msg ok'; msg.textContent='تم توجيه الطلب بنجاح';
-  setTimeout(loadPendingRequests, 1000);
+  setTimeout(() => { loadPendingRequests(); loadAllRequests(); }, 1000);
+}
+
+// ---------- طلبات العروض: الجدول الكامل ----------
+async function loadAllRequests(){
+  const body = document.getElementById('allRequestsBody');
+  const { data: requests, error } = await supabase
+    .from('service_requests')
+    .select('id, status, activity_type, created_at, client_id, clients(profiles(full_name))')
+    .order('created_at', {ascending:false});
+
+  if(error){ body.innerHTML = `<tr><td colspan="5">${error.message}</td></tr>`; return; }
+  if(!requests || !requests.length){ body.innerHTML = '<tr><td colspan="5">لا توجد طلبات بعد</td></tr>'; return; }
+
+  const { data: invitations } = await supabase.from('request_invitations').select('request_id');
+  const { data: offers } = await supabase.from('offers').select('request_id, status');
+
+  const invitedSet = new Set((invitations || []).map(i => i.request_id));
+  const offerCountMap = {};
+  const acceptedSet = new Set();
+  (offers || []).forEach(o => {
+    offerCountMap[o.request_id] = (offerCountMap[o.request_id] || 0) + 1;
+    if(o.status === 'accepted') acceptedSet.add(o.request_id);
+  });
+
+  body.innerHTML = requests.map(r => {
+    const routed = invitedSet.has(r.id);
+    const offerCount = offerCountMap[r.id] || 0;
+    let statusLabel;
+    if(acceptedSet.has(r.id)) statusLabel = '<span class="badge ready">مكتمل ✓</span>';
+    else if(offerCount > 0) statusLabel = '<span class="badge pending">بانتظار موافقة العميل</span>';
+    else if(routed) statusLabel = '<span class="badge pending">بانتظار عروض</span>';
+    else statusLabel = '<span class="badge notready">بانتظار التوجيه</span>';
+
+    return `<tr>
+      <td>${r.clients?.profiles?.full_name || r.client_id}</td>
+      <td>${r.activity_type || '—'}</td>
+      <td>${routed ? '✅ تم التوجيه' : '⬜ لم يُوجَّه'}</td>
+      <td>${offerCount} عرض</td>
+      <td>${statusLabel}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ---------- مقدمو الخدمة ----------
+async function loadProviders(){
+  const { data, error } = await supabase
+    .from('service_providers')
+    .select('id, company_name, specialty, is_verified')
+    .order('company_name');
+
+  const body = document.getElementById('providersBody');
+  if(error || !data || !data.length){ body.innerHTML = '<tr><td colspan="5">لا يوجد مقدمو خدمة مسجلون بعد</td></tr>'; return; }
+
+  body.innerHTML = data.map(p => `
+    <tr>
+      <td>${p.company_name}</td>
+      <td>${p.specialty || '—'}</td>
+      <td>${p.is_verified ? '<span class="badge ready">معتمد ✓</span>' : '<span class="badge pending">غير معتمد</span>'}</td>
+      <td><a href="provider-detail.html?id=${p.id}#docsSection" class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;">عرض المستندات</a></td>
+      <td><a href="provider-detail.html?id=${p.id}" class="btn" style="padding:6px 12px;font-size:12px;margin-top:0;">عرض الملف الكامل</a></td>
+    </tr>`).join('');
 }
 
 init();
