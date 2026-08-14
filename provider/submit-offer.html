@@ -6,10 +6,10 @@
 <link rel="stylesheet" href="../assets/css/itqan.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  .check-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);}
+  .check-item{display:grid;grid-template-columns:1fr 26px;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);}
   .check-item:last-child{border-bottom:none;}
-  .check-item input{margin-top:3px;}
-  .check-item label{margin:0;font-weight:400;font-size:13.5px;color:var(--ink);}
+  .check-item input{margin:0;width:18px;height:18px;justify-self:start;}
+  .check-item label{margin:0;font-weight:400;font-size:13.5px;color:var(--ink);line-height:1.6;}
   .fee-row{display:flex;gap:8px;align-items:center;padding:6px 0;}
   .fee-row input[type="text"]{flex:1;}
   .fee-row input[type="number"]{width:110px;}
@@ -127,14 +127,14 @@ async function init(){
 
   document.getElementById('scopeList').innerHTML = scopeOptions.map(o => `
     <div class="check-item">
-      <input type="checkbox" id="scope-${o.key}" value="${o.label}">
       <label for="scope-${o.key}">${o.label}</label>
+      <input type="checkbox" id="scope-${o.key}" value="${o.label}">
     </div>`).join('');
 
   document.getElementById('docsList').innerHTML = docOptions.map((d,i) => `
     <div class="check-item">
-      <input type="checkbox" id="doc-${i}" value="${d}">
       <label for="doc-${i}">${d}</label>
+      <input type="checkbox" id="doc-${i}" value="${d}">
     </div>`).join('');
 
   defaultFees.forEach(([name, fee]) => addFeeRow(name, fee));
