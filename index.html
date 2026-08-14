@@ -14,7 +14,9 @@
   .icon-link:hover{transform:translateY(-2px);background:var(--gold-soft);}
 
   .hero{
-    background:linear-gradient(135deg, var(--green-dark) 0%, #2E4438 60%, #26382D 100%);
+    background:
+      linear-gradient(135deg, rgba(61,82,64,.93) 0%, rgba(46,68,56,.90) 60%, rgba(38,56,45,.93) 100%),
+      url('assets/images/riyadh-skyline.png') center/cover no-repeat;
     padding:70px 20px 60px; text-align:center; position:relative; overflow:hidden;
   }
   .hero::before{
@@ -54,9 +56,16 @@
   .service-body-inner p{font-size:13px; color:var(--ink-soft); line-height:1.7; margin-bottom:10px;}
   .service-list{list-style:none;padding-top:10px;border-top:1px solid var(--line);}
   .service-list li{font-size:12.5px;color:var(--ink-soft);padding:4px 0;}
-  .service-list li::before{content:'— ';color:var(--gold);}
+  .about-split{display:grid; grid-template-columns:1fr 1fr; gap:36px; align-items:center;}
   .service-card.static .service-head{cursor:default;}
   .service-card.static .chevron{display:none;}
+  .service-list li::before{content:'— ';color:var(--gold);}
+  .about-split{display:grid; grid-template-columns:1fr 1fr; gap:36px; align-items:center;}
+  @media(max-width:700px){.about-split{grid-template-columns:1fr;}}
+  .about-split img{width:100%; border-radius:var(--radius); box-shadow:var(--shadow);}
+  .about-split .text-side{text-align:right;}
+  .about-split .text-side h2{text-align:right; margin-bottom:14px;}
+  .about-split .text-side p{font-size:14px; color:var(--ink-soft); line-height:1.85;}
 
   .kingdom-section{background:var(--green-tint); padding:50px 20px; margin:0;}
   .kingdom-text{max-width:600px; margin:0 auto; text-align:center;}
@@ -124,9 +133,27 @@
 </section>
 
 <section class="block" id="about">
-  <span class="section-eyebrow">عن إتقان</span>
-  <h2 class="section-title">وسيط موثوق بينك وبين التأسيس</h2>
-  <p class="section-sub">من التحقق من مستنداتك إلى توقيع عقد شركتك — نرافقك في كل خطوة</p>
+  <div class="about-split">
+    <img src="assets/images/digital-services.png" alt="خدمات إتقان الرقمية">
+    <div class="text-side">
+      <span class="section-eyebrow" style="text-align:right;">عن إتقان</span>
+      <h2 class="section-title">وسيط موثوق بينك وبين التأسيس</h2>
+      <p>من التحقق من مستنداتك إلى توقيع عقد شركتك — نرافقك في كل خطوة عبر منصة رقمية تجمع بين
+      السرعة والشفافية، وفريق متخصص يتابع ملفك لحظة بلحظة حتى تصل لعقد تأسيس شركتك بثقة تامة.</p>
+    </div>
+  </div>
+</section>
+
+<section class="block" style="padding-top:0;">
+  <div class="about-split">
+    <div class="text-side">
+      <span class="section-eyebrow" style="text-align:right;">فرصة استثمارية</span>
+      <h2 class="section-title">استثمر بذكاء، استثمر الآن</h2>
+      <p>السوق السعودي يفتح أبوابه للمستثمرين الأجانب بثقة غير مسبوقة — ملكية كاملة، إجراءات مبسّطة،
+      وفرص نمو حقيقية بمختلف القطاعات. إتقان تختصر عليك الطريق من الفكرة إلى عقد التأسيس.</p>
+    </div>
+    <img src="assets/images/invest-icons.png" alt="فرص الاستثمار في السعودية">
+  </div>
 </section>
 
 <section class="block" id="services" style="padding-top:0;">
@@ -216,45 +243,50 @@
 <section class="block" style="padding-top:0;">
   <span class="section-eyebrow">لماذا الآن</span>
   <h2 class="section-title">لماذا الاستثمار في السعودية الآن؟</h2>
+  <p class="section-sub">اضغط على أي بطاقة لمعرفة التفاصيل</p>
   <div class="services-grid">
-    <div class="service-card static open">
-      <div class="service-head" style="cursor:default;">
+    <div class="service-card">
+      <button class="service-head" onclick="toggleService(this)">
         <span class="icon-circle">📈</span>
         <h3>اقتصاد متسارع النمو</h3>
-      </div>
+        <span class="chevron">▾</span>
+      </button>
       <div class="service-body">
         <div class="service-body-inner">
           <p>ناتج محلي يتجاوز 1.1 تريليون دولار، وخطط توسع ضخمة ضمن رؤية 2030 بمختلف القطاعات.</p>
         </div>
       </div>
     </div>
-    <div class="service-card static open">
-      <div class="service-head" style="cursor:default;">
+    <div class="service-card">
+      <button class="service-head" onclick="toggleService(this)">
         <span class="icon-circle">🔓</span>
         <h3>انفتاح تنظيمي غير مسبوق</h3>
-      </div>
+        <span class="chevron">▾</span>
+      </button>
       <div class="service-body">
         <div class="service-body-inner">
           <p>ملكية أجنبية كاملة 100% بمعظم القطاعات، بإجراءات مبسّطة عبر منصات حكومية رقمية.</p>
         </div>
       </div>
     </div>
-    <div class="service-card static open">
-      <div class="service-head" style="cursor:default;">
+    <div class="service-card">
+      <button class="service-head" onclick="toggleService(this)">
         <span class="icon-circle">🌐</span>
         <h3>موقع استراتيجي</h3>
-      </div>
+        <span class="chevron">▾</span>
+      </button>
       <div class="service-body">
         <div class="service-body-inner">
           <p>بوابة لأسواق الخليج والشرق الأوسط، بقربها من ثلاث قارات وشبكة طرق ومطارات متطورة.</p>
         </div>
       </div>
     </div>
-    <div class="service-card static open">
-      <div class="service-head" style="cursor:default;">
+    <div class="service-card">
+      <button class="service-head" onclick="toggleService(this)">
         <span class="icon-circle">💰</span>
         <h3>حوافز استثمارية</h3>
-      </div>
+        <span class="chevron">▾</span>
+      </button>
       <div class="service-body">
         <div class="service-body-inner">
           <p>إعفاءات ضريبية بمناطق معينة، تمويل حكومي لمشاريع محددة، ودعم مباشر من صناديق التنمية.</p>
@@ -309,28 +341,9 @@
       <p>انضم كشريك معتمد لدى إتقان</p>
       <a href="auth/register.html?role=provider" class="btn gold" style="margin-top:0;">انضمام كشريك</a>
     </div>
-
   </div>
 </section>
 
-<section class="block" style="padding-top:0;">
-  <span class="section-eyebrow">كن شريكاً لنا</span>
-  <h2 class="section-title">هل أنت مقدّم خدمة تأسيس شركات؟</h2>
-  <div class="paths-grid">
-    <div class="path-card">
-      <div class="icon">🤝</div>
-      <h3>مقدّم خدمة حالي</h3>
-      <p>سجّل دخولك للاطلاع على الطلبات</p>
-      <a href="auth/login.html?role=provider" class="btn" style="margin-top:0;">تسجيل الدخول</a>
-    </div>
-    <div class="path-card">
-      <div class="icon">✨</div>
-      <h3>مقدّم خدمة جديد</h3>
-      <p>انضم كشريك معتمد لدى إتقان</p>
-      <a href="auth/register.html?role=provider" class="btn gold" style="margin-top:0;">انضمام كشريك</a>
-    </div>
-  </div>
-</section>
 <section class="contact-section" id="contact">
   <h2 class="section-title" style="margin-bottom:8px;">تواصل معنا</h2>
   <p class="section-sub" style="margin-bottom:0;">فريقنا جاهز للإجابة على استفساراتك</p>
