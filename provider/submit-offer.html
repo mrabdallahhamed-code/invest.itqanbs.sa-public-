@@ -5,64 +5,78 @@
 <title>تقديم عرض — إتقان</title>
 <link rel="stylesheet" href="../assets/css/itqan.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  .check-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);}
+  .check-item:last-child{border-bottom:none;}
+  .check-item input{margin-top:3px;}
+  .check-item label{margin:0;font-weight:400;font-size:13.5px;color:var(--ink);}
+  .fee-row{display:flex;gap:8px;align-items:center;padding:6px 0;}
+  .fee-row input[type="text"]{flex:1;}
+  .fee-row input[type="number"]{width:110px;}
+  .fee-row button{background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px;padding:4px 8px;}
+</style>
 </head>
 <body>
 <header class="top"><div class="brand"><img src="../assets/images/logo.jpeg" alt="إتقان"></div></header>
-<main style="max-width:640px;">
+<main style="max-width:680px;">
   <a href="dashboard.html" style="font-size:13px;color:var(--ink-soft);text-decoration:none;">← رجوع للوحة الرئيسية</a>
   <h1 class="page-title" style="margin-top:10px;">تقديم عرض تفصيلي</h1>
 
   <div class="card">
-    <h3 style="margin-bottom:14px;">تفصيل السعر</h3>
-    <label>تكلفة الاستحواذ (إن وجدت)</label>
-    <input id="acquisition_cost" type="number" placeholder="0">
-    <label>تكلفة الخدمات الحكومية</label>
-    <input id="government_services_cost" type="number" placeholder="0">
-    <label>تكلفة الترخيص</label>
-    <input id="licensing_cost" type="number" placeholder="0">
-    <label>تكاليف أخرى</label>
-    <input id="other_costs" type="number" placeholder="0">
-    <p style="margin-top:14px;font-size:14px;font-weight:700;color:var(--green-dark);">الإجمالي: <span id="totalPrice">0</span> ر.س</p>
+    <h3 style="margin-bottom:10px;">أولاً: نطاق الخدمات</h3>
+    <p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:8px;">اختر الخدمات المشمولة بعرضك:</p>
+    <div id="scopeList"></div>
   </div>
 
   <div class="card">
-    <h3 style="margin-bottom:14px;">شروط التنفيذ</h3>
+    <h3 style="margin-bottom:10px;">ثانياً: المستندات المطلوبة من العميل</h3>
+    <div id="docsList"></div>
+    <label>مستندات إضافية (اختياري)</label>
+    <textarea id="required_documents" rows="2" placeholder="أي مستندات أخرى غير مذكورة أعلاه"></textarea>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom:10px;">ثالثاً: مدة التنفيذ</h3>
     <label>مدة التنفيذ (بالأيام)</label>
-    <input id="duration_days" type="number" placeholder="مثال: 15">
-
-    <label>وسيلة الدفع</label>
-    <select id="payment_method">
-      <option value="">اختر...</option>
-      <option>تحويل بنكي</option>
-      <option>شيك</option>
-      <option>نقداً</option>
-      <option>بوابة دفع إلكتروني</option>
-    </select>
-
-    <label>عدد مرات الدفع</label>
-    <select id="payment_installments">
-      <option value="">اختر...</option>
-      <option>دفعة واحدة مقدّمة</option>
-      <option>دفعتان (مقدّم + عند التسليم)</option>
-      <option>ثلاث دفعات على مراحل التنفيذ</option>
-      <option>حسب مراحل التنفيذ بالكامل</option>
-    </select>
-
-    <label>ضمان الخدمة</label>
-    <textarea id="service_guarantee" rows="2" placeholder="مثال: ضمان استكمال الإجراءات خلال المدة المتفق عليها أو استرجاع جزء من المبلغ"></textarea>
-
-    <label>سياسة الإرجاع/الاسترجاع</label>
-    <textarea id="refund_policy" rows="2" placeholder="مثال: استرجاع كامل قبل بدء الإجراءات، لا يوجد استرجاع بعد تقديم الطلب للجهات الحكومية"></textarea>
+    <input id="duration_days" type="number" placeholder="مثال: 45">
   </div>
 
   <div class="card">
-    <h3 style="margin-bottom:14px;">مستندات إضافية مطلوبة من العميل</h3>
-    <textarea id="required_documents" rows="3" placeholder="مثال: عقد التأسيس الأصلي، جواز سفر المدير العام، شهادة عدم ممانعة"></textarea>
+    <h3 style="margin-bottom:6px;">رابعاً: الرسوم الحكومية التقديرية</h3>
+    <p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:10px;">تقديرية ويتحملها العميل — عدّل القائمة حسب حالة الطلب (احذف غير المطلوب أو أضف رسوم أخرى).</p>
+    <div id="feesList"></div>
+    <button class="btn ghost" style="padding:8px 16px;font-size:12.5px;" onclick="addFeeRow('', '')">+ إضافة رسم</button>
   </div>
 
   <div class="card">
-    <h3 style="margin-bottom:14px;">إرفاق ملف PDF إضافي (اختياري)</h3>
-    <p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:10px;">لو عندك عرض تقديمي أو تفاصيل فنية بصيغة PDF جاهزة، ارفعها هنا كإضافة — العرض المنظّم أعلاه سيظهر للعميل بكل الأحوال.</p>
+    <h3 style="margin-bottom:10px;">خامساً: المقابل المالي (أتعاب إتقان / مقدّم الخدمة)</h3>
+    <label>قيمة الأتعاب (ر.س، غير شامل ضريبة القيمة المضافة)</label>
+    <input id="price" type="number" placeholder="مثال: 20000">
+    <label>آلية السداد</label>
+    <textarea id="payment_schedule" rows="2" placeholder="مثال: 50% دفعة مقدمة عند اعتماد العرض، 50% عند استكمال إجراءات التأسيس">50% دفعة مقدمة عند اعتماد العرض وبدء التنفيذ.
+50% عند استكمال إجراءات التأسيس وإصدار المستندات الأساسية.</textarea>
+    <label>ملاحظات مالية (ما لا يشمله العرض)</label>
+    <textarea id="exclusions_notes" rows="2">الأسعار لا تشمل ضريبة القيمة المضافة، وتُحتسب وفق الأنظمة المعمول بها.
+لا تشمل الأتعاب الرسوم الحكومية أو رسوم التوثيق أو الاشتراكات الرسمية.
+أي خدمات إضافية خارج نطاق هذا العرض تُنفَّذ بعد موافقة العميل وبعرض مستقل.</textarea>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom:10px;">سادساً: خصم الخدمات الإضافية بعد التأسيس</h3>
+    <label>نسبة الخصم على الخدمات الإضافية (محاسبية، موارد بشرية، دعم تشغيلي) %</label>
+    <input id="additional_services_discount" type="number" placeholder="مثال: 40">
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom:10px;">التوقيع والختم الرسمي</h3>
+    <label>اسم المفوّض بالتوقيع</label>
+    <input id="provider_signature_name" placeholder="الاسم الكامل">
+    <label>ختم/شعار الشركة (صورة، اختياري)</label>
+    <input id="stamp_file" type="file" accept="image/*">
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom:10px;">إرفاق ملف PDF إضافي (اختياري)</h3>
     <input id="pdf_file" type="file" accept="application/pdf">
   </div>
 
@@ -75,58 +89,123 @@
 let profile;
 const requestId = new URLSearchParams(window.location.search).get('request_id');
 
+const scopeOptions = [
+  { key: 'acquisition', label: 'إجراءات الاستحواذ على شركة قائمة ومستوفية للاشتراطات النظامية' },
+  { key: 'license', label: 'إعداد وتقديم ومتابعة إصدار الترخيص الاستثماري' },
+  { key: 'incorporation', label: 'تأسيس الشركة داخل المملكة (حجز الاسم التجاري، عقد التأسيس، السجل التجاري)' },
+  { key: 'gov_registration', label: 'التسجيل لدى الجهات والمنصات الحكومية (الموارد البشرية، التأمينات، الزكاة والضريبة، الغرفة التجارية، العنوان الوطني، قوى، مقيم، مدد)' },
+  { key: 'support', label: 'الخدمات المساندة (تأشيرة المدير العام، فتح الحساب البنكي، شهادة ضريبة القيمة المضافة، المتابعة حتى الاكتمال)' },
+];
+
+const docOptions = [
+  'صورة من السجل التجاري للشركة الأجنبية مصدقة حسب الأصول',
+  'صورة من عقد تأسيس الشركة الأجنبية مصدقة حسب الأصول',
+  'القوائم المالية لآخر سنة مالية مصدقة',
+  'صورة جواز سفر المدير أو الممثل النظامي',
+  'وكالة قانونية صادرة من الممثل النظامي ومصدقة',
+];
+
+const defaultFees = [
+  ['توثيق المستندات من وزارة الخارجية (لكل وثيقة)', 35],
+  ['حجز الاسم التجاري (عربي)', 200],
+  ['حجز الاسم التجاري (إنجليزي)', 500],
+  ['نشر عقد التأسيس', 1725],
+  ['إصدار تأشيرة المدير العام أو نقل الكفالة', 2000],
+  ['تعديل عقد التأسيس بعد وصول المدير العام', 1725],
+  ['التأمين الطبي (حد أدنى)', 250],
+  ['الكشف الطبي لإصدار الإقامة', 150],
+  ['الاشتراك في منصة قوى', 1075],
+  ['الاشتراك في منصة مقيم', 1075],
+  ['نقاط منصة مقيم', 575],
+  ['الاشتراك في منصة مدد', 460],
+];
+
 async function init(){
   profile = await requireRole(['provider']);
   if(!profile) return;
   if(!requestId){ document.body.innerHTML = '<p style="padding:40px;text-align:center;">لم يتم تحديد الطلب.</p>'; return; }
 
-  ['acquisition_cost','government_services_cost','licensing_cost','other_costs'].forEach(id => {
-    document.getElementById(id).addEventListener('input', updateTotal);
-  });
+  document.getElementById('scopeList').innerHTML = scopeOptions.map(o => `
+    <div class="check-item">
+      <input type="checkbox" id="scope-${o.key}" value="${o.label}">
+      <label for="scope-${o.key}">${o.label}</label>
+    </div>`).join('');
+
+  document.getElementById('docsList').innerHTML = docOptions.map((d,i) => `
+    <div class="check-item">
+      <input type="checkbox" id="doc-${i}" value="${d}">
+      <label for="doc-${i}">${d}</label>
+    </div>`).join('');
+
+  defaultFees.forEach(([name, fee]) => addFeeRow(name, fee));
 }
 
-function updateTotal(){
-  const total = ['acquisition_cost','government_services_cost','licensing_cost','other_costs']
-    .reduce((sum, id) => sum + (parseFloat(document.getElementById(id).value) || 0), 0);
-  document.getElementById('totalPrice').textContent = total.toLocaleString('ar-SA');
+function addFeeRow(name, fee){
+  const list = document.getElementById('feesList');
+  const row = document.createElement('div');
+  row.className = 'fee-row';
+  row.innerHTML = `
+    <input type="checkbox" checked>
+    <input type="text" placeholder="اسم الخدمة" value="${name}">
+    <input type="number" placeholder="الرسم" value="${fee}">
+    <span style="font-size:12px;color:var(--ink-soft);">ر.س</span>
+    <button onclick="this.parentElement.remove()">✕</button>
+  `;
+  list.appendChild(row);
 }
 
 async function submitOffer(){
   const msg = document.getElementById('msg');
-  const acquisition_cost = parseFloat(document.getElementById('acquisition_cost').value) || 0;
-  const government_services_cost = parseFloat(document.getElementById('government_services_cost').value) || 0;
-  const licensing_cost = parseFloat(document.getElementById('licensing_cost').value) || 0;
-  const other_costs = parseFloat(document.getElementById('other_costs').value) || 0;
-  const price = acquisition_cost + government_services_cost + licensing_cost + other_costs;
+  const price = parseFloat(document.getElementById('price').value) || 0;
   const duration_days = document.getElementById('duration_days').value;
-  const payment_method = document.getElementById('payment_method').value;
-  const payment_installments = document.getElementById('payment_installments').value;
-  const service_guarantee = document.getElementById('service_guarantee').value.trim();
-  const refund_policy = document.getElementById('refund_policy').value.trim();
-  const required_documents = document.getElementById('required_documents').value.trim();
 
   if(!duration_days || price <= 0){
-    msg.className = 'msg err'; msg.textContent = 'الرجاء تعبئة السعر ومدة التنفيذ على الأقل'; return;
+    msg.className = 'msg err'; msg.textContent = 'الرجاء تعبئة الأتعاب ومدة التنفيذ على الأقل'; return;
   }
+
+  const scope_items = scopeOptions.filter(o => document.getElementById(`scope-${o.key}`).checked).map(o => o.label);
+  const required_documents_list = docOptions.filter((d,i) => document.getElementById(`doc-${i}`).checked);
+  const required_documents = document.getElementById('required_documents').value.trim();
+
+  const government_fees = [...document.querySelectorAll('#feesList .fee-row')]
+    .filter(row => row.querySelector('input[type="checkbox"]').checked)
+    .map(row => {
+      const inputs = row.querySelectorAll('input');
+      return { service: inputs[1].value.trim(), fee: parseFloat(inputs[2].value) || 0 };
+    })
+    .filter(f => f.service);
+
+  const payment_schedule = document.getElementById('payment_schedule').value.trim();
+  const exclusions_notes = document.getElementById('exclusions_notes').value.trim();
+  const additional_services_discount = parseFloat(document.getElementById('additional_services_discount').value) || null;
+  const provider_signature_name = document.getElementById('provider_signature_name').value.trim();
 
   const { data: offerRow, error } = await supabase.from('offers').insert({
     request_id: requestId, provider_id: profile.id,
     price, duration_days,
-    acquisition_cost, government_services_cost, licensing_cost, other_costs,
-    payment_method, payment_installments, service_guarantee, refund_policy, required_documents
+    scope_items, required_documents_list, required_documents,
+    government_fees, payment_schedule, exclusions_notes,
+    additional_services_discount, provider_signature_name
   }).select().single();
 
   if(error){ msg.className = 'msg err'; msg.textContent = error.message; return; }
 
-  const fileInput = document.getElementById('pdf_file');
-  if(fileInput.files.length){
-    const file = fileInput.files[0];
+  const stampInput = document.getElementById('stamp_file');
+  if(stampInput.files.length){
+    const file = stampInput.files[0];
+    const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+    const filePath = `${profile.id}/stamp_${offerRow.id}_${safeName}`;
+    const { error: upErr } = await supabase.storage.from('offer-attachments').upload(filePath, file);
+    if(!upErr) await supabase.from('offers').update({ provider_stamp_path: filePath }).eq('id', offerRow.id);
+  }
+
+  const pdfInput = document.getElementById('pdf_file');
+  if(pdfInput.files.length){
+    const file = pdfInput.files[0];
     const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
     const filePath = `${profile.id}/${offerRow.id}_${safeName}`;
     const { error: upErr } = await supabase.storage.from('offer-attachments').upload(filePath, file);
-    if(!upErr){
-      await supabase.from('offers').update({ pdf_file_path: filePath }).eq('id', offerRow.id);
-    }
+    if(!upErr) await supabase.from('offers').update({ pdf_file_path: filePath }).eq('id', offerRow.id);
   }
 
   window.location.href = 'dashboard.html';

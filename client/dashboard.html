@@ -374,7 +374,7 @@ function hideCompanySections(){
 }
 
 async function acceptOffer(offerId, requestId){
-  const { error: offErr } = await supabase.from('offers').update({ status: 'accepted' }).eq('id', offerId);
+  const { error: offErr } = await supabase.from('offers').update({ status: 'accepted', client_approved_at: new Date().toISOString() }).eq('id', offerId);
   if(offErr){ alert(offErr.message); return; }
   const { error: reqErr } = await supabase.from('service_requests').update({ status: 'offer_selected' }).eq('id', requestId);
   if(reqErr){ alert(reqErr.message); return; }
