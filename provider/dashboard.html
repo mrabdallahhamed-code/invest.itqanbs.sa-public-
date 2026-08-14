@@ -5,6 +5,15 @@
 <title>لوحة مقدّم الخدمة — إتقان</title>
 <link rel="stylesheet" href="../assets/css/itqan.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  .chat-box{border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:8px;background:var(--cream);}
+  .chat-msgs{max-height:200px;overflow-y:auto;margin-bottom:10px;}
+  .chat-msg{font-size:13px;padding:6px 10px;border-radius:8px;margin-bottom:6px;max-width:80%;}
+  .chat-msg.mine{background:var(--green-tint);margin-right:auto;text-align:left;}
+  .chat-msg.theirs{background:var(--white);border:1px solid var(--line);}
+  .chat-input-row{display:flex;gap:8px;}
+  .chat-input-row input{flex:1;margin:0;padding:8px;}
+</style>
 </head>
 <body>
 <header class="top">
@@ -12,21 +21,49 @@
   <button class="btn ghost" onclick="signOut()">تسجيل الخروج</button>
 </header>
 <main>
-  <h1 class="page-title">طلبات العملاء</h1>
+  <h1 class="page-title">لوحة مقدّم الخدمة</h1>
 
-  <div class="card">
-    <table>
-      <thead><tr><th>رقم الطلب</th><th>نوع النشاط</th><th>الميزانية</th><th>الجدول الزمني</th><th>إجراء</th></tr></thead>
-      <tbody id="reqBody"><tr><td colspan="5">جارٍ التحميل...</td></tr></tbody>
-    </table>
+  <div class="tabs">
+    <button class="active" onclick="switchTab('requests')">الطلبات المتاحة</button>
+    <button onclick="switchTab('offers')">عروضي ومحادثاتي</button>
+    <button onclick="switchTab('docs')">مستنداتي</button>
   </div>
 
-  <div class="card">
-    <h3 style="margin-bottom:10px;">عروضي المُقدَّمة</h3>
-    <table>
-      <thead><tr><th>الطلب</th><th>السعر</th><th>مدة التنفيذ</th><th>الحالة</th></tr></thead>
-      <tbody id="offersBody"><tr><td colspan="4">جارٍ التحميل...</td></tr></tbody>
-    </table>
+  <div id="tab-requests">
+    <div class="card">
+      <table>
+        <thead><tr><th>رقم الطلب</th><th>نوع النشاط</th><th>سنة آخر ميزانية</th><th>إجراء</th></tr></thead>
+        <tbody id="reqBody"><tr><td colspan="4">جارٍ التحميل...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="tab-offers" style="display:none;">
+    <div id="offersArea"><p style="color:var(--ink-soft);font-size:13.5px;">جارٍ التحميل...</p></div>
+  </div>
+
+  <div id="tab-docs" style="display:none;">
+    <div class="card">
+      <h3 style="margin-bottom:10px;">رفع مستند</h3>
+      <label>نوع المستند</label>
+      <select id="doc_type">
+        <option>عقد التأسيس</option>
+        <option>السجل التجاري</option>
+        <option>الشهادة الضريبية</option>
+        <option>العنوان الوطني</option>
+      </select>
+      <label>الملف</label>
+      <input id="doc_file" type="file">
+      <button class="btn gold" onclick="uploadProviderDoc()">رفع المستند</button>
+      <div id="uploadMsg"></div>
+    </div>
+    <div class="card">
+      <h3 style="margin-bottom:10px;">مستنداتي المرفوعة</h3>
+      <table>
+        <thead><tr><th>النوع</th><th>تاريخ الرفع</th><th>الحالة</th></tr></thead>
+        <tbody id="docsBody"><tr><td colspan="3">جارٍ التحميل...</td></tr></tbody>
+      </table>
+    </div>
   </div>
 </main>
 
@@ -34,32 +71,40 @@
 <script>
 let profile;
 
+function switchTab(tab){
+  document.getElementById('tab-requests').style.display = tab==='requests' ? 'block':'none';
+  document.getElementById('tab-offers').style.display = tab==='offers' ? 'block':'none';
+  document.getElementById('tab-docs').style.display = tab==='docs' ? 'block':'none';
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+  if(tab==='offers') loadOffers();
+  if(tab==='docs') loadProviderDocs();
+}
+
 async function init(){
   profile = await requireRole(['provider']);
   if(!profile) return;
   loadRequests();
-  loadOffers();
 }
 
 async function loadRequests(){
   const { data, error } = await supabase
     .from('service_requests')
-    .select('id, created_at, activity_type, budget_range, timeline')
+    .select('id, created_at, activity_type, last_audited_budget')
     .eq('status', 'open')
     .order('created_at', {ascending:false});
 
   const body = document.getElementById('reqBody');
-  if(error || !data || !data.length){ body.innerHTML = '<tr><td colspan="5">لا توجد طلبات مفتوحة حالياً</td></tr>'; return; }
+  if(error || !data || !data.length){ body.innerHTML = '<tr><td colspan="4">لا توجد طلبات مفتوحة حالياً</td></tr>'; return; }
 
   body.innerHTML = data.map(r => `
     <tr>
       <td>#${r.id.slice(0,8)}</td>
       <td>${r.activity_type || '—'}</td>
-      <td>${r.budget_range || '—'}</td>
-      <td>${r.timeline || '—'}</td>
+      <td>${r.last_audited_budget || '—'}</td>
       <td>
-        <input type="number" placeholder="السعر (ر.س)" id="price-${r.id}" style="width:100px;display:inline-block;padding:6px;">
-        <input type="number" placeholder="أيام" id="days-${r.id}" style="width:80px;display:inline-block;padding:6px;">
+        <input type="number" placeholder="السعر" id="price-${r.id}" style="width:90px;display:inline-block;padding:6px;">
+        <input type="number" placeholder="أيام" id="days-${r.id}" style="width:70px;display:inline-block;padding:6px;">
         <button class="btn" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="submitOffer('${r.id}')">إرسال عرض</button>
       </td>
     </tr>`).join('');
@@ -75,23 +120,91 @@ async function submitOffer(requestId){
   });
   if(error){ alert(error.message); return; }
   alert('تم إرسال العرض');
-  loadOffers();
 }
 
 async function loadOffers(){
+  const area = document.getElementById('offersArea');
   const { data, error } = await supabase
     .from('offers')
-    .select('id, price, duration_days, status, request_id')
+    .select('id, price, duration_days, status, request_id, service_requests(activity_type)')
     .eq('provider_id', profile.id)
     .order('created_at', {ascending:false});
 
-  const body = document.getElementById('offersBody');
-  if(error || !data || !data.length){ body.innerHTML = '<tr><td colspan="4">لم تقدّم أي عروض بعد</td></tr>'; return; }
+  if(error || !data || !data.length){ area.innerHTML = '<p style="color:var(--ink-soft);font-size:13.5px;">لم تقدّم أي عروض بعد.</p>'; return; }
 
   const statusMap = {submitted:'مُرسَل', accepted:'مقبول ✓', rejected:'مرفوض'};
-  body.innerHTML = data.map(o => `
-    <tr><td>#${o.request_id.slice(0,8)}</td><td>${o.price} ر.س</td><td>${o.duration_days} يوم</td><td>${statusMap[o.status]}</td></tr>
+  area.innerHTML = data.map(o => `
+    <div class="card">
+      <p style="font-size:14px;font-weight:700;margin-bottom:4px;">طلب #${o.request_id.slice(0,8)} — ${o.service_requests?.activity_type || ''}</p>
+      <p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:10px;">السعر: ${o.price} ر.س · المدة: ${o.duration_days} يوم · الحالة: ${statusMap[o.status]}</p>
+      <button class="btn ghost" style="padding:7px 14px;font-size:12.5px;margin-top:0;" onclick="toggleChat('${o.id}')">فتح المحادثة</button>
+      <div id="chat-${o.id}" style="display:none;"></div>
+    </div>
   `).join('');
+}
+
+function toggleChat(offerId){
+  const el = document.getElementById(`chat-${offerId}`);
+  const isHidden = el.style.display === 'none';
+  el.style.display = isHidden ? 'block' : 'none';
+  if(isHidden) renderChat(offerId);
+}
+
+async function renderChat(offerId){
+  const el = document.getElementById(`chat-${offerId}`);
+  el.innerHTML = `<div class="chat-box"><div class="chat-msgs" id="msgs-${offerId}">جارٍ التحميل...</div>
+    <div class="chat-input-row"><input id="input-${offerId}" placeholder="اكتب رسالة..."><button class="btn" style="margin:0;padding:8px 16px;" onclick="sendMessage('${offerId}')">إرسال</button></div></div>`;
+  loadMessages(offerId);
+}
+
+async function loadMessages(offerId){
+  const { data, error } = await supabase.from('messages').select('*').eq('offer_id', offerId).order('created_at');
+  const box = document.getElementById(`msgs-${offerId}`);
+  if(error){ box.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
+  if(!data || !data.length){ box.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);">لا توجد رسائل بعد.</p>'; return; }
+  box.innerHTML = data.map(m => `<div class="chat-msg ${m.sender_id === profile.id ? 'mine' : 'theirs'}">${m.message}</div>`).join('');
+  box.scrollTop = box.scrollHeight;
+}
+
+async function sendMessage(offerId){
+  const input = document.getElementById(`input-${offerId}`);
+  const text = input.value.trim();
+  if(!text) return;
+  const { error } = await supabase.from('messages').insert({ offer_id: offerId, sender_id: profile.id, message: text });
+  if(error){ alert(error.message); return; }
+  input.value = '';
+  loadMessages(offerId);
+}
+
+async function uploadProviderDoc(){
+  const fileInput = document.getElementById('doc_file');
+  const doc_type = document.getElementById('doc_type').value;
+  const msg = document.getElementById('uploadMsg');
+  if(!fileInput.files.length){ msg.className='msg err'; msg.textContent='اختر ملفاً أولاً'; return; }
+
+  const file = fileInput.files[0];
+  const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+  const filePath = `${profile.id}/${Date.now()}_${safeName}`;
+
+  const { error: upErr } = await supabase.storage.from('provider-documents').upload(filePath, file);
+  if(upErr){ msg.className='msg err'; msg.textContent = upErr.message; return; }
+
+  const { error: dbErr } = await supabase.from('provider_documents').insert({
+    provider_id: profile.id, doc_type, file_path: filePath
+  });
+  if(dbErr){ msg.className='msg err'; msg.textContent = dbErr.message; return; }
+
+  msg.className='msg ok'; msg.textContent='تم رفع المستند بنجاح';
+  fileInput.value = '';
+  loadProviderDocs();
+}
+
+async function loadProviderDocs(){
+  const { data, error } = await supabase.from('provider_documents').select('*').eq('provider_id', profile.id).order('uploaded_at', {ascending:false});
+  const body = document.getElementById('docsBody');
+  if(error || !data || !data.length){ body.innerHTML = '<tr><td colspan="3">لا توجد مستندات مرفوعة بعد</td></tr>'; return; }
+  const statusMap = {pending:'<span class="badge pending">قيد المراجعة</span>', verified:'<span class="badge ready">تم التحقق</span>', rejected:'<span class="badge notready">مرفوض</span>'};
+  body.innerHTML = data.map(d => `<tr><td>${d.doc_type}</td><td>${new Date(d.uploaded_at).toLocaleDateString('ar-SA')}</td><td>${statusMap[d.status]}</td></tr>`).join('');
 }
 
 init();

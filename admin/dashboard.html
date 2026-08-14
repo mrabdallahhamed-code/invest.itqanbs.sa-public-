@@ -15,9 +15,10 @@
   <h1 class="page-title">مركز التحقق والإدارة</h1>
 
   <div class="tabs">
-    <button class="active" onclick="switchTab('docs')">مستندات بانتظار المراجعة</button>
+    <button class="active" onclick="switchTab('docs')">مستندات العملاء</button>
     <button onclick="switchTab('clients')">تصنيف العملاء والإجراءات</button>
     <button onclick="switchTab('requests')">توجيه طلبات العروض</button>
+    <button onclick="switchTab('providerDocs')">مستندات مقدمي الخدمة</button>
   </div>
 
   <div id="tab-docs">
@@ -44,6 +45,15 @@
       <div id="requestsBody"><p style="font-size:13.5px;color:var(--ink-soft);">جارٍ التحميل...</p></div>
     </div>
   </div>
+
+  <div id="tab-providerDocs" style="display:none;">
+    <div class="card">
+      <table>
+        <thead><tr><th>مقدّم الخدمة</th><th>المستند</th><th>التاريخ</th><th>إجراء</th></tr></thead>
+        <tbody id="providerDocsBody"><tr><td colspan="4">جارٍ التحميل...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
 </main>
 
 <script src="../assets/js/supabaseClient.js"></script>
@@ -54,9 +64,41 @@ function switchTab(tab){
   document.getElementById('tab-docs').style.display = tab==='docs' ? 'block':'none';
   document.getElementById('tab-clients').style.display = tab==='clients' ? 'block':'none';
   document.getElementById('tab-requests').style.display = tab==='requests' ? 'block':'none';
+  document.getElementById('tab-providerDocs').style.display = tab==='providerDocs' ? 'block':'none';
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
   event.target.classList.add('active');
   if(tab==='requests') loadPendingRequests();
+  if(tab==='providerDocs') loadProviderDocs();
+}
+
+async function loadProviderDocs(){
+  const { data, error } = await supabase
+    .from('provider_documents')
+    .select('id, doc_type, uploaded_at, status, provider_id, service_providers(company_name)')
+    .eq('status', 'pending')
+    .order('uploaded_at');
+
+  const body = document.getElementById('providerDocsBody');
+  if(error || !data || !data.length){ body.innerHTML = '<tr><td colspan="4">لا توجد مستندات بانتظار المراجعة</td></tr>'; return; }
+
+  body.innerHTML = data.map(d => `
+    <tr>
+      <td>${d.service_providers?.company_name || d.provider_id}</td>
+      <td>${d.doc_type}</td>
+      <td>${new Date(d.uploaded_at).toLocaleDateString('ar-SA')}</td>
+      <td>
+        <button class="btn" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="reviewProviderDoc('${d.id}','verified')">اعتماد</button>
+        <button class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="reviewProviderDoc('${d.id}','rejected')">رفض</button>
+      </td>
+    </tr>`).join('');
+}
+
+async function reviewProviderDoc(id, status){
+  const { error } = await supabase.from('provider_documents').update({
+    status, reviewed_by: profile.id, reviewed_at: new Date().toISOString()
+  }).eq('id', id);
+  if(error){ alert(error.message); return; }
+  loadProviderDocs();
 }
 
 async function init(){
