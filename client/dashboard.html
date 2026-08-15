@@ -79,6 +79,9 @@ async function init(){
 
   loadRequest();
   loadAdminMsgs();
+
+  document.getElementById('postIncorpCard').style.display = 'block';
+  loadPostIncorp();
 }
 
 function renderStatus(client){
@@ -222,14 +225,6 @@ async function loadRequest(){
     loadStages(activeRequest.id, 'stagesArea');
   } else {
     stagesCard.style.display = 'none';
-  }
-
-  const postIncorpCard = document.getElementById('postIncorpCard');
-  if(activeRequest.status === 'completed'){
-    postIncorpCard.style.display = 'block';
-    loadPostIncorp();
-  } else {
-    postIncorpCard.style.display = 'none';
   }
 }
 
