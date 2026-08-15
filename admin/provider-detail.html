@@ -111,6 +111,7 @@ async function reviewDoc(id, status){
   const { error } = await supabase.from('provider_documents').update({ status, reviewed_by: admin.id, reviewed_at: new Date().toISOString() }).eq('id', id);
   if(error){ alert(error.message); return; }
   loadDocs();
+  createNotification(providerId, status === 'verified' ? 'تم اعتماد مستندك ✓' : 'تم رفض أحد مستنداتك', null, '../provider/dashboard.html');
 }
 
 async function loadMsgs(){
@@ -129,6 +130,7 @@ async function sendMsg(){
   if(error){ alert(error.message); return; }
   input.value = '';
   loadMsgs();
+  createNotification(providerId, 'رسالة جديدة من فريق إتقان', text.slice(0,60), '../provider/dashboard.html');
 }
 
 init();

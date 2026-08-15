@@ -220,6 +220,9 @@ async function submitOffer(){
     if(!upErr) await supabase.from('offers').update({ pdf_file_path: filePath }).eq('id', offerRow.id);
   }
 
+  const { data: reqRow } = await supabase.from('service_requests').select('client_id').eq('id', requestId).single();
+  if(reqRow) await createNotification(reqRow.client_id, 'وصلك عرض جديد', profile.full_name + ' قدّم لك عرضاً', '../client/dashboard.html');
+
   window.location.href = 'dashboard.html';
 }
 

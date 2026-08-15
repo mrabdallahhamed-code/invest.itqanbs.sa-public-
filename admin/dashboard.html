@@ -9,7 +9,10 @@
 <body>
 <header class="top">
   <div class="brand"><img src="../assets/images/logo.jpeg" alt="إتقان"></div>
-  <button class="btn ghost" onclick="signOut()">تسجيل الخروج</button>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div id="notifBellContainer"></div>
+    <button class="btn ghost" onclick="signOut()">تسجيل الخروج</button>
+  </div>
 </header>
 <main>
   <h1 class="page-title">مركز التحقق والإدارة</h1>
@@ -112,16 +115,18 @@ async function sendPostIncorpQuote(id){
   const price = parseFloat(document.getElementById(`piPrice-${id}`).value);
   const details = document.getElementById(`piDetails-${id}`).value.trim();
   if(!price){ alert('أدخل السعر'); return; }
-  const { error } = await supabase.from('post_incorp_requests').update({
+  const { data: updated, error } = await supabase.from('post_incorp_requests').update({
     status: 'quoted', quoted_price: price, quoted_details: details, quoted_at: new Date().toISOString()
-  }).eq('id', id);
+  }).eq('id', id).select().single();
   if(error){ alert(error.message); return; }
   loadPostIncorpAdmin();
+  if(updated) createNotification(updated.client_id, 'وصلك عرض سعر لخدمات ما بعد التأسيس', price + ' ر.س', '../client/dashboard.html');
 }
 
 async function init(){
   profile = await requireRole(['admin']);
   if(!profile) return;
+  initNotificationBell(profile.id);
   loadClients();
 }
 
@@ -196,6 +201,7 @@ async function routeRequest(requestId){
   if(reqErr){ msg.className='msg err'; msg.textContent = reqErr.message; return; }
 
   msg.className='msg ok'; msg.textContent='تم توجيه الطلب بنجاح';
+  checked.forEach(providerId => createNotification(providerId, 'طلب جديد بانتظارك', 'وصلك طلب جديد يمكنك التقديم عليه بعرض', '../provider/dashboard.html'));
   setTimeout(() => { loadPendingRequests(); loadAllRequests(); }, 1000);
 }
 

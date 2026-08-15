@@ -18,7 +18,10 @@
 <body>
 <header class="top">
   <div class="brand"><img src="../assets/images/logo.jpeg" alt="إتقان"></div>
-  <button class="btn ghost" onclick="signOut()">تسجيل الخروج</button>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div id="notifBellContainer"></div>
+    <button class="btn ghost" onclick="signOut()">تسجيل الخروج</button>
+  </div>
 </header>
 <main>
   <h1 class="page-title">مرحباً، <span id="uname">...</span></h1>
@@ -68,6 +71,7 @@ async function init(){
   profile = await requireRole(['client']);
   if(!profile) return;
   document.getElementById('uname').textContent = profile.full_name;
+  initNotificationBell(profile.id);
 
   const { data: client } = await supabase.from('clients').select('*').eq('id', profile.id).single();
   clientRow = client;
@@ -115,6 +119,7 @@ async function sendAdminMsg(){
   if(error){ alert(error.message); return; }
   input.value = '';
   loadAdminMsgs();
+  createNotification(admins[0].id, 'رسالة جديدة من عميل', text.slice(0,60), '../admin/client-detail.html?id=' + profile.id);
 }
 
 function handleOffersClick(){
@@ -259,6 +264,9 @@ async function sendMessage(offerId){
   if(error){ alert(error.message); return; }
   input.value = '';
   loadMessages(offerId);
+
+  const { data: offerRow } = await supabase.from('offers').select('provider_id').eq('id', offerId).single();
+  if(offerRow) createNotification(offerRow.provider_id, 'رسالة جديدة من العميل', text.slice(0,60), '../provider/dashboard.html');
 }
 
 function togglePayments(offerId){
@@ -292,6 +300,9 @@ async function confirmPaymentClient(paymentId, offerId){
   const { error } = await supabase.from('offer_payments').update({ client_confirmed: true, client_confirmed_at: new Date().toISOString() }).eq('id', paymentId);
   if(error){ alert(error.message); return; }
   loadPayments(offerId);
+
+  const { data: offerRow } = await supabase.from('offers').select('provider_id').eq('id', offerId).single();
+  if(offerRow) createNotification(offerRow.provider_id, 'العميل أكّد السداد', 'يرجى تأكيد استلام الدفعة من لوحتك', '../provider/dashboard.html');
 }
 
 async function acceptOffer(offerId, requestId){
@@ -301,7 +312,11 @@ async function acceptOffer(offerId, requestId){
   if(reqErr){ alert(reqErr.message); return; }
   await createStagesIfNeeded(requestId);
   loadRequest();
+
+  const { data: offerRow } = await supabase.from('offers').select('provider_id').eq('id', offerId).single();
+  if(offerRow) createNotification(offerRow.provider_id, 'تم قبول عرضك ✓', 'العميل قبل عرضك، تابع مراحل التنفيذ من لوحتك', '../provider/dashboard.html');
 }
+
 
 async function createStagesIfNeeded(requestId){
   const { data: existing } = await supabase.from('request_stages').select('id').eq('request_id', requestId).limit(1);
@@ -411,6 +426,7 @@ async function respondPostIncorp(id, decision){
   const { error } = await supabase.from('post_incorp_requests').update({ status: decision, client_responded_at: new Date().toISOString() }).eq('id', id);
   if(error){ alert(error.message); return; }
   loadPostIncorp();
+  notifyAdmins(decision === 'accepted' ? 'العميل قبل عرض خدمات ما بعد التأسيس' : 'العميل رفض عرض خدمات ما بعد التأسيس', profile.full_name, '../admin/dashboard.html');
 }
 
 init();

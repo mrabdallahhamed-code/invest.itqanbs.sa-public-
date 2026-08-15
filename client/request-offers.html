@@ -139,6 +139,7 @@ async function submitReady(){
   });
 
   if(error){ msg.className = 'msg err'; msg.textContent = error.message; return; }
+  await notifyAdmins('طلب عروض جديد', profile.full_name + ' أرسل طلب عروض جديد', '../admin/dashboard.html');
   window.location.href = 'dashboard.html';
 }
 
@@ -203,6 +204,7 @@ async function submitNotReady(){
   });
 
   if(error){ msg.className = 'msg err'; msg.textContent = error.message; return; }
+  await notifyAdmins('طلب عروض جديد', profile.full_name + ' أرسل طلب عروض جديد', '../admin/dashboard.html');
   window.location.href = 'dashboard.html';
 }
 

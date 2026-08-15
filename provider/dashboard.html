@@ -18,7 +18,10 @@
 <body>
 <header class="top">
   <div class="brand"><img src="../assets/images/logo.jpeg" alt="إتقان"></div>
-  <button class="btn ghost" onclick="signOut()">تسجيل الخروج</button>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div id="notifBellContainer"></div>
+    <button class="btn ghost" onclick="signOut()">تسجيل الخروج</button>
+  </div>
 </header>
 <main>
   <h1 class="page-title">لوحة مقدّم الخدمة</h1>
@@ -113,11 +116,13 @@ async function sendAdminMsg(){
   if(error){ alert(error.message); return; }
   input.value = '';
   loadAdminMsgs();
+  createNotification(admins[0].id, 'رسالة جديدة من مقدّم خدمة', text.slice(0,60), '../admin/dashboard.html');
 }
 
 async function init(){
   profile = await requireRole(['provider']);
   if(!profile) return;
+  initNotificationBell(profile.id);
   loadRequests();
 }
 
@@ -212,12 +217,20 @@ async function addPayment(offerId){
   const { error } = await supabase.from('offer_payments').insert({ offer_id: offerId, label, amount });
   if(error){ alert(error.message); return; }
   loadPayments(offerId);
+  notifyOfferClient(offerId, 'دفعة جديدة بانتظار تأكيدك', label + ' — ' + amount + ' ر.س');
 }
 
 async function confirmPaymentProvider(paymentId, offerId){
   const { error } = await supabase.from('offer_payments').update({ provider_confirmed: true, provider_confirmed_at: new Date().toISOString() }).eq('id', paymentId);
   if(error){ alert(error.message); return; }
   loadPayments(offerId);
+  notifyOfferClient(offerId, 'تم تأكيد استلام دفعتك ✓', null);
+}
+
+async function notifyOfferClient(offerId, title, body){
+  const { data } = await supabase.from('offers').select('service_requests(client_id)').eq('id', offerId).single();
+  const clientId = data?.service_requests?.client_id;
+  if(clientId) createNotification(clientId, title, body, '../client/dashboard.html');
 }
 
 function toggleStages(offerId, requestId){
@@ -309,6 +322,7 @@ async function sendMessage(offerId){
   if(error){ alert(error.message); return; }
   input.value = '';
   loadMessages(offerId);
+  notifyOfferClient(offerId, 'رسالة جديدة من مقدّم الخدمة', text.slice(0,60));
 }
 
 async function uploadProviderDoc(){
