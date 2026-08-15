@@ -373,9 +373,9 @@ async function loadPostIncorp(){
       <p style="font-size:13px;color:var(--ink-soft);margin-bottom:12px;">اختر الخدمات اللي تحتاجها بعد التأسيس، وفريق إتقان يجهّز لك عرض سعر مخصص.</p>
       <div id="piCategories">
         ${postIncorpCategories.map((c,i) => `
-          <div class="check-item" style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);">
-            <label for="pi-${i}" style="margin:0;font-weight:400;font-size:13.5px;">${c}</label>
-            <input type="checkbox" id="pi-${i}" value="${c}">
+          <div class="check-item" style="display:grid;grid-template-columns:1fr 26px;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);">
+            <label for="pi-${i}" style="margin:0;font-weight:400;font-size:13.5px;line-height:1.6;">${c}</label>
+            <input type="checkbox" id="pi-${i}" value="${c}" style="margin:0;width:18px;height:18px;justify-self:start;">
           </div>
         `).join('')}
       </div>
