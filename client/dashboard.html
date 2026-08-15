@@ -360,7 +360,16 @@ async function loadStages(requestId, containerId){
   container.innerHTML = html;
 }
 
-const postIncorpCategories = ['موارد بشرية', 'حسابات', 'تسويق', 'تشغيل', 'إدارة', 'إدارة مشاريع', 'حوكمة'];
+const postIncorpNeeds = {
+  'موارد بشرية': ['توظيف وتعيين', 'إدارة منصات حكومية (قوى، مقيم، مدد)', 'كتابة السياسات الداخلية', 'إدارة شؤون الموظفين اليومية'],
+  'حسابات': ['مسك دفاتر وقيود محاسبية', 'إعداد القوائم المالية', 'الإقرارات الضريبية (VAT/الزكاة)', 'إعداد الرواتب (Payroll)'],
+  'تسويق': ['إدارة حسابات التواصل الاجتماعي', 'حملات إعلانية مدفوعة', 'تحسين محركات البحث SEO', 'تصميم هوية بصرية ومحتوى'],
+  'تشغيل': ['إعداد الإجراءات التشغيلية اليومية', 'إدارة سلسلة التوريد', 'إدارة خدمة العملاء', 'أتمتة العمليات'],
+  'إدارة': ['بناء الهيكل التنظيمي', 'وضع الخطط الاستراتيجية', 'التقارير الإدارية الدورية', 'تدريب وتأهيل الكوادر الإدارية'],
+  'إدارة مشاريع': ['تخطيط وجدولة المشاريع', 'متابعة التنفيذ والتقارير', 'إدارة الميزانيات', 'إدارة المخاطر'],
+  'حوكمة': ['صياغة اللوائح الداخلية', 'الامتثال التنظيمي (Compliance)', 'إعداد سياسات مكافحة غسل الأموال', 'هيكلة مجلس الإدارة/اللجان'],
+};
+const postIncorpCategories = Object.keys(postIncorpNeeds);
 
 async function loadPostIncorp(){
   const area = document.getElementById('postIncorpArea');
@@ -370,12 +379,24 @@ async function loadPostIncorp(){
 
   if(!data || !data.length){
     area.innerHTML = `
-      <p style="font-size:13px;color:var(--ink-soft);margin-bottom:12px;">اختر الخدمات اللي تحتاجها بعد التأسيس، وفريق إتقان يجهّز لك عرض سعر مخصص.</p>
+      <p style="font-size:13px;color:var(--ink-soft);margin-bottom:12px;">اختر الخدمات اللي تحتاجها بعد التأسيس، وحدّد المطلوب بالتفصيل، وفريق إتقان يجهّز لك عرض سعر مخصص.</p>
       <div id="piCategories">
         ${postIncorpCategories.map((c,i) => `
-          <div class="check-item" style="display:grid;grid-template-columns:1fr 26px;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);">
-            <label for="pi-${i}" style="margin:0;font-weight:400;font-size:13.5px;line-height:1.6;">${c}</label>
-            <input type="checkbox" id="pi-${i}" value="${c}" style="margin:0;width:18px;height:18px;justify-self:start;">
+          <div class="service-card" style="margin-bottom:10px;">
+            <div class="service-head" style="cursor:default;">
+              <div class="check-item" style="display:grid;grid-template-columns:1fr 26px;align-items:center;gap:10px;width:100%;">
+                <label for="pi-${i}" style="margin:0;font-weight:700;font-size:14px;">${c}</label>
+                <input type="checkbox" id="pi-${i}" value="${c}" style="margin:0;width:18px;height:18px;justify-self:start;" onchange="togglePiNeeds(${i})">
+              </div>
+            </div>
+            <div id="piNeeds-${i}" style="display:none;padding:0 22px 16px;">
+              ${postIncorpNeeds[c].map((n,j) => `
+                <div class="check-item" style="display:grid;grid-template-columns:1fr 26px;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line-soft);">
+                  <label for="pi-${i}-${j}" style="margin:0;font-weight:400;font-size:13px;">${n}</label>
+                  <input type="checkbox" id="pi-${i}-${j}" value="${n}" style="margin:0;width:16px;height:16px;justify-self:start;">
+                </div>
+              `).join('')}
+            </div>
           </div>
         `).join('')}
       </div>
@@ -391,29 +412,50 @@ async function loadPostIncorp(){
   const statusLabels = { pending_review:'قيد المراجعة — بانتظار عرض من إتقان', quoted:'وصلك عرض سعر', accepted:'تم القبول ✓', rejected:'تم الرفض' };
 
   let html = `<p style="font-size:13.5px;margin-bottom:10px;">حالة الطلب: <strong>${statusLabels[req.status]}</strong></p>`;
-  html += `<p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:14px;">الخدمات المطلوبة: ${(req.service_categories||[]).join('، ')}</p>`;
+  const needsHtml = Object.entries(req.service_needs || {}).map(([cat, needs]) => `<strong>${cat}:</strong> ${needs.join('، ')}`).join('<br>');
+  html += `<p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:14px;">${needsHtml}</p>`;
 
   if(req.status === 'quoted'){
     html += `
       <div class="card" style="background:var(--green-tint);">
         <p style="font-size:15px;font-weight:700;color:var(--green-dark);margin-bottom:8px;">${req.quoted_price} ر.س</p>
-        <p style="font-size:13px;color:var(--ink-soft);margin-bottom:14px;">${req.quoted_details || ''}</p>
+        <a href="../post-incorp-offer-view.html?id=${req.id}" class="btn ghost" style="padding:8px 16px;font-size:12.5px;margin-top:0;">عرض التفاصيل الكاملة</a><br>
         <button class="btn" style="margin-left:8px;" onclick="respondPostIncorp('${req.id}','accepted')">قبول العرض</button>
         <button class="btn ghost" onclick="respondPostIncorp('${req.id}','rejected')">رفض</button>
       </div>`;
+  } else if(req.status === 'accepted'){
+    html += `<a href="../post-incorp-offer-view.html?id=${req.id}" class="btn ghost" style="padding:8px 16px;font-size:12.5px;">عرض التفاصيل الكاملة</a>`;
   }
 
   area.innerHTML = html;
 }
 
+function togglePiNeeds(i){
+  const el = document.getElementById(`piNeeds-${i}`);
+  const checked = document.getElementById(`pi-${i}`).checked;
+  el.style.display = checked ? 'block' : 'none';
+}
+
 async function submitPostIncorp(){
-  const selected = postIncorpCategories.filter((c,i) => document.getElementById(`pi-${i}`).checked);
+  const service_needs = {};
+  postIncorpCategories.forEach((c,i) => {
+    if(document.getElementById(`pi-${i}`).checked){
+      const needs = postIncorpNeeds[c].filter((n,j) => document.getElementById(`pi-${i}-${j}`).checked);
+      service_needs[c] = needs.length ? needs : ['(بدون تحديد فرعي)'];
+    }
+  });
   const notes = document.getElementById('piNotes').value.trim();
   const msg = document.getElementById('piMsg');
-  if(!selected.length){ msg.className = 'msg err'; msg.textContent = 'اختر خدمة واحدة على الأقل'; return; }
+  if(!Object.keys(service_needs).length){ msg.className = 'msg err'; msg.textContent = 'اختر خدمة واحدة على الأقل'; return; }
 
-  const { error } = await supabase.from('post_incorp_requests').insert({ client_id: profile.id, service_categories: selected, client_notes: notes });
+  const { error } = await supabase.from('post_incorp_requests').insert({
+    client_id: profile.id,
+    service_categories: Object.keys(service_needs),
+    service_needs,
+    client_notes: notes
+  });
   if(error){ msg.className = 'msg err'; msg.textContent = error.message; return; }
+  await notifyAdmins('طلب عرض خدمات ما بعد التأسيس', profile.full_name, '../admin/dashboard.html');
   loadPostIncorp();
 }
 

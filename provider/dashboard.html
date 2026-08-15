@@ -29,6 +29,7 @@
   <div class="tabs">
     <button class="active" onclick="switchTab('requests')">الطلبات المتاحة</button>
     <button onclick="switchTab('offers')">العروض المُقدَّمة والمحادثات</button>
+    <button onclick="switchTab('postIncorp')">خدمات ما بعد التأسيس</button>
     <button onclick="switchTab('docs')">مستنداتي</button>
     <button onclick="switchTab('messages')">رسائل من إتقان</button>
   </div>
@@ -44,6 +45,10 @@
 
   <div id="tab-offers" style="display:none;">
     <div id="offersArea"><p style="color:var(--ink-soft);font-size:13.5px;">جارٍ التحميل...</p></div>
+  </div>
+
+  <div id="tab-postIncorp" style="display:none;">
+    <div id="postIncorpArea"><p style="color:var(--ink-soft);font-size:13.5px;">جارٍ التحميل...</p></div>
   </div>
 
   <div id="tab-docs" style="display:none;">
@@ -89,13 +94,44 @@ let profile;
 function switchTab(tab){
   document.getElementById('tab-requests').style.display = tab==='requests' ? 'block':'none';
   document.getElementById('tab-offers').style.display = tab==='offers' ? 'block':'none';
+  document.getElementById('tab-postIncorp').style.display = tab==='postIncorp' ? 'block':'none';
   document.getElementById('tab-docs').style.display = tab==='docs' ? 'block':'none';
   document.getElementById('tab-messages').style.display = tab==='messages' ? 'block':'none';
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
   event.target.classList.add('active');
   if(tab==='offers') loadOffers();
+  if(tab==='postIncorp') loadProviderPostIncorp();
   if(tab==='docs') loadProviderDocs();
   if(tab==='messages') loadAdminMsgs();
+}
+
+async function loadProviderPostIncorp(){
+  const area = document.getElementById('postIncorpArea');
+  const { data, error } = await supabase
+    .from('post_incorp_requests')
+    .select('id, service_needs, service_categories, client_notes, status, quoted_price')
+    .eq('assigned_provider_id', profile.id)
+    .order('created_at', {ascending:false});
+
+  if(error){ area.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
+  if(!data || !data.length){ area.innerHTML = '<p style="font-size:13.5px;color:var(--ink-soft);">لا توجد طلبات موجّهة لك حالياً.</p>'; return; }
+
+  const statusLabels = { pending_review:'بانتظار عرضك', quoted:'تم إرسال عرض', accepted:'مقبول ✓', rejected:'مرفوض' };
+
+  area.innerHTML = data.map(r => {
+    const needsHtml = Object.entries(r.service_needs || {}).map(([cat, needs]) => `<strong>${cat}:</strong> ${needs.join('، ')}`).join('<br>');
+    return `
+    <div class="card">
+      <p style="font-size:14px;font-weight:700;margin-bottom:4px;">طلب #${r.id.slice(0,8)} — ${statusLabels[r.status]}</p>
+      <p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:8px;">${needsHtml || (r.service_categories||[]).join('، ')}</p>
+      ${r.client_notes ? `<p style="font-size:12px;color:var(--ink-soft);margin-bottom:10px;">ملاحظات العميل: ${r.client_notes}</p>` : ''}
+      ${r.status === 'pending_review'
+        ? `<a href="submit-postincorp-offer.html?id=${r.id}" class="btn gold" style="padding:8px 18px;font-size:13px;">تجهيز عرض تفصيلي</a>`
+        : `<p style="font-size:13px;font-weight:700;color:var(--green-dark);">${r.quoted_price || ''} ر.س</p>
+           <a href="../post-incorp-offer-view.html?id=${r.id}" class="btn ghost" style="padding:7px 14px;font-size:12.5px;margin-top:0;">عرض التفاصيل</a>`
+      }
+    </div>`;
+  }).join('');
 }
 
 async function loadAdminMsgs(){

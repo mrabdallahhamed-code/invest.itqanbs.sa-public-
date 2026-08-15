@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>عرض خدمات ما بعد التأسيس — إتقان</title>
+<link rel="stylesheet" href="assets/css/itqan.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  .offer-doc{max-width:720px;margin:0 auto;background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:40px;}
+  .offer-doc h2{font-family:'Amiri',serif;color:var(--green-dark);font-size:23px;margin-bottom:4px;}
+  .offer-doc .sub{color:var(--ink-soft);font-size:13px;margin-bottom:26px;padding-bottom:16px;border-bottom:2px solid var(--gold);}
+  .sec-title{font-family:'Amiri',serif;font-size:16px;color:var(--green-dark);margin:26px 0 10px;}
+  table.fees-table{width:100%;border-collapse:collapse;margin-top:8px;}
+  table.fees-table th{background:var(--green-tint);color:var(--green-dark);font-size:12px;padding:8px 10px;text-align:right;}
+  table.fees-table td{padding:7px 10px;font-size:12.5px;border-bottom:1px solid var(--line);}
+  .fees-total-row td{font-weight:700;color:var(--green-dark);border-top:2px solid var(--gold);border-bottom:none;}
+  .fee-box{background:var(--green-tint);border-radius:10px;padding:16px;margin-top:12px;display:flex;justify-content:space-between;align-items:center;}
+  .fee-box .amount{font-family:'Amiri',serif;font-size:24px;color:var(--green-dark);font-weight:700;}
+  .notes-list p{font-size:12.5px;color:var(--ink-soft);line-height:1.8;white-space:pre-line;}
+  .sign-section{display:flex;justify-content:space-between;align-items:flex-end;margin-top:40px;padding-top:24px;border-top:1px solid var(--line);}
+  .sign-box{text-align:center;}
+  .sign-box img{max-height:70px;max-width:140px;margin-bottom:6px;}
+  .sign-line{border-top:1px solid var(--ink);width:160px;margin:0 auto 6px;padding-top:6px;font-size:12.5px;}
+  .approved-stamp{display:inline-block;border:2px solid var(--green);color:var(--green);border-radius:8px;padding:8px 16px;font-size:12.5px;font-weight:700;transform:rotate(-3deg);}
+  .print-actions{max-width:720px;margin:0 auto 16px;display:flex;gap:10px;justify-content:flex-end;}
+  @media print{
+    header.top, .print-actions, footer.site{display:none !important;}
+    body{background:var(--white);}
+    .offer-doc{border:none;box-shadow:none;padding:0;}
+  }
+</style>
+</head>
+<body>
+<header class="top"><div class="brand"><img src="assets/images/logo.jpeg" alt="إتقان"></div></header>
+<main>
+  <div class="print-actions">
+    <button class="btn gold" onclick="window.print()">🖨️ طباعة / حفظ PDF</button>
+  </div>
+
+  <div class="offer-doc" id="offerDoc">
+    <p style="text-align:center;color:var(--ink-soft);">جارٍ التحميل...</p>
+  </div>
+</main>
+
+<script src="assets/js/supabaseClient.js"></script>
+<script>
+const requestId = new URLSearchParams(window.location.search).get('id');
+const money = n => (n || 0).toLocaleString('ar-SA');
+
+async function init(){
+  const { data: { user } } = await supabase.auth.getUser();
+  if(!user){ window.location.href = 'auth/login.html'; return; }
+  if(!requestId){ document.getElementById('offerDoc').innerHTML = '<p>لم يتم تحديد عرض.</p>'; return; }
+
+  const { data: req, error } = await supabase
+    .from('post_incorp_requests')
+    .select('*')
+    .eq('id', requestId)
+    .single();
+
+  const doc = document.getElementById('offerDoc');
+  if(error || !req){ doc.innerHTML = '<p>تعذر عرض هذا العرض (قد لا تملك صلاحية الوصول إليه).</p>'; return; }
+
+  let stampUrl = null;
+  if(req.provider_stamp_path){
+    const { data } = await supabase.storage.from('offer-attachments').createSignedUrl(req.provider_stamp_path, 3600);
+    stampUrl = data?.signedUrl;
+  }
+  let signatureUrl = null;
+  if(req.provider_signature_path){
+    const { data } = await supabase.storage.from('offer-attachments').createSignedUrl(req.provider_signature_path, 3600);
+    signatureUrl = data?.signedUrl;
+  }
+
+  const needsHtml = Object.entries(req.service_needs || {}).map(([cat, needs]) => `
+    <div style="margin-bottom:12px;">
+      <p style="font-size:13.5px;font-weight:700;color:var(--ink);margin-bottom:4px;">${cat}</p>
+      ${needs.map(n => `<div class="scope-item" style="display:flex;gap:8px;font-size:13px;padding:3px 0;"><span style="color:var(--green);">✔</span><span>${n}</span></div>`).join('')}
+    </div>
+  `).join('') || '<p style="font-size:12.5px;color:var(--ink-soft);">لا توجد خدمات محددة.</p>';
+
+  const fees = req.government_fees || [];
+  const feesTotal = fees.reduce((s,f) => s + (f.fee || 0), 0);
+  const feesHtml = fees.length ? `
+    <table class="fees-table">
+      <thead><tr><th>البند</th><th style="width:110px;">الرسم التقديري</th></tr></thead>
+      <tbody>
+        ${fees.map(f => `<tr><td>${f.service}</td><td>${money(f.fee)} ر.س</td></tr>`).join('')}
+        <tr class="fees-total-row"><td>الإجمالي التقديري</td><td>${money(feesTotal)} ر.س</td></tr>
+      </tbody>
+    </table>` : '';
+
+  doc.innerHTML = `
+    <h2>عرض خدمات ما بعد التأسيس — إتقان لخدمات الأعمال</h2>
+    <p class="sub">تاريخ العرض: ${new Date(req.quoted_at || req.created_at).toLocaleDateString('ar-SA')}</p>
+
+    <div class="sec-title">أولاً: الخدمات المطلوبة</div>
+    ${needsHtml}
+
+    ${feesHtml ? `<div class="sec-title">ثانياً: رسوم إضافية تقديرية</div>${feesHtml}` : ''}
+
+    <div class="sec-title">المقابل المالي</div>
+    <div class="fee-box">
+      <span style="font-size:13.5px;color:var(--ink);">أتعاب إتقان لخدمات الأعمال (غير شامل ضريبة القيمة المضافة)</span>
+      <span class="amount">${money(req.quoted_price)} ر.س</span>
+    </div>
+
+    ${req.payment_schedule ? `<div class="sec-title">آلية السداد</div><div class="notes-list"><p>${req.payment_schedule}</p></div>` : ''}
+    ${req.exclusions_notes ? `<div class="sec-title">ملاحظات مالية</div><div class="notes-list"><p>${req.exclusions_notes}</p></div>` : ''}
+
+    <div class="sign-section">
+      <div class="sign-box">
+        ${signatureUrl ? `<img src="${signatureUrl}">` : ''}
+        <div class="sign-line">${req.provider_signature_name || 'التوقيع المعتمد'}</div>
+        <p style="font-size:11.5px;color:var(--ink-soft);">عن إتقان لخدمات الأعمال</p>
+        ${stampUrl ? `<img src="${stampUrl}" style="margin-top:8px;">` : ''}
+      </div>
+      <div class="sign-box">
+        ${req.status === 'accepted' ? `<div class="approved-stamp">تم اعتماد العرض ${req.client_responded_at ? '— ' + new Date(req.client_responded_at).toLocaleDateString('ar-SA') : ''}</div>` : '<p style="font-size:11.5px;color:var(--ink-soft);">بانتظار اعتماد العميل</p>'}
+      </div>
+    </div>
+  `;
+}
+
+init();
+</script>
+</body>
+</html>

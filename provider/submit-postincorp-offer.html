@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تجهيز عرض — إتقان</title>
+<link rel="stylesheet" href="../assets/css/itqan.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  .fee-row{display:grid;grid-template-columns:24px 1fr 100px auto 26px;gap:8px;align-items:center;padding:7px 0;}
+  .fee-row input[type="checkbox"]{width:18px;height:18px;justify-self:start;}
+  .fee-row input[type="text"], .fee-row input[type="number"]{width:100%;padding:8px 10px;}
+  .fee-row .unit{font-size:12px;color:var(--ink-soft);}
+  .fee-row button{background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px;padding:4px 8px;}
+</style>
+</head>
+<body>
+<header class="top"><div class="brand"><img src="../assets/images/logo.jpeg" alt="إتقان"></div></header>
+<main style="max-width:680px;">
+  <a href="dashboard.html" style="font-size:13px;color:var(--ink-soft);text-decoration:none;">← رجوع للوحة الرئيسية</a>
+  <h1 class="page-title" style="margin-top:10px;">تجهيز عرض خدمات ما بعد التأسيس</h1>
+
+  <div class="card">
+    <h3 style="margin-bottom:10px;">الخدمات المطلوبة من العميل</h3>
+    <div id="clientNeeds"><p style="font-size:13px;color:var(--ink-soft);">جارٍ التحميل...</p></div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom:6px;">الرسوم الحكومية التقديرية (إن وجدت)</h3>
+    <p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:10px;">اختياري — اتركها فاضية لو الخدمة ما فيها رسوم حكومية.</p>
+    <div id="feesList"></div>
+    <button class="btn ghost" style="padding:8px 16px;font-size:12.5px;" onclick="addFeeRow('', '')">+ إضافة رسم</button>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom:10px;">المقابل المالي (أتعاب إتقان)</h3>
+    <label>قيمة الأتعاب (ر.س، غير شامل ضريبة القيمة المضافة)</label>
+    <input id="price" type="number" placeholder="مثال: 5000">
+    <label>آلية السداد</label>
+    <textarea id="payment_schedule" rows="2" placeholder="مثال: 50% دفعة مقدمة، 50% عند التسليم">50% دفعة مقدمة عند اعتماد العرض.
+50% عند إتمام الخدمة وتسليم المستحقات.</textarea>
+    <label>ملاحظات مالية</label>
+    <textarea id="exclusions_notes" rows="2">الأسعار لا تشمل ضريبة القيمة المضافة، وتُحتسب وفق الأنظمة المعمول بها.</textarea>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom:10px;">التوقيع والختم الرسمي</h3>
+    <label>اسم المفوّض بالتوقيع</label>
+    <input id="provider_signature_name" placeholder="الاسم الكامل">
+    <label>توقيع ممثل الشركة (صورة، اختياري)</label>
+    <input id="signature_file" type="file" accept="image/*">
+    <label>ختم/شعار الشركة (صورة، اختياري)</label>
+    <input id="stamp_file" type="file" accept="image/*">
+  </div>
+
+  <button class="btn gold" onclick="submitQuote()">إرسال العرض للعميل</button>
+  <div id="msg"></div>
+</main>
+
+<script src="../assets/js/supabaseClient.js"></script>
+<script>
+let profile;
+const requestId = new URLSearchParams(window.location.search).get('id');
+let clientId;
+
+async function init(){
+  profile = await requireRole(['provider']);
+  if(!profile) return;
+  if(!requestId){ document.body.innerHTML = '<p style="padding:40px;text-align:center;">لم يتم تحديد الطلب.</p>'; return; }
+
+  const { data, error } = await supabase.from('post_incorp_requests').select('service_needs, client_notes, client_id, assigned_provider_id').eq('id', requestId).single();
+  if(error || !data){ document.getElementById('clientNeeds').innerHTML = `<p class="msg err">${error?.message || 'تعذر تحميل الطلب'}</p>`; return; }
+  if(data.assigned_provider_id !== profile.id){ document.body.innerHTML = '<p style="padding:40px;text-align:center;">هذا الطلب غير موجّه لك.</p>'; return; }
+  clientId = data.client_id;
+
+  const needsHtml = Object.entries(data.service_needs || {}).map(([cat, needs]) => `
+    <div style="margin-bottom:10px;">
+      <strong style="font-size:13.5px;color:var(--green-dark);">${cat}</strong>
+      <ul class="service-list">${needs.map(n => `<li>${n}</li>`).join('')}</ul>
+    </div>
+  `).join('');
+  document.getElementById('clientNeeds').innerHTML = needsHtml + (data.client_notes ? `<p style="font-size:12.5px;color:var(--ink-soft);margin-top:10px;"><strong>ملاحظات العميل:</strong> ${data.client_notes}</p>` : '');
+}
+
+function addFeeRow(name, fee){
+  const list = document.getElementById('feesList');
+  const row = document.createElement('div');
+  row.className = 'fee-row';
+  row.innerHTML = `
+    <input type="checkbox" checked>
+    <input type="text" placeholder="اسم الخدمة/الرسم" value="${name}">
+    <input type="number" placeholder="الرسم" value="${fee}">
+    <span class="unit">ر.س</span>
+    <button onclick="this.parentElement.remove()">✕</button>
+  `;
+  list.appendChild(row);
+}
+
+async function submitQuote(){
+  const msg = document.getElementById('msg');
+  const price = parseFloat(document.getElementById('price').value) || 0;
+  if(!price){ msg.className = 'msg err'; msg.textContent = 'أدخل قيمة الأتعاب'; return; }
+
+  const government_fees = [...document.querySelectorAll('#feesList .fee-row')]
+    .filter(row => row.querySelector('input[type="checkbox"]').checked)
+    .map(row => {
+      const inputs = row.querySelectorAll('input');
+      return { service: inputs[1].value.trim(), fee: parseFloat(inputs[2].value) || 0 };
+    })
+    .filter(f => f.service);
+
+  const payment_schedule = document.getElementById('payment_schedule').value.trim();
+  const exclusions_notes = document.getElementById('exclusions_notes').value.trim();
+  const provider_signature_name = document.getElementById('provider_signature_name').value.trim();
+
+  const { error } = await supabase.from('post_incorp_requests').update({
+    status: 'quoted', quoted_price: price, quoted_at: new Date().toISOString(),
+    government_fees, payment_schedule, exclusions_notes, provider_signature_name
+  }).eq('id', requestId);
+
+  if(error){ msg.className = 'msg err'; msg.textContent = error.message; return; }
+
+  const signatureInput = document.getElementById('signature_file');
+  if(signatureInput.files.length){
+    const file = signatureInput.files[0];
+    const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+    const filePath = `${profile.id}/pi_signature_${requestId}_${safeName}`;
+    const { error: upErr } = await supabase.storage.from('offer-attachments').upload(filePath, file);
+    if(!upErr) await supabase.from('post_incorp_requests').update({ provider_signature_path: filePath }).eq('id', requestId);
+  }
+
+  const stampInput = document.getElementById('stamp_file');
+  if(stampInput.files.length){
+    const file = stampInput.files[0];
+    const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+    const filePath = `${profile.id}/pi_stamp_${requestId}_${safeName}`;
+    const { error: upErr } = await supabase.storage.from('offer-attachments').upload(filePath, file);
+    if(!upErr) await supabase.from('post_incorp_requests').update({ provider_stamp_path: filePath }).eq('id', requestId);
+  }
+
+  await createNotification(clientId, 'وصلك عرض سعر لخدمات ما بعد التأسيس', price + ' ر.س', '../client/dashboard.html');
+  window.location.href = 'dashboard.html';
+}
+
+init();
+</script>
+</body>
+</html>

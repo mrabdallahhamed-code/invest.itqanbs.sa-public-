@@ -87,7 +87,7 @@ async function loadPostIncorpAdmin(){
   const body = document.getElementById('postIncorpBody');
   const { data, error } = await supabase
     .from('post_incorp_requests')
-    .select('id, service_categories, client_notes, status, quoted_price, quoted_details, client_id, clients(profiles(full_name))')
+    .select('id, service_needs, service_categories, client_notes, status, quoted_price, client_id, assigned_provider_id, clients(profiles(full_name))')
     .order('created_at', {ascending:false});
 
   if(error){ body.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
@@ -95,33 +95,36 @@ async function loadPostIncorpAdmin(){
 
   const statusLabels = { pending_review:'قيد المراجعة', quoted:'تم إرسال عرض', accepted:'مقبول ✓', rejected:'مرفوض' };
 
-  body.innerHTML = data.map(r => `
+  body.innerHTML = data.map(r => {
+    const needsHtml = Object.entries(r.service_needs || {}).map(([cat, needs]) => `<strong>${cat}:</strong> ${needs.join('، ')}`).join('<br>');
+    let actionHtml;
+    if(r.status === 'pending_review' && !r.assigned_provider_id){
+      actionHtml = `<button class="btn gold" style="padding:8px 18px;font-size:13px;" onclick="routeToItqan('${r.id}')">توجيه إلى إتقان كمقدّم خدمة</button>`;
+    } else if(r.status === 'pending_review' && r.assigned_provider_id){
+      actionHtml = `<span class="badge pending">تم التوجيه — بانتظار عرض إتقان</span>`;
+    } else {
+      actionHtml = `<p style="font-size:13px;font-weight:700;color:var(--green-dark);">${r.quoted_price || ''} ر.س</p>
+           <a href="../post-incorp-offer-view.html?id=${r.id}" class="btn ghost" style="padding:7px 14px;font-size:12.5px;margin-top:0;">عرض التفاصيل</a>`;
+    }
+    return `
     <div style="border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px;">
       <p style="font-size:14px;margin-bottom:4px;"><strong>${r.clients?.profiles?.full_name || r.client_id}</strong> — ${statusLabels[r.status]}</p>
-      <p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:6px;">الخدمات: ${(r.service_categories||[]).join('، ')}</p>
+      <p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:6px;">${needsHtml || (r.service_categories||[]).join('، ')}</p>
       ${r.client_notes ? `<p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:10px;">ملاحظات العميل: ${r.client_notes}</p>` : ''}
-      ${r.status === 'pending_review' ? `
-        <label>السعر (ر.س)</label>
-        <input type="number" id="piPrice-${r.id}" style="width:150px;display:inline-block;">
-        <label>تفاصيل العرض</label>
-        <textarea id="piDetails-${r.id}" rows="2" style="max-width:400px;"></textarea>
-        <button class="btn gold" style="padding:8px 16px;font-size:13px;" onclick="sendPostIncorpQuote('${r.id}')">إرسال العرض</button>
-      ` : `<p style="font-size:13px;font-weight:700;color:var(--green-dark);">${r.quoted_price || ''} ر.س</p>`}
-    </div>
-  `).join('');
+      ${actionHtml}
+    </div>`;
+  }).join('');
 }
 
-async function sendPostIncorpQuote(id){
-  const price = parseFloat(document.getElementById(`piPrice-${id}`).value);
-  const details = document.getElementById(`piDetails-${id}`).value.trim();
-  if(!price){ alert('أدخل السعر'); return; }
-  const { data: updated, error } = await supabase.from('post_incorp_requests').update({
-    status: 'quoted', quoted_price: price, quoted_details: details, quoted_at: new Date().toISOString()
-  }).eq('id', id).select().single();
+async function routeToItqan(requestId){
+  const { data: itqan } = await supabase.from('service_providers').select('id').eq('is_itqan', true).limit(1).single();
+  if(!itqan){ alert('تعذر إيجاد حساب إتقان كمقدّم خدمة'); return; }
+  const { error } = await supabase.from('post_incorp_requests').update({ assigned_provider_id: itqan.id }).eq('id', requestId);
   if(error){ alert(error.message); return; }
+  createNotification(itqan.id, 'طلب خدمات ما بعد التأسيس بانتظارك', 'وجّه لك الأدمن طلباً جديداً لتجهيز عرض', '../provider/dashboard.html');
   loadPostIncorpAdmin();
-  if(updated) createNotification(updated.client_id, 'وصلك عرض سعر لخدمات ما بعد التأسيس', price + ' ر.س', '../client/dashboard.html');
 }
+
 
 async function init(){
   profile = await requireRole(['admin']);
