@@ -13,8 +13,28 @@
   <p style="color:var(--ink-soft);font-size:13.5px;margin-bottom:20px;">
     هذه الأسئلة تساعد مقدمي الخدمة على تقديم عرض دقيق لحالتك — لا حاجة لرفع أي مستندات الآن.
   </p>
-  <div class="card">
+  <div class="card" id="formArea">
+    <p style="text-align:center;color:var(--ink-soft);">جارٍ التحميل...</p>
+  </div>
+</main>
 
+<script src="../assets/js/supabaseClient.js"></script>
+<script>
+let profile, isReady;
+
+async function init(){
+  profile = await requireRole(['client']);
+  if(!profile) return;
+
+  const { data: client } = await supabase.from('clients').select('readiness_status').eq('id', profile.id).single();
+  isReady = client?.readiness_status === 'ready';
+
+  document.getElementById('formArea').innerHTML = isReady ? readyFormHtml() : notReadyFormHtml();
+}
+
+// ---------- استبيان العميل الجاهز (يملك شركة أجنبية جاهزة) ----------
+function readyFormHtml(){
+  return `
     <label>ما نوع النشاط المطلوب؟</label>
     <select id="activity_type">
       <option value="">اختر...</option>
@@ -23,10 +43,6 @@
       <option>زراعي</option>
       <option>تجاري</option>
     </select>
-
-    <label>صف نشاطك الفعلي بالتفصيل</label>
-    <textarea id="activity_description" rows="3" placeholder="مثال: استيراد وتوزيع مواد غذائية معلّبة داخل السعودية"></textarea>
-    <p style="font-size:11.5px;color:var(--ink-soft);margin-top:-6px;">هذا الوصف يساعد مقدمي الخدمة على تحديد السعر والمدة بدقة أكبر.</p>
 
     <label>ما هي سنة آخر ميزانية مدققة للشركة؟</label>
     <select id="last_audited_budget">
@@ -84,17 +100,9 @@
     <label>ملاحظات إضافية (اختياري)</label>
     <textarea id="notes" rows="3" placeholder="أي تفاصيل تحب تشاركها مع مقدمي الخدمة"></textarea>
 
-    <button class="btn gold" onclick="submitRequest()">إرسال الطلب</button>
+    <button class="btn gold" onclick="submitReady()">إرسال الطلب</button>
     <div id="msg"></div>
-  </div>
-</main>
-
-<script src="../assets/js/supabaseClient.js"></script>
-<script>
-let profile;
-
-async function init(){
-  profile = await requireRole(['client']);
+  `;
 }
 
 function boolOrNull(val){
@@ -103,10 +111,9 @@ function boolOrNull(val){
   return null;
 }
 
-async function submitRequest(){
+async function submitReady(){
   const activity_type = document.getElementById('activity_type').value;
-  const activity_description = document.getElementById('activity_description').value.trim();
-  const last_audited_budget = document.getElementById('last_audited_budget').value.trim();
+  const last_audited_budget = document.getElementById('last_audited_budget').value;
   const docs_certified_home_country = document.getElementById('docs_certified_home_country').value;
   const docs_certified_embassy = document.getElementById('docs_certified_embassy').value;
   const residency_status = document.getElementById('residency_status').value;
@@ -123,20 +130,79 @@ async function submitRequest(){
   const { error } = await supabase.from('service_requests').insert({
     client_id: profile.id,
     status: 'pending_admin_review',
-    activity_type,
-    activity_description,
-    last_audited_budget,
+    activity_type, last_audited_budget,
     docs_certified_home_country: boolOrNull(docs_certified_home_country),
     docs_certified_embassy: boolOrNull(docs_certified_embassy),
-    residency_status,
-    acquisition_or_new,
-    gm_residency,
+    residency_status, acquisition_or_new, gm_residency,
     gm_has_authority: boolOrNull(gm_has_authority),
     notes
   });
 
   if(error){ msg.className = 'msg err'; msg.textContent = error.message; return; }
+  window.location.href = 'dashboard.html';
+}
 
+// ---------- استبيان العميل غير الجاهز (سنوفر له شركة عبر الاستحواذ) ----------
+function notReadyFormHtml(){
+  return `
+    <p style="font-size:13px;color:var(--ink-soft);margin-bottom:14px;">بما إن ملفك لسا غير جاهز، هذي الأسئلة تساعدنا نوجّهك لمقدمي خدمة متخصصين بالاستحواذ على شركة مناسبة لك.</p>
+
+    <label>ما نوع النشاط المطلوب؟</label>
+    <select id="nr_activity_type">
+      <option value="">اختر...</option>
+      <option>خدمي</option>
+      <option>صناعي</option>
+      <option>زراعي</option>
+      <option>تجاري</option>
+    </select>
+
+    <label>ما جنسية المنشأة المطلوب الاستحواذ عليها؟</label>
+    <input id="nr_target_nationality" placeholder="مثال: الإمارات، مصر، بريطانيا...">
+
+    <label>هل ترغب أن يكون لديك شركاء أم ملكية كاملة 100%؟</label>
+    <select id="nr_ownership_type">
+      <option value="">اختر...</option>
+      <option>ملكية كاملة 100%</option>
+      <option>وجود شركاء</option>
+    </select>
+
+    <label>هل أنت مقيم بالمملكة أم خارجها؟</label>
+    <select id="nr_residency_status">
+      <option value="">اختر...</option>
+      <option>زائر حالي بالمملكة</option>
+      <option>مقيم بالمملكة</option>
+      <option>خارج المملكة</option>
+    </select>
+
+    <label>ملاحظات إضافية (اختياري)</label>
+    <textarea id="nr_notes" rows="3" placeholder="أي تفاصيل تحب تشاركها مع مقدمي الخدمة"></textarea>
+
+    <button class="btn gold" onclick="submitNotReady()">إرسال الطلب</button>
+    <div id="msg"></div>
+  `;
+}
+
+async function submitNotReady(){
+  const activity_type = document.getElementById('nr_activity_type').value;
+  const acquisition_target_nationality = document.getElementById('nr_target_nationality').value.trim();
+  const ownership_type = document.getElementById('nr_ownership_type').value;
+  const residency_status = document.getElementById('nr_residency_status').value;
+  const notes = document.getElementById('nr_notes').value.trim();
+  const msg = document.getElementById('msg');
+
+  if(!activity_type || !acquisition_target_nationality || !ownership_type || !residency_status){
+    msg.className = 'msg err'; msg.textContent = 'الرجاء تعبئة كل الحقول'; return;
+  }
+
+  const { error } = await supabase.from('service_requests').insert({
+    client_id: profile.id,
+    status: 'pending_admin_review',
+    activity_type, acquisition_target_nationality, ownership_type, residency_status,
+    acquisition_or_new: 'استحواذ على شركة قائمة',
+    notes
+  });
+
+  if(error){ msg.className = 'msg err'; msg.textContent = error.message; return; }
   window.location.href = 'dashboard.html';
 }
 

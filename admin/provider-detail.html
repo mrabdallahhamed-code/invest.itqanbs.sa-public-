@@ -92,12 +92,19 @@ async function loadDocs(){
       <td>${new Date(d.uploaded_at).toLocaleDateString('ar-SA')}</td>
       <td>${statusMap[d.status]}</td>
       <td>
+        <button class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="viewDoc('${d.file_path}')">عرض الملف</button>
         ${d.status==='pending' ? `
           <button class="btn" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="reviewDoc('${d.id}','verified')">اعتماد</button>
           <button class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="reviewDoc('${d.id}','rejected')">رفض</button>
-        ` : '—'}
+        ` : ''}
       </td>
     </tr>`).join('');
+}
+
+async function viewDoc(filePath){
+  const { data, error } = await supabase.storage.from('provider-documents').createSignedUrl(filePath, 60);
+  if(error){ alert(error.message); return; }
+  window.open(data.signedUrl, '_blank');
 }
 
 async function reviewDoc(id, status){
