@@ -160,10 +160,64 @@ async function loadOffers(){
       <a href="../offer-view.html?id=${o.id}" class="btn ghost" style="padding:7px 14px;font-size:12.5px;margin-top:0;">عرض تفاصيل العرض</a>
       <button class="btn ghost" style="padding:7px 14px;font-size:12.5px;margin-top:0;" onclick="toggleChat('${o.id}')">فتح المحادثة</button>
       ${o.status === 'accepted' ? `<button class="btn ghost" style="padding:7px 14px;font-size:12.5px;margin-top:0;" onclick="toggleStages('${o.id}','${o.request_id}')">متابعة المراحل</button>` : ''}
+      ${o.status === 'accepted' ? `<button class="btn ghost" style="padding:7px 14px;font-size:12.5px;margin-top:0;" onclick="togglePayments('${o.id}')">إدارة الدفعات</button>` : ''}
       <div id="chat-${o.id}" style="display:none;"></div>
       ${o.status === 'accepted' ? `<div id="stages-${o.id}" style="display:none;margin-top:10px;"></div>` : ''}
+      ${o.status === 'accepted' ? `<div id="payments-${o.id}" style="display:none;margin-top:10px;"></div>` : ''}
     </div>
   `).join('');
+}
+
+function togglePayments(offerId){
+  const el = document.getElementById(`payments-${offerId}`);
+  const isHidden = el.style.display === 'none';
+  el.style.display = isHidden ? 'block' : 'none';
+  if(isHidden) loadPayments(offerId);
+}
+
+async function loadPayments(offerId){
+  const el = document.getElementById(`payments-${offerId}`);
+  const { data, error } = await supabase.from('offer_payments').select('*').eq('offer_id', offerId).order('created_at');
+
+  let html = '<div class="card" style="background:var(--cream);">';
+  if(error){ html += `<p class="msg err">${error.message}</p>`; }
+  else if(!data || !data.length){ html += '<p style="font-size:12.5px;color:var(--ink-soft);">لا توجد دفعات مسجّلة بعد.</p>'; }
+  else {
+    data.forEach(p => {
+      let statusText, statusColor;
+      if(p.client_confirmed && p.provider_confirmed){ statusText = '✅ مؤكد من الطرفين'; statusColor = 'var(--green)'; }
+      else if(p.provider_confirmed){ statusText = 'بانتظار تأكيد العميل'; statusColor = 'var(--gold)'; }
+      else { statusText = 'بانتظار استلام الدفعة'; statusColor = 'var(--ink-soft)'; }
+
+      html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);">
+        <div><strong style="font-size:13px;">${p.label}</strong> — <span style="font-size:12.5px;">${p.amount} ر.س</span><br><span style="font-size:11.5px;color:${statusColor};">${statusText}</span></div>
+        ${!p.provider_confirmed ? `<button class="btn" style="padding:6px 12px;font-size:11px;margin-top:0;" onclick="confirmPaymentProvider('${p.id}','${offerId}')">تم استلام الدفعة</button>` : ''}
+      </div>`;
+    });
+  }
+  html += `
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <input id="payLabel-${offerId}" placeholder="مثال: الدفعة الأولى" style="flex:1;">
+      <input id="payAmount-${offerId}" type="number" placeholder="المبلغ" style="width:110px;">
+      <button class="btn gold" style="margin:0;padding:9px 16px;" onclick="addPayment('${offerId}')">إضافة</button>
+    </div>
+  </div>`;
+  el.innerHTML = html;
+}
+
+async function addPayment(offerId){
+  const label = document.getElementById(`payLabel-${offerId}`).value.trim();
+  const amount = parseFloat(document.getElementById(`payAmount-${offerId}`).value);
+  if(!label || !amount){ alert('أدخل وصف الدفعة والمبلغ'); return; }
+  const { error } = await supabase.from('offer_payments').insert({ offer_id: offerId, label, amount });
+  if(error){ alert(error.message); return; }
+  loadPayments(offerId);
+}
+
+async function confirmPaymentProvider(paymentId, offerId){
+  const { error } = await supabase.from('offer_payments').update({ provider_confirmed: true, provider_confirmed_at: new Date().toISOString() }).eq('id', paymentId);
+  if(error){ alert(error.message); return; }
+  loadPayments(offerId);
 }
 
 function toggleStages(offerId, requestId){
@@ -214,8 +268,13 @@ async function updateStage(stageId, newStatus, requestId, containerId, canEdit){
   const payload = { status: newStatus };
   if(newStatus==='in_progress') payload.started_at = new Date().toISOString();
   if(newStatus==='completed') payload.completed_at = new Date().toISOString();
-  const { error } = await supabase.from('request_stages').update(payload).eq('id', stageId);
+  const { data: stageRow, error } = await supabase.from('request_stages').update(payload).eq('id', stageId).select().single();
   if(error){ alert(error.message); return; }
+
+  if(newStatus === 'completed' && stageRow.stage_order === 8){
+    await supabase.from('service_requests').update({ status: 'completed' }).eq('id', requestId);
+  }
+
   loadStages(requestId, containerId, canEdit);
 }
 

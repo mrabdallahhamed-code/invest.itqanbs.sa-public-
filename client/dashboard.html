@@ -45,6 +45,11 @@
     <div id="stagesArea"></div>
   </div>
 
+  <div class="card" id="postIncorpCard" style="display:none;">
+    <h3 style="margin-bottom:10px;">خدمات ما بعد التأسيس (حصرية من إتقان)</h3>
+    <div id="postIncorpArea"></div>
+  </div>
+
   <div class="card">
     <h3 style="margin-bottom:10px;">رسائل من فريق إتقان</h3>
     <div id="adminMsgsList"><p style="font-size:13px;color:var(--ink-soft);">جارٍ التحميل...</p></div>
@@ -196,9 +201,11 @@ async function loadRequest(){
           ${isAccepted ? '<span class="badge ready">تم القبول ✓</span>' : (activeRequest.status === 'open' ? `<button class="btn" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="acceptOffer('${o.id}','${activeRequest.id}')">قبول العرض</button>` : '—')}
           <a href="../offer-view.html?id=${o.id}" class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;">عرض التفاصيل</a>
           <button class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="toggleChat('${o.id}')">محادثة</button>
+          ${isAccepted ? `<button class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="togglePayments('${o.id}')">الدفعات</button>` : ''}
         </td>
       </tr>
-      <tr id="chat-row-${o.id}" style="display:none;"><td colspan="4"><div id="chat-${o.id}"></div></td></tr>`;
+      <tr id="chat-row-${o.id}" style="display:none;"><td colspan="4"><div id="chat-${o.id}"></div></td></tr>
+      ${isAccepted ? `<tr id="payments-row-${o.id}" style="display:none;"><td colspan="4"><div id="payments-${o.id}"></div></td></tr>` : ''}`;
     });
     html += `</tbody></table>`;
   }
@@ -210,6 +217,14 @@ async function loadRequest(){
     loadStages(activeRequest.id, 'stagesArea');
   } else {
     stagesCard.style.display = 'none';
+  }
+
+  const postIncorpCard = document.getElementById('postIncorpCard');
+  if(activeRequest.status === 'completed'){
+    postIncorpCard.style.display = 'block';
+    loadPostIncorp();
+  } else {
+    postIncorpCard.style.display = 'none';
   }
 }
 
@@ -244,6 +259,39 @@ async function sendMessage(offerId){
   if(error){ alert(error.message); return; }
   input.value = '';
   loadMessages(offerId);
+}
+
+function togglePayments(offerId){
+  const row = document.getElementById(`payments-row-${offerId}`);
+  const isHidden = row.style.display === 'none';
+  row.style.display = isHidden ? 'table-row' : 'none';
+  if(isHidden) loadPayments(offerId);
+}
+
+async function loadPayments(offerId){
+  const el = document.getElementById(`payments-${offerId}`);
+  const { data, error } = await supabase.from('offer_payments').select('*').eq('offer_id', offerId).order('created_at');
+
+  if(error){ el.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
+  if(!data || !data.length){ el.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);">لا توجد دفعات مسجّلة بعد من مقدّم الخدمة.</p>'; return; }
+
+  el.innerHTML = data.map(p => {
+    let statusText, statusColor;
+    if(p.client_confirmed && p.provider_confirmed){ statusText = '✅ مؤكد من الطرفين'; statusColor = 'var(--green)'; }
+    else if(p.client_confirmed){ statusText = 'بانتظار تأكيد مقدّم الخدمة'; statusColor = 'var(--gold)'; }
+    else { statusText = 'بانتظار تأكيدك للسداد'; statusColor = 'var(--ink-soft)'; }
+
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);">
+      <div><strong style="font-size:13px;">${p.label}</strong> — <span style="font-size:12.5px;">${p.amount} ر.س</span><br><span style="font-size:11.5px;color:${statusColor};">${statusText}</span></div>
+      ${!p.client_confirmed ? `<button class="btn" style="padding:6px 12px;font-size:11px;margin-top:0;" onclick="confirmPaymentClient('${p.id}','${offerId}')">أكّد أنني سدّدت</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function confirmPaymentClient(paymentId, offerId){
+  const { error } = await supabase.from('offer_payments').update({ client_confirmed: true, client_confirmed_at: new Date().toISOString() }).eq('id', paymentId);
+  if(error){ alert(error.message); return; }
+  loadPayments(offerId);
 }
 
 async function acceptOffer(offerId, requestId){
@@ -300,6 +348,69 @@ async function loadStages(requestId, containerId){
   }
   html += '</div>';
   container.innerHTML = html;
+}
+
+const postIncorpCategories = ['موارد بشرية', 'حسابات', 'تسويق', 'تشغيل', 'إدارة', 'إدارة مشاريع', 'حوكمة'];
+
+async function loadPostIncorp(){
+  const area = document.getElementById('postIncorpArea');
+  const { data, error } = await supabase.from('post_incorp_requests').select('*').eq('client_id', profile.id).order('created_at', {ascending:false}).limit(1);
+
+  if(error){ area.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
+
+  if(!data || !data.length){
+    area.innerHTML = `
+      <p style="font-size:13px;color:var(--ink-soft);margin-bottom:12px;">اختر الخدمات اللي تحتاجها بعد التأسيس، وفريق إتقان يجهّز لك عرض سعر مخصص.</p>
+      <div id="piCategories">
+        ${postIncorpCategories.map((c,i) => `
+          <div class="check-item" style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);">
+            <label for="pi-${i}" style="margin:0;font-weight:400;font-size:13.5px;">${c}</label>
+            <input type="checkbox" id="pi-${i}" value="${c}">
+          </div>
+        `).join('')}
+      </div>
+      <label>ملاحظات إضافية (اختياري)</label>
+      <textarea id="piNotes" rows="2" placeholder="صف احتياجك بإيجاز"></textarea>
+      <button class="btn gold" onclick="submitPostIncorp()">طلب عرض سعر</button>
+      <div id="piMsg"></div>
+    `;
+    return;
+  }
+
+  const req = data[0];
+  const statusLabels = { pending_review:'قيد المراجعة — بانتظار عرض من إتقان', quoted:'وصلك عرض سعر', accepted:'تم القبول ✓', rejected:'تم الرفض' };
+
+  let html = `<p style="font-size:13.5px;margin-bottom:10px;">حالة الطلب: <strong>${statusLabels[req.status]}</strong></p>`;
+  html += `<p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:14px;">الخدمات المطلوبة: ${(req.service_categories||[]).join('، ')}</p>`;
+
+  if(req.status === 'quoted'){
+    html += `
+      <div class="card" style="background:var(--green-tint);">
+        <p style="font-size:15px;font-weight:700;color:var(--green-dark);margin-bottom:8px;">${req.quoted_price} ر.س</p>
+        <p style="font-size:13px;color:var(--ink-soft);margin-bottom:14px;">${req.quoted_details || ''}</p>
+        <button class="btn" style="margin-left:8px;" onclick="respondPostIncorp('${req.id}','accepted')">قبول العرض</button>
+        <button class="btn ghost" onclick="respondPostIncorp('${req.id}','rejected')">رفض</button>
+      </div>`;
+  }
+
+  area.innerHTML = html;
+}
+
+async function submitPostIncorp(){
+  const selected = postIncorpCategories.filter((c,i) => document.getElementById(`pi-${i}`).checked);
+  const notes = document.getElementById('piNotes').value.trim();
+  const msg = document.getElementById('piMsg');
+  if(!selected.length){ msg.className = 'msg err'; msg.textContent = 'اختر خدمة واحدة على الأقل'; return; }
+
+  const { error } = await supabase.from('post_incorp_requests').insert({ client_id: profile.id, service_categories: selected, client_notes: notes });
+  if(error){ msg.className = 'msg err'; msg.textContent = error.message; return; }
+  loadPostIncorp();
+}
+
+async function respondPostIncorp(id, decision){
+  const { error } = await supabase.from('post_incorp_requests').update({ status: decision, client_responded_at: new Date().toISOString() }).eq('id', id);
+  if(error){ alert(error.message); return; }
+  loadPostIncorp();
 }
 
 init();
