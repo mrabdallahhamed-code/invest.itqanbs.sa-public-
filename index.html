@@ -35,9 +35,11 @@
   .top-nav{display:flex; gap:22px; align-items:center; flex-wrap:wrap;}
   .top-nav a{color:var(--ink); font-size:14px; text-decoration:none; font-weight:500;}
   .top-nav a:hover{color:var(--gold);}
-  .top-contact{display:flex; gap:10px;}
+  .top-contact{display:flex; gap:10px; align-items:center;}
   .icon-link{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--green-tint);text-decoration:none;font-size:16px;transition:transform .15s;}
   .icon-link:hover{transform:translateY(-2px);background:var(--gold-soft);}
+  #langToggleBtn{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--line);background:var(--white);font-size:11px;font-weight:800;cursor:pointer;color:var(--green-dark);letter-spacing:.5px;}
+  #langToggleBtn:hover{border-color:var(--gold);color:var(--gold-deep);}
 
   /* ---------- Hero ---------- */
   .hero{
@@ -61,7 +63,6 @@
   .stat-box .n{font-family:'Amiri',serif; font-size:27px; color:var(--gold); font-weight:700;}
   .stat-box .l{font-size:11.5px; color:#C7CFC5;}
 
-  /* ---------- Section wrappers: this is what makes sections feel distinct ---------- */
   .section-wrap{padding:76px 0;}
   .section-wrap.bg-cream{background:var(--cream);}
   .section-wrap.bg-white{background:var(--white);}
@@ -83,6 +84,7 @@
   .service-card{background:var(--white); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow-sm); transition:box-shadow .2s;}
   .service-card.open{box-shadow:var(--shadow);}
   .service-head{display:flex; align-items:center; gap:14px; padding:20px 22px; cursor:pointer; user-select:none; background:none; border:none; width:100%; text-align:right; font-family:inherit;}
+  html[dir="ltr"] .service-head{text-align:left;}
   .icon-circle{width:44px;height:44px;min-width:44px;border-radius:50%;background:var(--green-tint);display:flex;align-items:center;justify-content:center;font-size:19px;}
   .service-head h3{font-size:15px; color:var(--green-dark); flex:1;}
   .chevron{font-size:14px; color:var(--gold); transition:transform .25s;}
@@ -99,7 +101,9 @@
   @media(max-width:700px){.about-split{grid-template-columns:1fr;}}
   .about-split img{width:100%; border-radius:var(--radius); box-shadow:var(--shadow);}
   .about-split .text-side{text-align:right;}
+  html[dir="ltr"] .about-split .text-side{text-align:left;}
   .about-split .text-side h2{text-align:right; margin-bottom:14px;}
+  html[dir="ltr"] .about-split .text-side h2{text-align:left;}
   .about-split .text-side p{font-size:14px; color:var(--ink-soft); line-height:1.85;}
 
   .kingdom-text{max-width:600px; margin:0 auto; text-align:center; position:relative; z-index:1;}
@@ -135,15 +139,16 @@
     <img src="assets/images/logo.jpeg" alt="إتقان لخدمات الأعمال" style="height:36px;">
   </div>
   <nav class="top-nav">
-    <a href="#about">عن الشركة</a>
-    <a href="#services">خدماتنا</a>
-    <a href="#paths">ابدأ الآن</a>
-    <a href="#contact">تواصل معنا</a>
-    <a href="auth/login.html">تسجيل الدخول</a>
-    <a href="auth/register.html?role=client" class="btn gold" style="margin:0;padding:9px 20px;font-size:13px;">إنشاء حساب</a>
+    <a href="#about" data-i18n="nav_about">عن الشركة</a>
+    <a href="#services" data-i18n="nav_services">خدماتنا</a>
+    <a href="#paths" data-i18n="nav_paths">ابدأ الآن</a>
+    <a href="#contact" data-i18n="nav_contact">تواصل معنا</a>
+    <a href="auth/login.html" data-i18n="nav_login">تسجيل الدخول</a>
+    <a href="auth/register.html?role=client" class="btn gold" style="margin:0;padding:9px 20px;font-size:13px;" data-i18n="nav_register">إنشاء حساب</a>
     <div class="top-contact">
-      <a class="icon-link" href="https://wa.me/966569051686" target="_blank" title="واتساب">💬</a>
-      <a class="icon-link" href="mailto:info@itqanbs.sa" title="البريد الإلكتروني">✉️</a>
+      <a class="icon-link" href="https://wa.me/966569051686" target="_blank" title="WhatsApp">💬</a>
+      <a class="icon-link" href="mailto:info@itqanbs.sa" title="Email">✉️</a>
+      <button id="langToggleBtn" onclick="toggleLang()">EN</button>
     </div>
   </nav>
 </header>
@@ -152,21 +157,21 @@
 <section class="hero">
   <div class="hero-inner">
     <img class="logo-mark" src="assets/images/logo.jpeg" alt="إتقان">
-    <h1>استثمر في السعودية بثقة تامة</h1>
-    <p>
+    <h1 data-i18n="hero_title">استثمر في السعودية بثقة تامة</h1>
+    <p data-i18n="hero_p">
       إتقان لخدمات الأعمال شركة متخصصة في تقديم حلول متكاملة للمستثمرين الأجانب الراغبين بدخول السوق
       السعودي، تجمع بين الخبرة والمعرفة الدقيقة ببيئة الأعمال المحلية، وتخدم عملاءها
       عبر فريق متخصص حاضر في 14 دولة حول العالم.
     </p>
     <div class="hero-actions">
-      <a href="auth/register.html?role=client" class="btn gold">ابدأ الآن</a>
-      <a href="#services" class="btn ghost" style="border-color:rgba(255,255,255,.3);color:var(--white);">تعرّف على الخدمات</a>
+      <a href="auth/register.html?role=client" class="btn gold" data-i18n="hero_btn_start">ابدأ الآن</a>
+      <a href="#services" class="btn ghost" style="border-color:rgba(255,255,255,.3);color:var(--white);" data-i18n="hero_btn_services">تعرّف على الخدمات</a>
     </div>
     <div class="stats-row">
-      <div class="stat-box"><div class="n">+500</div><div class="l">مستثمر أجنبي</div></div>
-      <div class="stat-box"><div class="n">100%</div><div class="l">ملكية أجنبية كاملة</div></div>
-      <div class="stat-box"><div class="n">14</div><div class="l">دولة حول العالم</div></div>
-      <div class="stat-box"><div class="n">15</div><div class="l">يوماً للتأسيس</div></div>
+      <div class="stat-box"><div class="n">+500</div><div class="l" data-i18n="stat_investors">مستثمر أجنبي</div></div>
+      <div class="stat-box"><div class="n">100%</div><div class="l" data-i18n="stat_ownership">ملكية أجنبية كاملة</div></div>
+      <div class="stat-box"><div class="n">14</div><div class="l" data-i18n="stat_countries">دولة حول العالم</div></div>
+      <div class="stat-box"><div class="n">15</div><div class="l" data-i18n="stat_days">يوماً للتأسيس</div></div>
     </div>
   </div>
 </section>
@@ -177,9 +182,9 @@
     <div class="about-split">
       <img src="assets/images/digital-services.png" alt="خدمات إتقان الرقمية">
       <div class="text-side">
-        <span class="section-eyebrow" style="text-align:right;">عن إتقان</span>
-        <h2 class="section-title" style="text-align:right;">وسيط موثوق بينك وبين التأسيس</h2>
-        <p>من التحقق من مستنداتك إلى توقيع عقد شركتك — نرافقك في كل خطوة عبر منصة رقمية تجمع بين
+        <span class="section-eyebrow" style="text-align:right;" data-i18n="about_eyebrow">عن إتقان</span>
+        <h2 class="section-title" style="text-align:right;" data-i18n="about_title">وسيط موثوق بينك وبين التأسيس</h2>
+        <p data-i18n="about_p">من التحقق من مستنداتك إلى توقيع عقد شركتك — نرافقك في كل خطوة عبر منصة رقمية تجمع بين
         السرعة والشفافية، وفريق متخصص يتابع ملفك لحظة بلحظة حتى تصل لعقد تأسيس شركتك بثقة تامة.</p>
       </div>
     </div>
@@ -191,9 +196,9 @@
   <section class="block">
     <div class="about-split">
       <div class="text-side">
-        <span class="section-eyebrow" style="text-align:right;">فرصة استثمارية</span>
-        <h2 class="section-title" style="text-align:right;">استثمر بذكاء، استثمر الآن</h2>
-        <p>السوق السعودي يفتح أبوابه للمستثمرين الأجانب بثقة غير مسبوقة — ملكية كاملة، إجراءات مبسّطة،
+        <span class="section-eyebrow" style="text-align:right;" data-i18n="invest_eyebrow">فرصة استثمارية</span>
+        <h2 class="section-title" style="text-align:right;" data-i18n="invest_title">استثمر بذكاء، استثمر الآن</h2>
+        <p data-i18n="invest_p">السوق السعودي يفتح أبوابه للمستثمرين الأجانب بثقة غير مسبوقة — ملكية كاملة، إجراءات مبسّطة،
         وفرص نمو حقيقية بمختلف القطاعات. إتقان تختصر عليك الطريق من الفكرة إلى عقد التأسيس.</p>
       </div>
       <img src="assets/images/invest-icons.png" alt="فرص الاستثمار في السعودية">
@@ -204,24 +209,24 @@
 <!-- ===== قسم: خدماتنا ===== -->
 <div class="section-wrap bg-cream" id="services">
   <section class="block">
-    <span class="section-eyebrow">خدماتنا</span>
-    <h2 class="section-title">اضغط على أي خدمة لمعرفة التفاصيل</h2>
+    <span class="section-eyebrow" data-i18n="services_eyebrow">خدماتنا</span>
+    <h2 class="section-title" data-i18n="services_title">اضغط على أي خدمة لمعرفة التفاصيل</h2>
     <div class="services-grid" id="servicesGrid">
 
       <div class="service-card">
         <button class="service-head" onclick="toggleService(this)">
           <span class="icon-circle">📜</span>
-          <h3>رخصة الاستثمار الأجنبي (MISA)</h3>
+          <h3 data-i18n="svc1_title">رخصة الاستثمار الأجنبي (MISA)</h3>
           <span class="chevron">▾</span>
         </button>
         <div class="service-body">
           <div class="service-body-inner">
-            <p>نستحصل نيابة عنك على رخصة الاستثمار من وزارة الاستثمار السعودية بأسرع وقت وأقل تعقيد.</p>
+            <p data-i18n="svc1_p">نستحصل نيابة عنك على رخصة الاستثمار من وزارة الاستثمار السعودية بأسرع وقت وأقل تعقيد.</p>
             <ul class="service-list">
-              <li>تقييم أهلية المستثمر والقطاع</li>
-              <li>إعداد وتقديم الملف كاملاً</li>
-              <li>تواصل مباشر مع الجهات الرسمية</li>
-              <li>متابعة حتى صدور الرخصة</li>
+              <li data-i18n="svc1_li1">تقييم أهلية المستثمر والقطاع</li>
+              <li data-i18n="svc1_li2">إعداد وتقديم الملف كاملاً</li>
+              <li data-i18n="svc1_li3">تواصل مباشر مع الجهات الرسمية</li>
+              <li data-i18n="svc1_li4">متابعة حتى صدور الرخصة</li>
             </ul>
           </div>
         </div>
@@ -230,17 +235,17 @@
       <div class="service-card">
         <button class="service-head" onclick="toggleService(this)">
           <span class="icon-circle">🏢</span>
-          <h3>تأسيس شركة سعودية</h3>
+          <h3 data-i18n="svc2_title">تأسيس شركة سعودية</h3>
           <span class="chevron">▾</span>
         </button>
         <div class="service-body">
           <div class="service-body-inner">
-            <p>كيان قانوني سعودي بملكية أجنبية كاملة (100%)، بدون شريك محلي، من التسجيل حتى فتح الحساب البنكي.</p>
+            <p data-i18n="svc2_p">كيان قانوني سعودي بملكية أجنبية كاملة (100%)، بدون شريك محلي، من التسجيل حتى فتح الحساب البنكي.</p>
             <ul class="service-list">
-              <li>تسجيل في وزارة التجارة</li>
-              <li>استخراج السجل التجاري وعقد التأسيس</li>
-              <li>فتح الملفات الحكومية</li>
-              <li>فتح الحساب البنكي</li>
+              <li data-i18n="svc2_li1">تسجيل في وزارة التجارة</li>
+              <li data-i18n="svc2_li2">استخراج السجل التجاري وعقد التأسيس</li>
+              <li data-i18n="svc2_li3">فتح الملفات الحكومية</li>
+              <li data-i18n="svc2_li4">فتح الحساب البنكي</li>
             </ul>
           </div>
         </div>
@@ -249,17 +254,17 @@
       <div class="service-card">
         <button class="service-head" onclick="toggleService(this)">
           <span class="icon-circle">🌍</span>
-          <h3>الاستحواذ على شركات خارجية</h3>
+          <h3 data-i18n="svc3_title">الاستحواذ على شركات خارجية</h3>
           <span class="chevron">▾</span>
         </button>
         <div class="service-body">
           <div class="service-body-inner">
-            <p>فريقنا في 14 دولة حول العالم يساعدك على الاستحواذ على شركة متوافقة مع اشتراطات الترخيص.</p>
+            <p data-i18n="svc3_p">فريقنا في 14 دولة حول العالم يساعدك على الاستحواذ على شركة متوافقة مع اشتراطات الترخيص.</p>
             <ul class="service-list">
-              <li>الاستحواذ على شركة ملائمة لشروط الترخيص</li>
-              <li>إنهاء إجراءات نقل الملكية</li>
-              <li>تصديق المستندات الجديدة</li>
-              <li>شحن الأوراق للمملكة</li>
+              <li data-i18n="svc3_li1">الاستحواذ على شركة ملائمة لشروط الترخيص</li>
+              <li data-i18n="svc3_li2">إنهاء إجراءات نقل الملكية</li>
+              <li data-i18n="svc3_li3">تصديق المستندات الجديدة</li>
+              <li data-i18n="svc3_li4">شحن الأوراق للمملكة</li>
             </ul>
           </div>
         </div>
@@ -268,17 +273,17 @@
       <div class="service-card">
         <button class="service-head" onclick="toggleService(this)">
           <span class="icon-circle">🗂️</span>
-          <h3>خدمات الدعم</h3>
+          <h3 data-i18n="svc4_title">خدمات الدعم</h3>
           <span class="chevron">▾</span>
         </button>
         <div class="service-body">
           <div class="service-body-inner">
-            <p>نرافقك في إدارة أعمالك بعد التأسيس عبر أربعة محاور رئيسية:</p>
+            <p data-i18n="svc4_p">نرافقك في إدارة أعمالك بعد التأسيس عبر أربعة محاور رئيسية:</p>
             <ul class="service-list">
-              <li><strong>موارد بشرية:</strong> توظيف وعقود وإدارة منصات حكومية</li>
-              <li><strong>حسابات عامة:</strong> مسك دفاتر، إعداد القوائم المالية، والإقرارات الضريبية وفق الأنظمة السعودية</li>
-              <li><strong>تسويق رقمي:</strong> إدارة حسابات التواصل الاجتماعي، تحسين محركات البحث، وحملات إعلانية تناسب السوق المحلي</li>
-              <li><strong>إدارة وتشغيل وحوكمة:</strong> بناء الهيكل التنظيمي، السياسات الداخلية، ولوائح الحوكمة المتوافقة مع الأنظمة السعودية</li>
+              <li data-i18n-html="svc4_li1"><strong>موارد بشرية:</strong> توظيف وعقود وإدارة منصات حكومية</li>
+              <li data-i18n-html="svc4_li2"><strong>حسابات عامة:</strong> مسك دفاتر، إعداد القوائم المالية، والإقرارات الضريبية وفق الأنظمة السعودية</li>
+              <li data-i18n-html="svc4_li3"><strong>تسويق رقمي:</strong> إدارة حسابات التواصل الاجتماعي، تحسين محركات البحث، وحملات إعلانية تناسب السوق المحلي</li>
+              <li data-i18n-html="svc4_li4"><strong>إدارة وتشغيل وحوكمة:</strong> بناء الهيكل التنظيمي، السياسات الداخلية، ولوائح الحوكمة المتوافقة مع الأنظمة السعودية</li>
             </ul>
           </div>
         </div>
@@ -291,55 +296,55 @@
 <!-- ===== قسم: لماذا الآن ===== -->
 <div class="section-wrap bg-white">
   <section class="block">
-    <span class="section-eyebrow">لماذا الآن</span>
-    <h2 class="section-title">لماذا الاستثمار في السعودية الآن؟</h2>
-    <p class="section-sub">اضغط على أي بطاقة لمعرفة التفاصيل</p>
+    <span class="section-eyebrow" data-i18n="why_eyebrow">لماذا الآن</span>
+    <h2 class="section-title" data-i18n="why_title">لماذا الاستثمار في السعودية الآن؟</h2>
+    <p class="section-sub" data-i18n="why_sub">اضغط على أي بطاقة لمعرفة التفاصيل</p>
     <div class="services-grid">
       <div class="service-card">
         <button class="service-head" onclick="toggleService(this)">
           <span class="icon-circle">📈</span>
-          <h3>اقتصاد متسارع النمو</h3>
+          <h3 data-i18n="why1_title">اقتصاد متسارع النمو</h3>
           <span class="chevron">▾</span>
         </button>
         <div class="service-body">
           <div class="service-body-inner">
-            <p>ناتج محلي يتجاوز 1.1 تريليون دولار، وخطط توسع ضخمة ضمن رؤية 2030 بمختلف القطاعات.</p>
+            <p data-i18n="why1_p">ناتج محلي يتجاوز 1.1 تريليون دولار، وخطط توسع ضخمة ضمن رؤية 2030 بمختلف القطاعات.</p>
           </div>
         </div>
       </div>
       <div class="service-card">
         <button class="service-head" onclick="toggleService(this)">
           <span class="icon-circle">🔓</span>
-          <h3>انفتاح تنظيمي غير مسبوق</h3>
+          <h3 data-i18n="why2_title">انفتاح تنظيمي غير مسبوق</h3>
           <span class="chevron">▾</span>
         </button>
         <div class="service-body">
           <div class="service-body-inner">
-            <p>ملكية أجنبية كاملة 100% بمعظم القطاعات، بإجراءات مبسّطة عبر منصات حكومية رقمية.</p>
+            <p data-i18n="why2_p">ملكية أجنبية كاملة 100% بمعظم القطاعات، بإجراءات مبسّطة عبر منصات حكومية رقمية.</p>
           </div>
         </div>
       </div>
       <div class="service-card">
         <button class="service-head" onclick="toggleService(this)">
           <span class="icon-circle">🌐</span>
-          <h3>موقع استراتيجي</h3>
+          <h3 data-i18n="why3_title">موقع استراتيجي</h3>
           <span class="chevron">▾</span>
         </button>
         <div class="service-body">
           <div class="service-body-inner">
-            <p>بوابة لأسواق الخليج والشرق الأوسط، بقربها من ثلاث قارات وشبكة طرق ومطارات متطورة.</p>
+            <p data-i18n="why3_p">بوابة لأسواق الخليج والشرق الأوسط، بقربها من ثلاث قارات وشبكة طرق ومطارات متطورة.</p>
           </div>
         </div>
       </div>
       <div class="service-card">
         <button class="service-head" onclick="toggleService(this)">
           <span class="icon-circle">💰</span>
-          <h3>حوافز استثمارية</h3>
+          <h3 data-i18n="why4_title">حوافز استثمارية</h3>
           <span class="chevron">▾</span>
         </button>
         <div class="service-body">
           <div class="service-body-inner">
-            <p>إعفاءات ضريبية بمناطق معينة، تمويل حكومي لمشاريع محددة، ودعم مباشر من صناديق التنمية.</p>
+            <p data-i18n="why4_p">إعفاءات ضريبية بمناطق معينة، تمويل حكومي لمشاريع محددة، ودعم مباشر من صناديق التنمية.</p>
           </div>
         </div>
       </div>
@@ -351,8 +356,8 @@
 <div class="section-wrap bg-dark">
   <section class="block">
     <div class="kingdom-text">
-      <h2>استثمر في اقتصاد يتوسع بثقة</h2>
-      <p>
+      <h2 data-i18n="kingdom_title">استثمر في اقتصاد يتوسع بثقة</h2>
+      <p data-i18n="kingdom_p">
         ضمن رؤية المملكة 2030، أصبح بإمكان المستثمر الأجنبي تأسيس شركته بنسبة تملك 100% في عدد واسع
         من القطاعات، وسط اقتصاد يتجاوز ناتجه المحلي 1.1 تريليون دولار وبيئة أعمال تتطور بخطى متسارعة.
       </p>
@@ -363,20 +368,20 @@
 <!-- ===== قسم: ابدأ الآن (عميل) ===== -->
 <div class="section-wrap bg-cream" id="paths">
   <section class="block">
-    <span class="section-eyebrow">ابدأ الآن</span>
-    <h2 class="section-title">هل أنت مستثمر يبحث عن التأسيس؟</h2>
+    <span class="section-eyebrow" data-i18n="paths_eyebrow">ابدأ الآن</span>
+    <h2 class="section-title" data-i18n="paths_title">هل أنت مستثمر يبحث عن التأسيس؟</h2>
     <div class="paths-grid">
       <div class="path-card">
         <div class="icon">👤</div>
-        <h3>عميل حالي</h3>
-        <p>لديك حساب مسبق؟</p>
-        <a href="auth/login.html?role=client" class="btn" style="margin-top:0;">تسجيل الدخول</a>
+        <h3 data-i18n="client_existing_title">عميل حالي</h3>
+        <p data-i18n="client_existing_p">لديك حساب مسبق؟</p>
+        <a href="auth/login.html?role=client" class="btn" style="margin-top:0;" data-i18n="client_existing_btn">تسجيل الدخول</a>
       </div>
       <div class="path-card">
         <div class="icon">🆕</div>
-        <h3>عميل جديد</h3>
-        <p>ابدأ رحلة استثمارك الآن</p>
-        <a href="auth/register.html?role=client" class="btn gold" style="margin-top:0;">إنشاء حساب</a>
+        <h3 data-i18n="client_new_title">عميل جديد</h3>
+        <p data-i18n="client_new_p">ابدأ رحلة استثمارك الآن</p>
+        <a href="auth/register.html?role=client" class="btn gold" style="margin-top:0;" data-i18n="client_new_btn">إنشاء حساب</a>
       </div>
     </div>
   </section>
@@ -385,20 +390,20 @@
 <!-- ===== قسم: كن شريكاً لنا (مقدم خدمة) ===== -->
 <div class="section-wrap bg-white">
   <section class="block">
-    <span class="section-eyebrow">كن شريكاً لنا</span>
-    <h2 class="section-title">هل أنت مقدّم خدمة تأسيس شركات؟</h2>
+    <span class="section-eyebrow" data-i18n="partner_eyebrow">كن شريكاً لنا</span>
+    <h2 class="section-title" data-i18n="partner_title">هل أنت مقدّم خدمة تأسيس شركات؟</h2>
     <div class="paths-grid">
       <div class="path-card">
         <div class="icon">🤝</div>
-        <h3>مقدّم خدمة حالي</h3>
-        <p>سجّل دخولك للاطلاع على الطلبات</p>
-        <a href="auth/login.html?role=provider" class="btn" style="margin-top:0;">تسجيل الدخول</a>
+        <h3 data-i18n="provider_existing_title">مقدّم خدمة حالي</h3>
+        <p data-i18n="provider_existing_p">سجّل دخولك للاطلاع على الطلبات</p>
+        <a href="auth/login.html?role=provider" class="btn" style="margin-top:0;" data-i18n="provider_existing_btn">تسجيل الدخول</a>
       </div>
       <div class="path-card">
         <div class="icon">✨</div>
-        <h3>مقدّم خدمة جديد</h3>
-        <p>انضم كشريك معتمد لدى إتقان</p>
-        <a href="auth/register.html?role=provider" class="btn gold" style="margin-top:0;">انضمام كشريك</a>
+        <h3 data-i18n="provider_new_title">مقدّم خدمة جديد</h3>
+        <p data-i18n="provider_new_p">انضم كشريك معتمد لدى إتقان</p>
+        <a href="auth/register.html?role=provider" class="btn gold" style="margin-top:0;" data-i18n="provider_new_btn">انضمام كشريك</a>
       </div>
     </div>
   </section>
@@ -407,18 +412,19 @@
 <!-- ===== قسم: تواصل معنا ===== -->
 <div class="section-wrap bg-tint" id="contact">
   <section class="block" style="text-align:center;">
-    <span class="section-eyebrow">تواصل معنا</span>
-    <h2 class="section-title" style="margin-bottom:8px;">فريقنا جاهز للإجابة على استفساراتك</h2>
+    <span class="section-eyebrow" data-i18n="contact_eyebrow">تواصل معنا</span>
+    <h2 class="section-title" style="margin-bottom:8px;" data-i18n="contact_title">فريقنا جاهز للإجابة على استفساراتك</h2>
     <div class="contact-links">
-      <a class="contact-pill" href="https://wa.me/966569051686" target="_blank">💬 واتساب</a>
+      <a class="contact-pill" href="https://wa.me/966569051686" target="_blank">💬 <span data-i18n="contact_whatsapp">واتساب</span></a>
       <a class="contact-pill" href="mailto:info@itqanbs.sa">✉️ info@itqanbs.sa</a>
-      <span class="contact-pill" style="cursor:default;">📍 الرياض، السعودية</span>
+      <span class="contact-pill" style="cursor:default;">📍 <span data-i18n="contact_location">الرياض، السعودية</span></span>
     </div>
   </section>
 </div>
 
-<footer class="site">© إتقان لخدمات الأعمال — Itqan Business Services</footer>
+<footer class="site" data-i18n="footer_text">© إتقان لخدمات الأعمال — Itqan Business Services</footer>
 
+<script src="assets/js/i18n.js"></script>
 <script>
 function toggleService(btn){
   const card = btn.closest('.service-card');

@@ -5,22 +5,30 @@
 <title>تسجيل الدخول — إتقان</title>
 <link rel="stylesheet" href="../assets/css/itqan.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  #langToggleBtn{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--line);background:var(--white);font-size:11px;font-weight:800;cursor:pointer;color:var(--green-dark);letter-spacing:.5px;}
+  #langToggleBtn:hover{border-color:var(--gold);color:var(--gold-deep);}
+</style>
 </head>
 <body>
-<header class="top"><div class="brand"><img src="../assets/images/logo.jpeg" alt="إتقان"></div></header>
+<header class="top">
+  <div class="brand"><img src="../assets/images/logo.jpeg" alt="إتقان"></div>
+  <button id="langToggleBtn" onclick="toggleLang()">EN</button>
+</header>
 <main style="max-width:480px;">
-  <h1 class="page-title">تسجيل الدخول</h1>
+  <h1 class="page-title" data-i18n="login_title">تسجيل الدخول</h1>
   <div class="card">
-    <label>البريد الإلكتروني</label>
+    <label data-i18n="login_email">البريد الإلكتروني</label>
     <input id="email" type="email">
-    <label>كلمة المرور</label>
+    <label data-i18n="login_password">كلمة المرور</label>
     <input id="password" type="password">
-    <button class="btn" onclick="login()">دخول</button>
+    <button class="btn" onclick="login()" data-i18n="login_btn">دخول</button>
     <div id="msg"></div>
-    <p style="margin-top:16px;font-size:13px;">ليس لديك حساب؟ <a href="register.html">إنشاء حساب</a></p>
+    <p style="margin-top:16px;font-size:13px;"><span data-i18n="login_no_account">ليس لديك حساب؟</span> <a href="register.html" data-i18n="login_register_link">إنشاء حساب جديد</a></p>
   </div>
 </main>
 <script src="../assets/js/supabaseClient.js"></script>
+<script src="../assets/js/i18n.js"></script>
 <script>
 async function login(){
   const email = document.getElementById('email').value.trim();
