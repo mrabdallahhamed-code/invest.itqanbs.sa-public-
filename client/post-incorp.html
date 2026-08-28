@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>خدمات ما بعد التأسيس — إتقان</title>
+<link rel="stylesheet" href="../assets/css/itqan.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  .hero-card{background:linear-gradient(135deg, var(--green-dark) 0%, #2E4438 100%); border-radius:var(--radius); padding:32px; margin-bottom:24px; color:var(--white); text-align:center;}
+  .hero-card h1{font-family:'Amiri',serif; font-size:22px; margin-bottom:8px;}
+  .hero-card p{color:#D9E0D6; font-size:13.5px;}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><img src="../assets/images/logo.jpeg" alt="إتقان"></div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <a href="dashboard.html" class="btn ghost" style="margin:0;padding:9px 16px;font-size:13px;">التأسيس والاستثمار</a>
+    <div id="notifBellContainer"></div>
+    <button class="btn ghost" onclick="signOut()">تسجيل الخروج</button>
+  </div>
+</header>
+<main style="max-width:640px;">
+
+  <div class="hero-card">
+    <h1>خدمات ما بعد التأسيس</h1>
+    <p>كل ما تحتاجه لإدارة شركتك بعد التأسيس، مباشرة من فريق إتقان</p>
+  </div>
+
+  <div class="card" id="postIncorpArea"><p style="color:var(--ink-soft);font-size:13.5px;">جارٍ التحميل...</p></div>
+
+</main>
+
+<script src="../assets/js/supabaseClient.js"></script>
+<script>
+let profile;
+
+const postIncorpNeeds = {
+  'موارد بشرية': ['توظيف وتعيين', 'إدارة منصات حكومية (قوى، مقيم، مدد)', 'كتابة السياسات الداخلية', 'إدارة شؤون الموظفين اليومية'],
+  'حسابات': ['مسك دفاتر وقيود محاسبية', 'إعداد القوائم المالية', 'الإقرارات الضريبية (VAT/الزكاة)', 'إعداد الرواتب (Payroll)'],
+  'تسويق': ['إدارة حسابات التواصل الاجتماعي', 'حملات إعلانية مدفوعة', 'تحسين محركات البحث SEO', 'تصميم هوية بصرية ومحتوى'],
+  'تشغيل': ['إعداد الإجراءات التشغيلية اليومية', 'إدارة سلسلة التوريد', 'إدارة خدمة العملاء', 'أتمتة العمليات'],
+  'إدارة': ['بناء الهيكل التنظيمي', 'وضع الخطط الاستراتيجية', 'التقارير الإدارية الدورية', 'تدريب وتأهيل الكوادر الإدارية'],
+  'إدارة مشاريع': ['تخطيط وجدولة المشاريع', 'متابعة التنفيذ والتقارير', 'إدارة الميزانيات', 'إدارة المخاطر'],
+  'حوكمة': ['صياغة اللوائح الداخلية', 'الامتثال التنظيمي (Compliance)', 'إعداد سياسات مكافحة غسل الأموال', 'هيكلة مجلس الإدارة/اللجان'],
+};
+const postIncorpCategories = Object.keys(postIncorpNeeds);
+
+async function init(){
+  profile = await requireRole(['client']);
+  if(!profile) return;
+  initNotificationBell(profile.id);
+  loadPostIncorp();
+}
+
+async function loadPostIncorp(){
+  const area = document.getElementById('postIncorpArea');
+  const { data, error } = await supabase.from('post_incorp_requests').select('*').eq('client_id', profile.id).order('created_at', {ascending:false}).limit(1);
+
+  if(error){ area.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
+
+  if(!data || !data.length){
+    area.innerHTML = `
+      <h3 style="margin-bottom:10px;">اختر ما تحتاجه</h3>
+      <p style="font-size:13px;color:var(--ink-soft);margin-bottom:12px;">اختر الخدمات اللي تحتاجها، وحدّد المطلوب بالتفصيل، وفريق إتقان يجهّز لك عرض سعر مخصص.</p>
+      <div id="piCategories">
+        ${postIncorpCategories.map((c,i) => `
+          <div class="service-card" style="margin-bottom:10px;">
+            <div class="service-head" style="cursor:default;">
+              <div class="check-item" style="display:grid;grid-template-columns:1fr 26px;align-items:center;gap:10px;width:100%;">
+                <label for="pi-${i}" style="margin:0;font-weight:700;font-size:14px;">${c}</label>
+                <input type="checkbox" id="pi-${i}" value="${c}" style="margin:0;width:18px;height:18px;justify-self:start;" onchange="togglePiNeeds(${i})">
+              </div>
+            </div>
+            <div id="piNeeds-${i}" style="display:none;padding:0 22px 16px;">
+              ${postIncorpNeeds[c].map((n,j) => `
+                <div class="check-item" style="display:grid;grid-template-columns:1fr 26px;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line-soft);">
+                  <label for="pi-${i}-${j}" style="margin:0;font-weight:400;font-size:13px;">${n}</label>
+                  <input type="checkbox" id="pi-${i}-${j}" value="${n}" style="margin:0;width:16px;height:16px;justify-self:start;">
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <label>ملاحظات إضافية (اختياري)</label>
+      <textarea id="piNotes" rows="2" placeholder="صف احتياجك بإيجاز"></textarea>
+      <button class="btn gold" onclick="submitPostIncorp()">طلب عرض سعر</button>
+      <div id="piMsg"></div>
+    `;
+    return;
+  }
+
+  const req = data[0];
+  const statusLabels = { pending_review:'قيد المراجعة — بانتظار عرض من إتقان', quoted:'وصلك عرض سعر', accepted:'تم القبول ✓', rejected:'تم الرفض' };
+
+  let html = `<h3 style="margin-bottom:10px;">طلبك الحالي</h3>`;
+  html += `<p style="font-size:13.5px;margin-bottom:10px;">حالة الطلب: <strong>${statusLabels[req.status]}</strong></p>`;
+  const needsHtml = Object.entries(req.service_needs || {}).map(([cat, needs]) => `<strong>${cat}:</strong> ${needs.join('، ')}`).join('<br>');
+  html += `<p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:14px;">${needsHtml}</p>`;
+
+  if(req.status === 'quoted'){
+    html += `
+      <div class="card" style="background:var(--green-tint);">
+        <p style="font-size:15px;font-weight:700;color:var(--green-dark);margin-bottom:8px;">${req.quoted_price} ر.س</p>
+        <a href="../post-incorp-offer-view.html?id=${req.id}" class="btn ghost" style="padding:8px 16px;font-size:12.5px;margin-top:0;">عرض التفاصيل الكاملة</a><br>
+        <button class="btn" style="margin-left:8px;" onclick="respondPostIncorp('${req.id}','accepted')">قبول العرض</button>
+        <button class="btn ghost" onclick="respondPostIncorp('${req.id}','rejected')">رفض</button>
+      </div>`;
+  } else if(req.status === 'accepted'){
+    html += `<a href="../post-incorp-offer-view.html?id=${req.id}" class="btn ghost" style="padding:8px 16px;font-size:12.5px;">عرض التفاصيل الكاملة</a>`;
+  } else if(req.status === 'rejected'){
+    html += `<button class="btn gold" onclick="resetPostIncorp()">طلب جديد</button>`;
+  }
+
+  area.innerHTML = html;
+}
+
+function togglePiNeeds(i){
+  const el = document.getElementById(`piNeeds-${i}`);
+  const checked = document.getElementById(`pi-${i}`).checked;
+  el.style.display = checked ? 'block' : 'none';
+}
+
+async function submitPostIncorp(){
+  const service_needs = {};
+  postIncorpCategories.forEach((c,i) => {
+    if(document.getElementById(`pi-${i}`).checked){
+      const needs = postIncorpNeeds[c].filter((n,j) => document.getElementById(`pi-${i}-${j}`).checked);
+      service_needs[c] = needs.length ? needs : ['(بدون تحديد فرعي)'];
+    }
+  });
+  const notes = document.getElementById('piNotes').value.trim();
+  const msg = document.getElementById('piMsg');
+  if(!Object.keys(service_needs).length){ msg.className = 'msg err'; msg.textContent = 'اختر خدمة واحدة على الأقل'; return; }
+
+  const { data: itqan } = await supabase.from('service_providers').select('id').eq('is_itqan', true).limit(1).single();
+
+  const { error } = await supabase.from('post_incorp_requests').insert({
+    client_id: profile.id,
+    service_categories: Object.keys(service_needs),
+    service_needs,
+    client_notes: notes,
+    assigned_provider_id: itqan ? itqan.id : null
+  });
+  if(error){ msg.className = 'msg err'; msg.textContent = error.message; return; }
+
+  if(itqan) createNotification(itqan.id, 'طلب جديد لخدمات ما بعد التأسيس', profile.full_name, '../provider/dashboard.html');
+  loadPostIncorp();
+}
+
+async function respondPostIncorp(id, decision){
+  const { error } = await supabase.from('post_incorp_requests').update({ status: decision, client_responded_at: new Date().toISOString() }).eq('id', id);
+  if(error){ alert(error.message); return; }
+  loadPostIncorp();
+  notifyAdmins(decision === 'accepted' ? 'العميل قبل عرض خدمات ما بعد التأسيس' : 'العميل رفض عرض خدمات ما بعد التأسيس', profile.full_name, '../admin/dashboard.html');
+}
+
+init();
+</script>
+</body>
+</html>

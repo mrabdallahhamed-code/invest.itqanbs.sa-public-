@@ -20,7 +20,6 @@
   <div class="tabs">
     <button class="active" onclick="switchTab('clients')">العملاء وتصنيفاتها</button>
     <button onclick="switchTab('requests')">طلبات العروض</button>
-    <button onclick="switchTab('providers')">مقدمو الخدمة</button>
     <button onclick="switchTab('postIncorp')">خدمات ما بعد التأسيس</button>
   </div>
 
@@ -49,16 +48,6 @@
     </div>
   </div>
 
-  <!-- ===================== مقدمو الخدمة ===================== -->
-  <div id="tab-providers" style="display:none;">
-    <div class="card">
-      <table>
-        <thead><tr><th>اسم الشركة</th><th>التخصص</th><th>الحالة</th><th>المستندات</th><th>إجراء</th></tr></thead>
-        <tbody id="providersBody"><tr><td colspan="5">جارٍ التحميل...</td></tr></tbody>
-      </table>
-    </div>
-  </div>
-
   <!-- ===================== خدمات ما بعد التأسيس ===================== -->
   <div id="tab-postIncorp" style="display:none;">
     <div class="card">
@@ -74,12 +63,10 @@ let profile;
 function switchTab(tab){
   document.getElementById('tab-clients').style.display = tab==='clients' ? 'block':'none';
   document.getElementById('tab-requests').style.display = tab==='requests' ? 'block':'none';
-  document.getElementById('tab-providers').style.display = tab==='providers' ? 'block':'none';
   document.getElementById('tab-postIncorp').style.display = tab==='postIncorp' ? 'block':'none';
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
   event.target.classList.add('active');
   if(tab==='requests'){ loadPendingRequests(); loadAllRequests(); }
-  if(tab==='providers') loadProviders();
   if(tab==='postIncorp') loadPostIncorpAdmin();
 }
 
@@ -87,25 +74,20 @@ async function loadPostIncorpAdmin(){
   const body = document.getElementById('postIncorpBody');
   const { data, error } = await supabase
     .from('post_incorp_requests')
-    .select('id, service_needs, service_categories, client_notes, status, quoted_price, client_id, assigned_provider_id, clients(profiles(full_name))')
+    .select('id, service_needs, service_categories, client_notes, status, quoted_price, client_id, clients(profiles(full_name))')
     .order('created_at', {ascending:false});
 
   if(error){ body.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
   if(!data || !data.length){ body.innerHTML = '<p style="font-size:13.5px;color:var(--ink-soft);">لا توجد طلبات خدمات ما بعد التأسيس بعد.</p>'; return; }
 
-  const statusLabels = { pending_review:'قيد المراجعة', quoted:'تم إرسال عرض', accepted:'مقبول ✓', rejected:'مرفوض' };
+  const statusLabels = { pending_review:'قيد المراجعة من إتقان', quoted:'تم إرسال عرض', accepted:'مقبول ✓', rejected:'مرفوض' };
 
   body.innerHTML = data.map(r => {
     const needsHtml = Object.entries(r.service_needs || {}).map(([cat, needs]) => `<strong>${cat}:</strong> ${needs.join('، ')}`).join('<br>');
-    let actionHtml;
-    if(r.status === 'pending_review' && !r.assigned_provider_id){
-      actionHtml = `<button class="btn gold" style="padding:8px 18px;font-size:13px;" onclick="routeToItqan('${r.id}')">توجيه إلى إتقان كمقدّم خدمة</button>`;
-    } else if(r.status === 'pending_review' && r.assigned_provider_id){
-      actionHtml = `<span class="badge pending">تم التوجيه — بانتظار عرض إتقان</span>`;
-    } else {
-      actionHtml = `<p style="font-size:13px;font-weight:700;color:var(--green-dark);">${r.quoted_price || ''} ر.س</p>
+    const actionHtml = r.status === 'pending_review'
+      ? `<span class="badge pending">بانتظار عرض من إتقان</span>`
+      : `<p style="font-size:13px;font-weight:700;color:var(--green-dark);">${r.quoted_price || ''} ر.س</p>
            <a href="../post-incorp-offer-view.html?id=${r.id}" class="btn ghost" style="padding:7px 14px;font-size:12.5px;margin-top:0;">عرض التفاصيل</a>`;
-    }
     return `
     <div style="border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px;">
       <p style="font-size:14px;margin-bottom:4px;"><strong>${r.clients?.profiles?.full_name || r.client_id}</strong> — ${statusLabels[r.status]}</p>
@@ -114,15 +96,6 @@ async function loadPostIncorpAdmin(){
       ${actionHtml}
     </div>`;
   }).join('');
-}
-
-async function routeToItqan(requestId){
-  const { data: itqan } = await supabase.from('service_providers').select('id').eq('is_itqan', true).limit(1).single();
-  if(!itqan){ alert('تعذر إيجاد حساب إتقان كمقدّم خدمة'); return; }
-  const { error } = await supabase.from('post_incorp_requests').update({ assigned_provider_id: itqan.id }).eq('id', requestId);
-  if(error){ alert(error.message); return; }
-  createNotification(itqan.id, 'طلب خدمات ما بعد التأسيس بانتظارك', 'وجّه لك الأدمن طلباً جديداً لتجهيز عرض', '../provider/dashboard.html');
-  loadPostIncorpAdmin();
 }
 
 
@@ -258,26 +231,6 @@ async function loadAllRequests(){
       <td>${statusLabel}${stallBadge}</td>
     </tr>`;
   }).join('');
-}
-
-// ---------- مقدمو الخدمة ----------
-async function loadProviders(){
-  const { data, error } = await supabase
-    .from('service_providers')
-    .select('id, company_name, specialty, is_verified')
-    .order('company_name');
-
-  const body = document.getElementById('providersBody');
-  if(error || !data || !data.length){ body.innerHTML = '<tr><td colspan="5">لا يوجد مقدمو خدمة مسجلون بعد</td></tr>'; return; }
-
-  body.innerHTML = data.map(p => `
-    <tr>
-      <td>${p.company_name}</td>
-      <td>${p.specialty || '—'}</td>
-      <td>${p.is_verified ? '<span class="badge ready">معتمد ✓</span>' : '<span class="badge pending">غير معتمد</span>'}</td>
-      <td><a href="provider-detail.html?id=${p.id}#docsSection" class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;">عرض المستندات</a></td>
-      <td><a href="provider-detail.html?id=${p.id}" class="btn" style="padding:6px 12px;font-size:12px;margin-top:0;">عرض الملف الكامل</a></td>
-    </tr>`).join('');
 }
 
 init();
