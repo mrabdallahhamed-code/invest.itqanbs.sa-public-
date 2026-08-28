@@ -17,6 +17,14 @@
 
   .widgets-grid{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
   @media(max-width:720px){.widgets-grid{grid-template-columns:1fr;}}
+
+  .stats-row{display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px;}
+  @media(max-width:720px){.stats-row{grid-template-columns:1fr 1fr;}}
+  .stat-box{background:var(--white); border:1px solid var(--line-soft); border-radius:var(--radius); padding:18px; text-align:center; box-shadow:var(--shadow-sm); transition:.3s var(--ease);}
+  .stat-box:hover{box-shadow:var(--shadow); transform:translateY(-2px);}
+  .stat-box .n{font-family:'Amiri',serif; font-size:26px; font-weight:700; color:var(--green-dark);}
+  .stat-box .n.small{font-size:15px;}
+  .stat-box .l{font-size:11.5px; color:var(--ink-soft); margin-top:4px;}
   .widget{
     background:var(--white); border:1px solid var(--line-soft); border-radius:var(--radius);
     padding:22px; box-shadow:var(--shadow-sm); transition:box-shadow .3s var(--ease), transform .3s var(--ease);
@@ -44,7 +52,7 @@
   <aside class="sidebar">
     <div class="brand"><img src="../assets/images/logo.jpeg" alt="إتقان"></div>
     <nav>
-      <a href="assessment.html" class="side-link"><span class="ic">📝</span> تقييم الجاهزية</a>
+      <a href="assessment.html" class="side-link"><span class="ic">🧭</span> بوصلة الجاهزية</a>
       <div class="side-group-label">الطلبات</div>
       <a href="requests.html" class="side-link sub"><span class="ic">🏢</span> طلبات التأسيس</a>
       <a href="post-incorp.html" class="side-link sub"><span class="ic">🗂️</span> طلبات بعد التأسيس</a>
@@ -78,13 +86,20 @@
 
         <div id="mainContent" style="display:none;">
           <div class="welcome-banner">
-            <h1>مرحباً، <span id="uname">...</span> 👋</h1>
-            <p>تابع حالة ملفك وطلباتك من مكان واحد</p>
+            <h1>مرحباً بك، <span id="uname">...</span> 👋</h1>
+            <p>هذه لوحتك الخاصة من فريق إتقان — تابع حالة ملفك وطلباتك من مكان واحد</p>
+          </div>
+
+          <div class="stats-row">
+            <div class="stat-box"><div class="n small" id="statStage">—</div><div class="l">مرحلتك الحالية</div></div>
+            <div class="stat-box"><div class="n" id="statRequests">0</div><div class="l">عدد الطلبات</div></div>
+            <div class="stat-box"><div class="n" id="statOffers">0</div><div class="l">عدد العروض</div></div>
+            <div class="stat-box"><div class="n" id="statDays">0</div><div class="l">يوم منذ بداية الطلب</div></div>
           </div>
 
           <div class="widgets-grid">
             <a href="assessment.html" class="widget">
-              <div class="widget-head"><div class="widget-icon">📝</div><h3>تقييم الجاهزية</h3></div>
+              <div class="widget-head"><div class="widget-icon">🧭</div><h3>بوصلة الجاهزية</h3></div>
               <p class="sub" id="assessSummary">جارٍ التحميل...</p>
             </a>
             <a href="requests.html" class="widget">
@@ -160,16 +175,36 @@ async function showMainContent(){
     ? 'حالتك: ' + (statusLabels[clientRow.readiness_status] || '—')
     : 'لسا ما أكملت التقييم — اضغط للبدء.';
 
-  const { data: requests } = await supabase.from('service_requests').select('id, status').eq('client_id', profile.id).order('created_at', {ascending:false}).limit(1);
+  const { data: allRequests } = await supabase.from('service_requests').select('id, status, created_at').eq('client_id', profile.id).order('created_at', {ascending:false});
+  const requests = allRequests || [];
+  const latestRequest = requests[0] || null;
   const reqStatusLabels = { pending_admin_review:'قيد المراجعة', open:'مفتوح لعروض', offer_selected:'تم اختيار عرض', in_progress:'قيد التنفيذ', completed:'مكتمل', cancelled:'ملغى' };
-  document.getElementById('reqSummary').textContent = requests && requests.length ? 'حالة طلبك: ' + (reqStatusLabels[requests[0].status] || requests[0].status) : 'لا يوجد طلب تأسيس حالياً.';
+  document.getElementById('reqSummary').textContent = latestRequest ? 'حالة طلبك: ' + (reqStatusLabels[latestRequest.status] || latestRequest.status) : 'لا يوجد طلب تأسيس حالياً.';
+  document.getElementById('statRequests').textContent = requests.length;
 
-  if(requests && requests.length){
-    const { data: offers } = await supabase.from('offers').select('id').eq('request_id', requests[0].id);
-    document.getElementById('offersSummary').textContent = offers && offers.length ? `${offers.length} عرض وصلك` : 'لا توجد عروض بعد.';
-  } else {
-    document.getElementById('offersSummary').textContent = 'لا توجد عروض بعد.';
+  let totalOffers = 0, hasAccepted = false;
+  if(requests.length){
+    const { data: offers } = await supabase.from('offers').select('id, status, request_id').in('request_id', requests.map(r => r.id));
+    totalOffers = offers ? offers.length : 0;
+    hasAccepted = offers ? offers.some(o => o.status === 'accepted') : false;
   }
+  document.getElementById('offersSummary').textContent = totalOffers ? `${totalOffers} عرض وصلك` : 'لا توجد عروض بعد.';
+  document.getElementById('statOffers').textContent = totalOffers;
+
+  // مرحلة العميل الحالية
+  let stageText = 'قبل التقييم';
+  if(!clientRow?.assessment_completed_at) stageText = 'قبل التقييم';
+  else if(!latestRequest) stageText = 'بانتظار طلب عروض';
+  else if(latestRequest.status === 'pending_admin_review') stageText = 'قيد المراجعة';
+  else if(latestRequest.status === 'open' && !hasAccepted) stageText = 'بانتظار عروض';
+  else if(hasAccepted && latestRequest.status !== 'completed') stageText = 'قيد التنفيذ';
+  else if(latestRequest.status === 'completed') stageText = 'مكتمل ✓';
+  document.getElementById('statStage').textContent = stageText;
+
+  // عدد الأيام منذ بداية الطلب (أو منذ التسجيل لو ما فيه طلب)
+  const startDate = latestRequest ? new Date(latestRequest.created_at) : new Date(profile.created_at || Date.now());
+  const days = Math.max(0, Math.floor((Date.now() - startDate.getTime()) / (1000*60*60*24)));
+  document.getElementById('statDays').textContent = days;
 
   const { data: pi } = await supabase.from('post_incorp_requests').select('id, status').eq('client_id', profile.id).order('created_at', {ascending:false}).limit(1);
   const piLabels = { pending_review:'قيد المراجعة', quoted:'وصلك عرض', accepted:'مقبول ✓', rejected:'مرفوض' };
