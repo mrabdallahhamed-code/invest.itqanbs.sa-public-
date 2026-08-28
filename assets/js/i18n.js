@@ -11,7 +11,7 @@ const I18N = {
     nav_login: 'تسجيل الدخول', nav_register: 'إنشاء حساب',
 
     // ---------- Hero ----------
-    hero_title: 'استثمر في السعودية بثقة تامة',
+    hero_title: 'أسّس شركتك في السعودية بثقة تامة',
     hero_p: 'إتقان لخدمات الأعمال شركة متخصصة في تقديم حلول متكاملة للمستثمرين الأجانب الراغبين بدخول السوق السعودي، تجمع بين الخبرة والمعرفة الدقيقة ببيئة الأعمال المحلية، وتخدم عملاءها عبر فريق متخصص حاضر في 14 دولة حول العالم.',
     hero_btn_start: 'ابدأ الآن', hero_btn_services: 'تعرّف على الخدمات',
     stat_investors: 'مستثمر أجنبي', stat_ownership: 'ملكية أجنبية كاملة', stat_countries: 'دولة حول العالم', stat_days: 'يوماً للتأسيس',
@@ -85,7 +85,7 @@ const I18N = {
     nav_about: 'About', nav_services: 'Services', nav_paths: 'Get Started', nav_contact: 'Contact',
     nav_login: 'Log In', nav_register: 'Sign Up',
 
-    hero_title: 'Invest in Saudi Arabia with Full Confidence',
+    hero_title: 'Establish Your Company in Saudi Arabia with Full Confidence',
     hero_p: 'Itqan Business Services is a specialized firm delivering end-to-end solutions for foreign investors entering the Saudi market, combining deep local expertise with a dedicated team present in 14 countries worldwide.',
     hero_btn_start: 'Get Started', hero_btn_services: 'Explore Services',
     stat_investors: 'Foreign investors', stat_ownership: 'Full foreign ownership', stat_countries: 'Countries worldwide', stat_days: 'Days to incorporate',
