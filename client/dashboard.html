@@ -7,28 +7,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   body{background:var(--paper);}
-  .app-shell{display:flex; min-height:100vh;}
-
-  /* ---------- الشريط الجانبي ---------- */
-  .sidebar{
-    width:230px; min-width:230px; background:var(--white); border-left:1px solid var(--line-soft);
-    display:flex; flex-direction:column; padding:24px 16px; position:sticky; top:0; height:100vh;
-  }
-  .sidebar .brand{padding:0 8px 24px; border-bottom:1px solid var(--line-soft); margin-bottom:18px;}
-  .sidebar .brand img{height:32px;}
-  .side-link{
-    display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:14px;
-    color:var(--ink-soft); text-decoration:none; font-size:13.5px; font-weight:700; margin-bottom:4px;
-    transition:.2s var(--ease);
-  }
-  .side-link .ic{font-size:17px; width:22px; text-align:center;}
-  .side-link:hover{background:var(--green-tint); color:var(--green-dark);}
-  .side-link.active{background:linear-gradient(135deg, var(--green-light), var(--green)); color:var(--white); box-shadow:0 4px 14px rgba(46,125,91,.25);}
-  .sidebar-footer{margin-top:auto; padding-top:16px; border-top:1px solid var(--line-soft);}
-
-  .app-main{flex:1; padding:36px 40px; max-width:1000px;}
-
-  /* ---------- ترحيب ---------- */
   .welcome-banner{
     background:linear-gradient(135deg, var(--green-dark), var(--green)); border-radius:var(--radius-lg);
     padding:30px 34px; color:var(--white); margin-bottom:28px; position:relative; overflow:hidden;
@@ -37,47 +15,27 @@
   .welcome-banner h1{font-family:'Amiri',serif; font-size:24px; margin-bottom:6px; position:relative;}
   .welcome-banner p{color:rgba(255,255,255,.82); font-size:13.5px; position:relative;}
 
-  /* ---------- شبكة البطاقات الصغيرة ---------- */
   .widgets-grid{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
   @media(max-width:720px){.widgets-grid{grid-template-columns:1fr;}}
   .widget{
     background:var(--white); border:1px solid var(--line-soft); border-radius:var(--radius);
     padding:22px; box-shadow:var(--shadow-sm); transition:box-shadow .3s var(--ease), transform .3s var(--ease);
-    display:flex; flex-direction:column; gap:10px;
+    display:flex; flex-direction:column; gap:10px; text-decoration:none; color:inherit;
   }
   .widget:hover{box-shadow:var(--shadow-lg); transform:translateY(-3px);}
-  .widget.wide{grid-column:1 / -1;}
   .widget-head{display:flex; align-items:center; gap:12px;}
   .widget-icon{
-    width:44px; height:44px; min-width:44px; border-radius:14px; background:var(--green-tint);
-    display:flex; align-items:center; justify-content:center; font-size:21px;
+    width:46px; height:46px; min-width:46px; border-radius:14px; background:var(--green-tint);
+    display:flex; align-items:center; justify-content:center; font-size:22px;
   }
   .widget-head h3{font-size:14.5px; color:var(--ink); font-weight:700;}
   .widget p.sub{font-size:12.5px; color:var(--ink-soft); line-height:1.7;}
-  .widget .widget-action{margin-top:auto;}
 
   .gate-card{max-width:480px;margin:80px auto;text-align:center;}
   .gate-card h2{font-family:'Amiri',serif;font-size:21px;color:var(--green-dark);margin-bottom:22px;}
   .gate-options{display:flex;gap:14px;justify-content:center;}
   .gate-options button{flex:1;padding:20px;border-radius:16px;border:1.5px solid var(--line);background:var(--white);font-family:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:.25s var(--ease);}
   .gate-options button:hover{border-color:var(--gold);background:var(--green-tint);transform:translateY(-2px);box-shadow:var(--shadow);}
-
-  .chat-box{border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:10px;background:var(--paper);}
-  .chat-msgs{max-height:200px;overflow-y:auto;margin-bottom:10px;}
-  .chat-msg{font-size:13px;padding:7px 12px;border-radius:10px;margin-bottom:6px;max-width:80%;}
-  .chat-msg.mine{background:var(--green-tint);margin-right:auto;text-align:left;}
-  .chat-msg.theirs{background:var(--white);border:1px solid var(--line);}
-  .chat-input-row{display:flex;gap:8px;}
-  .chat-input-row input{flex:1;margin:0;padding:9px;}
-
-  @media(max-width:820px){
-    .app-shell{flex-direction:column;}
-    .sidebar{width:100%;min-width:100%;height:auto;position:relative;flex-direction:row;align-items:center;padding:14px 18px;overflow-x:auto;}
-    .sidebar .brand{display:none;}
-    .sidebar nav{display:flex;gap:6px;}
-    .sidebar-footer{margin:0 0 0 auto;padding:0;border:none;}
-    .app-main{padding:22px 16px 60px;}
-  }
 </style>
 </head>
 <body>
@@ -86,90 +44,85 @@
   <aside class="sidebar">
     <div class="brand"><img src="../assets/images/logo.jpeg" alt="إتقان"></div>
     <nav>
-      <a href="dashboard.html" class="side-link active"><span class="ic">🏠</span> نظرة عامة</a>
       <a href="assessment.html" class="side-link"><span class="ic">📝</span> تقييم الجاهزية</a>
-      <a href="post-incorp.html" class="side-link"><span class="ic">🗂️</span> ما بعد التأسيس</a>
+      <div class="side-group-label">الطلبات</div>
+      <a href="requests.html" class="side-link sub"><span class="ic">🏢</span> طلبات التأسيس</a>
+      <a href="post-incorp.html" class="side-link sub"><span class="ic">🗂️</span> طلبات بعد التأسيس</a>
+      <a href="journey.html" class="side-link sub"><span class="ic">🛤️</span> رحلة الطلب</a>
+      <a href="offers.html" class="side-link sub"><span class="ic">💰</span> العروض</a>
+      <a href="profile.html" class="side-link"><span class="ic">👤</span> بياناتي</a>
+      <a href="files.html" class="side-link"><span class="ic">📁</span> ملفاتي</a>
     </nav>
     <div class="sidebar-footer">
-      <div id="notifBellContainer" style="margin-bottom:10px;"></div>
       <button class="btn ghost" style="width:100%;margin:0;" onclick="signOut()">تسجيل الخروج</button>
     </div>
   </aside>
 
-  <main class="app-main">
+  <div style="flex:1;display:flex;flex-direction:column;">
+    <header class="app-topbar">
+      <a class="topbar-btn" href="https://wa.me/966569051686" target="_blank" title="تواصل معنا">💬</a>
+      <button class="topbar-btn" id="langToggleBtn" onclick="toggleLang()">EN</button>
+      <div id="notifBellContainer"></div>
+    </header>
 
-    <div class="card gate-card" id="gateCard" style="display:none;">
-      <h2>هل لديك شركة داخل المملكة حالياً؟</h2>
-      <div class="gate-options">
-        <button onclick="answerGate(true)">نعم، عندي شركة</button>
-        <button onclick="answerGate(false)">لا، أبي أؤسس شركة</button>
-      </div>
-    </div>
+    <main class="app-main">
+      <div class="app-main-inner">
 
-    <div id="mainContent" style="display:none;">
-      <div class="welcome-banner">
-        <h1>مرحباً، <span id="uname">...</span> 👋</h1>
-        <p>تابع حالة ملفك وطلباتك من مكان واحد</p>
-      </div>
-
-      <div class="widgets-grid">
-
-        <div class="widget">
-          <div class="widget-head">
-            <div class="widget-icon">📋</div>
-            <h3>حالة ملفك</h3>
+        <div class="card gate-card" id="gateCard" style="display:none;">
+          <h2>هل لديك شركة داخل المملكة حالياً؟</h2>
+          <div class="gate-options">
+            <button onclick="answerGate(true)">نعم، عندي شركة</button>
+            <button onclick="answerGate(false)">لا، أبي أؤسس شركة</button>
           </div>
-          <div id="statusBadge"></div>
-          <p class="sub" id="statusNote"></p>
-          <div class="widget-action" id="assessmentAction"></div>
         </div>
 
-        <div class="widget">
-          <div class="widget-head">
-            <div class="widget-icon">💰</div>
-            <h3>طلب العروض</h3>
+        <div id="mainContent" style="display:none;">
+          <div class="welcome-banner">
+            <h1>مرحباً، <span id="uname">...</span> 👋</h1>
+            <p>تابع حالة ملفك وطلباتك من مكان واحد</p>
           </div>
-          <p class="sub" id="requestSummary">لسا ما طلبت عروض أسعار.</p>
-          <div class="widget-action" id="requestActionArea"></div>
-        </div>
 
-        <div class="widget wide" id="requestCard" style="display:none;">
-          <div class="widget-head">
-            <div class="widget-icon">📄</div>
-            <h3>تفاصيل طلب العروض</h3>
-          </div>
-          <div id="requestBody"></div>
-        </div>
-
-        <div class="widget wide" id="stagesCard" style="display:none;">
-          <div class="widget-head">
-            <div class="widget-icon">🛤️</div>
-            <h3>مراحل تنفيذ طلبك</h3>
-          </div>
-          <div id="stagesArea"></div>
-        </div>
-
-        <div class="widget wide">
-          <div class="widget-head">
-            <div class="widget-icon">💬</div>
-            <h3>رسائل من فريق إتقان</h3>
-          </div>
-          <div id="adminMsgsList"><p class="sub">جارٍ التحميل...</p></div>
-          <div style="display:flex;gap:8px;margin-top:6px;">
-            <input id="adminMsgInput" placeholder="اكتب ردّك هنا...">
-            <button class="btn" style="margin:0;padding:10px 18px;" onclick="sendAdminMsg()">إرسال</button>
+          <div class="widgets-grid">
+            <a href="assessment.html" class="widget">
+              <div class="widget-head"><div class="widget-icon">📝</div><h3>تقييم الجاهزية</h3></div>
+              <p class="sub" id="assessSummary">جارٍ التحميل...</p>
+            </a>
+            <a href="requests.html" class="widget">
+              <div class="widget-head"><div class="widget-icon">🏢</div><h3>طلبات التأسيس</h3></div>
+              <p class="sub" id="reqSummary">جارٍ التحميل...</p>
+            </a>
+            <a href="offers.html" class="widget">
+              <div class="widget-head"><div class="widget-icon">💰</div><h3>العروض</h3></div>
+              <p class="sub" id="offersSummary">جارٍ التحميل...</p>
+            </a>
+            <a href="journey.html" class="widget">
+              <div class="widget-head"><div class="widget-icon">🛤️</div><h3>رحلة الطلب</h3></div>
+              <p class="sub">تابع كل مرحلة من مراحل تنفيذ طلبك.</p>
+            </a>
+            <a href="post-incorp.html" class="widget">
+              <div class="widget-head"><div class="widget-icon">🗂️</div><h3>خدمات ما بعد التأسيس</h3></div>
+              <p class="sub" id="piSummary">جارٍ التحميل...</p>
+            </a>
+            <a href="profile.html" class="widget">
+              <div class="widget-head"><div class="widget-icon">👤</div><h3>بياناتي</h3></div>
+              <p class="sub">عدّل بياناتك الشخصية ووسيلة التواصل.</p>
+            </a>
+            <a href="files.html" class="widget">
+              <div class="widget-head"><div class="widget-icon">📁</div><h3>ملفاتي</h3></div>
+              <p class="sub" id="filesSummary">جارٍ التحميل...</p>
+            </a>
           </div>
         </div>
 
       </div>
-    </div>
-
-  </main>
+    </main>
+  </div>
 </div>
 
 <script src="../assets/js/supabaseClient.js"></script>
+<script src="../assets/js/i18n.js"></script>
 <script>
-let profile, clientRow, activeRequest;
+let profile, clientRow;
 
 async function init(){
   profile = await requireRole(['client']);
@@ -198,289 +151,32 @@ async function answerGate(hasCompany){
   }
 }
 
-function showMainContent(){
+async function showMainContent(){
   document.getElementById('mainContent').style.display = 'block';
   document.getElementById('uname').textContent = profile.full_name;
-  renderStatus(clientRow);
-  loadRequest();
-  loadAdminMsgs();
-}
 
-function renderStatus(client){
-  const badge = document.getElementById('statusBadge');
-  const note = document.getElementById('statusNote');
-  const actionArea = document.getElementById('assessmentAction');
+  const statusLabels = {ready:'جاهز ✓', not_ready:'غير جاهز', pending_review:'قيد المراجعة'};
+  document.getElementById('assessSummary').textContent = clientRow?.assessment_completed_at
+    ? 'حالتك: ' + (statusLabels[clientRow.readiness_status] || '—')
+    : 'لسا ما أكملت التقييم — اضغط للبدء.';
 
-  const btnLabel = (client && client.assessment_completed_at) ? 'إعادة تقييم الجاهزية' : 'قيّم جاهزيتك الآن';
-  actionArea.innerHTML = `<button class="btn gold" style="width:100%;" onclick="location.href='assessment.html'">${btnLabel}</button>`;
+  const { data: requests } = await supabase.from('service_requests').select('id, status').eq('client_id', profile.id).order('created_at', {ascending:false}).limit(1);
+  const reqStatusLabels = { pending_admin_review:'قيد المراجعة', open:'مفتوح لعروض', offer_selected:'تم اختيار عرض', in_progress:'قيد التنفيذ', completed:'مكتمل', cancelled:'ملغى' };
+  document.getElementById('reqSummary').textContent = requests && requests.length ? 'حالة طلبك: ' + (reqStatusLabels[requests[0].status] || requests[0].status) : 'لا يوجد طلب تأسيس حالياً.';
 
-  if(!client || client.readiness_status === 'pending_review'){
-    badge.innerHTML = '<span class="badge pending">قيد المراجعة</span>';
-    note.textContent = 'أكمل التقييم لمعرفة مسارك.';
-  } else if(client.readiness_status === 'ready'){
-    badge.innerHTML = '<span class="badge ready">جاهز ✓</span>';
-    note.textContent = 'ملفك جاهز — يمكنك طلب عروض الأسعار.';
+  if(requests && requests.length){
+    const { data: offers } = await supabase.from('offers').select('id').eq('request_id', requests[0].id);
+    document.getElementById('offersSummary').textContent = offers && offers.length ? `${offers.length} عرض وصلك` : 'لا توجد عروض بعد.';
   } else {
-    badge.innerHTML = '<span class="badge notready">غير جاهز</span>';
-    note.textContent = client.readiness_notes || 'راجع مراحل التنفيذ بعد طلب العروض.';
-  }
-}
-
-async function loadAdminMsgs(){
-  const { data, error } = await supabase.from('admin_messages').select('*').eq('recipient_id', profile.id).order('created_at');
-  const list = document.getElementById('adminMsgsList');
-  if(error){ list.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
-  if(!data || !data.length){ list.innerHTML = '<p class="sub">لا توجد رسائل حتى الآن.</p>'; return; }
-  list.innerHTML = data.map(m => `<div style="font-size:13px;padding:8px 12px;border-radius:10px;margin-bottom:6px;background:${m.sender_id===profile.id?'var(--green-tint)':'var(--paper)'};border:1px solid var(--line-soft);">${m.message}</div>`).join('');
-}
-
-async function sendAdminMsg(){
-  const input = document.getElementById('adminMsgInput');
-  const text = input.value.trim();
-  if(!text) return;
-  const { data: admins } = await supabase.from('profiles').select('id').eq('role','admin').limit(1);
-  if(!admins || !admins.length){ alert('تعذر تحديد جهة الإدارة'); return; }
-  const { error } = await supabase.from('admin_messages').insert({ recipient_id: admins[0].id, sender_id: profile.id, message: text });
-  if(error){ alert(error.message); return; }
-  input.value = '';
-  loadAdminMsgs();
-  createNotification(admins[0].id, 'رسالة جديدة من عميل', text.slice(0,60), '../admin/client-detail.html?id=' + profile.id);
-}
-
-function handleOffersClick(){
-  if(activeRequest){
-    const statusLabels = {
-      pending_admin_review: 'قيد المراجعة — بانتظار توجيه فريق إتقان',
-      open: 'تم توجيه طلبك — بانتظار عروض من مقدمي الخدمة',
-      offer_selected: 'تم اختيار عرض بالفعل',
-      in_progress: 'قيد التنفيذ',
-      completed: 'مكتمل',
-      cancelled: 'ملغى'
-    };
-    alert('لديك طلب بالفعل: ' + (statusLabels[activeRequest.status] || 'بانتظار التوجيه'));
-    return;
-  }
-  if(!clientRow || !clientRow.assessment_completed_at){
-    alert('فضلاً أكمل تقييم الجاهزية أولاً للحصول على عروض.');
-    return;
-  }
-  window.location.href = 'request-offers.html';
-}
-
-async function loadRequest(){
-  const { data: requests, error } = await supabase
-    .from('service_requests')
-    .select('*')
-    .eq('client_id', profile.id)
-    .order('created_at', {ascending:false})
-    .limit(1);
-
-  const actionArea = document.getElementById('requestActionArea');
-  const requestCard = document.getElementById('requestCard');
-  const requestBody = document.getElementById('requestBody');
-  const stagesCard = document.getElementById('stagesCard');
-  const summary = document.getElementById('requestSummary');
-
-  if(error){ actionArea.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
-  actionArea.innerHTML = `<button class="btn gold" style="width:100%;" onclick="handleOffersClick()">الحصول على عروض</button>`;
-
-  if(!requests || !requests.length){
-    activeRequest = null;
-    requestCard.style.display = 'none';
-    stagesCard.style.display = 'none';
-    return;
+    document.getElementById('offersSummary').textContent = 'لا توجد عروض بعد.';
   }
 
-  activeRequest = requests[0];
-  requestCard.style.display = 'block';
+  const { data: pi } = await supabase.from('post_incorp_requests').select('id, status').eq('client_id', profile.id).order('created_at', {ascending:false}).limit(1);
+  const piLabels = { pending_review:'قيد المراجعة', quoted:'وصلك عرض', accepted:'مقبول ✓', rejected:'مرفوض' };
+  document.getElementById('piSummary').textContent = pi && pi.length ? (piLabels[pi[0].status] || pi[0].status) : 'اطلب خدمات ما بعد التأسيس.';
 
-  const statusMap = {
-    pending_admin_review: 'قيد المراجعة — فريق إتقان يحدد مقدمي الخدمة المناسبين',
-    open: 'مفتوح — بانتظار عروض من مقدمي الخدمة',
-    offer_selected: 'تم اختيار عرض',
-    in_progress: 'قيد التنفيذ',
-    completed: 'مكتمل',
-    cancelled: 'ملغى'
-  };
-  summary.textContent = 'حالة طلبك: ' + (statusMap[activeRequest.status] || activeRequest.status);
-
-  let html = '';
-
-  if(activeRequest.status === 'pending_admin_review'){
-    html += `<p style="color:var(--ink-soft);font-size:13.5px;">سيقوم فريق إتقان بمراجعة طلبك وتوجيهه لمقدمي الخدمة المناسبين قريباً.</p>`;
-    requestBody.innerHTML = html;
-    stagesCard.style.display = 'none';
-    return;
-  }
-
-  const { data: offers } = await supabase
-    .from('offers')
-    .select('id, price, duration_days, status, service_providers(company_name, rating)')
-    .eq('request_id', activeRequest.id)
-    .order('price');
-
-  if(!offers || !offers.length){
-    html += `<p style="color:var(--ink-soft);font-size:13.5px;">لا توجد عروض بعد — سيتواصل معك مقدمو الخدمة قريباً.</p>`;
-  } else {
-    html += `<table><thead><tr><th>مقدّم الخدمة</th><th>السعر</th><th>مدة التنفيذ</th><th>إجراء</th></tr></thead><tbody>`;
-    offers.forEach(o => {
-      const isAccepted = o.status === 'accepted';
-      html += `<tr>
-        <td>${o.service_providers?.company_name || '—'}</td>
-        <td>${o.price} ر.س</td>
-        <td>${o.duration_days} يوم</td>
-        <td>
-          ${isAccepted ? '<span class="badge ready">تم القبول ✓</span>' : (activeRequest.status === 'open' ? `<button class="btn" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="acceptOffer('${o.id}','${activeRequest.id}')">قبول العرض</button>` : '—')}
-          <a href="../offer-view.html?id=${o.id}" class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;">عرض التفاصيل</a>
-          <button class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="toggleChat('${o.id}')">محادثة</button>
-          ${isAccepted ? `<button class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="togglePayments('${o.id}')">الدفعات</button>` : ''}
-        </td>
-      </tr>
-      <tr id="chat-row-${o.id}" style="display:none;"><td colspan="4"><div id="chat-${o.id}"></div></td></tr>
-      ${isAccepted ? `<tr id="payments-row-${o.id}" style="display:none;"><td colspan="4"><div id="payments-${o.id}"></div></td></tr>` : ''}`;
-    });
-    html += `</tbody></table>`;
-  }
-
-  const offerAccepted = offers && offers.some(o => o.status === 'accepted');
-  requestBody.innerHTML = html;
-  if(offerAccepted){
-    stagesCard.style.display = 'block';
-    loadStages(activeRequest.id, 'stagesArea');
-  } else {
-    stagesCard.style.display = 'none';
-  }
-}
-
-function toggleChat(offerId){
-  const row = document.getElementById(`chat-row-${offerId}`);
-  const isHidden = row.style.display === 'none';
-  row.style.display = isHidden ? 'table-row' : 'none';
-  if(isHidden) renderChat(offerId);
-}
-
-async function renderChat(offerId){
-  const el = document.getElementById(`chat-${offerId}`);
-  el.innerHTML = `<div class="chat-box"><div class="chat-msgs" id="msgs-${offerId}">جارٍ التحميل...</div>
-    <div class="chat-input-row"><input id="input-${offerId}" placeholder="اكتب رسالة..."><button class="btn" style="margin:0;padding:8px 16px;" onclick="sendMessage('${offerId}')">إرسال</button></div></div>`;
-  loadMessages(offerId);
-}
-
-async function loadMessages(offerId){
-  const { data, error } = await supabase.from('messages').select('*').eq('offer_id', offerId).order('created_at');
-  const box = document.getElementById(`msgs-${offerId}`);
-  if(error){ box.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
-  if(!data || !data.length){ box.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);">لا توجد رسائل بعد.</p>'; return; }
-  box.innerHTML = data.map(m => `<div class="chat-msg ${m.sender_id === profile.id ? 'mine' : 'theirs'}">${m.message}</div>`).join('');
-  box.scrollTop = box.scrollHeight;
-}
-
-async function sendMessage(offerId){
-  const input = document.getElementById(`input-${offerId}`);
-  const text = input.value.trim();
-  if(!text) return;
-  const { error } = await supabase.from('messages').insert({ offer_id: offerId, sender_id: profile.id, message: text });
-  if(error){ alert(error.message); return; }
-  input.value = '';
-  loadMessages(offerId);
-
-  const { data: offerRow } = await supabase.from('offers').select('provider_id').eq('id', offerId).single();
-  if(offerRow) createNotification(offerRow.provider_id, 'رسالة جديدة من العميل', text.slice(0,60), '../provider/dashboard.html');
-}
-
-function togglePayments(offerId){
-  const row = document.getElementById(`payments-row-${offerId}`);
-  const isHidden = row.style.display === 'none';
-  row.style.display = isHidden ? 'table-row' : 'none';
-  if(isHidden) loadPayments(offerId);
-}
-
-async function loadPayments(offerId){
-  const el = document.getElementById(`payments-${offerId}`);
-  const { data, error } = await supabase.from('offer_payments').select('*').eq('offer_id', offerId).order('created_at');
-
-  if(error){ el.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
-  if(!data || !data.length){ el.innerHTML = '<p style="font-size:12.5px;color:var(--ink-soft);">لا توجد دفعات مسجّلة بعد من مقدّم الخدمة.</p>'; return; }
-
-  el.innerHTML = data.map(p => {
-    let statusText, statusColor;
-    if(p.client_confirmed && p.provider_confirmed){ statusText = '✅ مؤكد من الطرفين'; statusColor = 'var(--green)'; }
-    else if(p.client_confirmed){ statusText = 'بانتظار تأكيد مقدّم الخدمة'; statusColor = 'var(--gold-deep)'; }
-    else { statusText = 'بانتظار تأكيدك للسداد'; statusColor = 'var(--ink-soft)'; }
-
-    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);">
-      <div><strong style="font-size:13px;">${p.label}</strong> — <span style="font-size:12.5px;">${p.amount} ر.س</span><br><span style="font-size:11.5px;color:${statusColor};">${statusText}</span></div>
-      ${!p.client_confirmed ? `<button class="btn" style="padding:6px 12px;font-size:11px;margin-top:0;" onclick="confirmPaymentClient('${p.id}','${offerId}')">أكّد أنني سدّدت</button>` : ''}
-    </div>`;
-  }).join('');
-}
-
-async function confirmPaymentClient(paymentId, offerId){
-  const { error } = await supabase.from('offer_payments').update({ client_confirmed: true, client_confirmed_at: new Date().toISOString() }).eq('id', paymentId);
-  if(error){ alert(error.message); return; }
-  loadPayments(offerId);
-
-  const { data: offerRow } = await supabase.from('offers').select('provider_id').eq('id', offerId).single();
-  if(offerRow) createNotification(offerRow.provider_id, 'العميل أكّد السداد', 'يرجى تأكيد استلام الدفعة من لوحتك', '../provider/dashboard.html');
-}
-
-async function acceptOffer(offerId, requestId){
-  const { error: offErr } = await supabase.from('offers').update({ status: 'accepted', client_approved_at: new Date().toISOString() }).eq('id', offerId);
-  if(offErr){ alert(offErr.message); return; }
-  const { error: reqErr } = await supabase.from('service_requests').update({ status: 'offer_selected' }).eq('id', requestId);
-  if(reqErr){ alert(reqErr.message); return; }
-  await createStagesIfNeeded(requestId);
-  loadRequest();
-
-  const { data: offerRow } = await supabase.from('offers').select('provider_id').eq('id', offerId).single();
-  if(offerRow) createNotification(offerRow.provider_id, 'تم قبول عرضك ✓', 'العميل قبل عرضك، تابع مراحل التنفيذ من لوحتك', '../provider/dashboard.html');
-}
-
-async function createStagesIfNeeded(requestId){
-  const { data: existing } = await supabase.from('request_stages').select('id').eq('request_id', requestId).limit(1);
-  if(existing && existing.length) return;
-  const stageNames = [
-    'بدء إجراءات الاستحواذ',
-    'بدء إجراءات نقل الملكية للشركة الخارجية',
-    'تصديق المستندات',
-    'شحن المستندات',
-    'التقديم على رخصة الاستثمار',
-    'حجز الاسم التجاري',
-    'التقديم على عقد التأسيس والسجل التجاري',
-    'صدور عقد التأسيس والسجل التجاري'
-  ];
-  const rows = stageNames.map((name,i)=>({ request_id: requestId, stage_order: i+1, stage_name: name }));
-  await supabase.from('request_stages').insert(rows);
-}
-
-async function loadStages(requestId, containerId){
-  const container = document.getElementById(containerId);
-  const { data: req } = await supabase.from('service_requests').select('id, created_at, status, client_id').eq('id', requestId).single();
-  const { data: offersData } = await supabase.from('offers').select('created_at, status').eq('request_id', requestId).order('created_at');
-  const { data: clientData } = await supabase.from('clients').select('created_at, assessment_completed_at').eq('id', req.client_id).single();
-
-  const autoStages = [
-    { name:'تم التسجيل', done:true, date: clientData?.created_at },
-    { name:'تم اعتماد طلبه', done: !!clientData?.assessment_completed_at, date: clientData?.assessment_completed_at },
-    { name:'تم الرفع للعروض', done: req.status !== 'pending_admin_review', date: req.created_at },
-    { name:'تم إرسال عروض', done: !!(offersData && offersData.length), date: offersData?.[0]?.created_at },
-    { name:'اعتماد العروض', done: !!(offersData && offersData.some(o=>o.status==='accepted')), date: offersData?.find(o=>o.status==='accepted')?.created_at },
-  ];
-
-  const { data: stages } = await supabase.from('request_stages').select('*').eq('request_id', requestId).order('stage_order');
-
-  let html = '<div class="timeline">';
-  autoStages.forEach(s => {
-    html += `<div class="tl-item ${s.done?'done':''}"><span class="tl-dot"></span><div class="tl-text"><strong>${s.name}</strong>${s.date?` <span class="tl-date">${new Date(s.date).toLocaleDateString('ar-SA')}</span>`:''}</div></div>`;
-  });
-  if(stages && stages.length){
-    stages.forEach(s => {
-      const cls = s.status === 'completed' ? 'done' : (s.status==='in_progress' ? 'active' : '');
-      html += `<div class="tl-item ${cls}"><span class="tl-dot"></span><div class="tl-text"><strong>${s.stage_name}</strong>${s.completed_at?` <span class="tl-date">${new Date(s.completed_at).toLocaleDateString('ar-SA')}</span>`:''}</div></div>`;
-    });
-  }
-  html += '</div>';
-  container.innerHTML = html;
+  const { data: files } = await supabase.from('documents').select('id').eq('client_id', profile.id);
+  document.getElementById('filesSummary').textContent = files && files.length ? `${files.length} مستند مرفوع` : 'لا توجد مستندات مرفوعة بعد.';
 }
 
 init();

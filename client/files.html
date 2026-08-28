@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ملفاتي — إتقان</title>
+<link rel="stylesheet" href="../assets/css/itqan.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="../assets/images/logo.jpeg" alt="إتقان"></div>
+    <nav>
+      <a href="dashboard.html" class="side-link"><span class="ic">🏠</span> نظرة عامة</a>
+      <a href="assessment.html" class="side-link"><span class="ic">📝</span> تقييم الجاهزية</a>
+      <div class="side-group-label">الطلبات</div>
+      <a href="requests.html" class="side-link sub"><span class="ic">🏢</span> طلبات التأسيس</a>
+      <a href="post-incorp.html" class="side-link sub"><span class="ic">🗂️</span> طلبات بعد التأسيس</a>
+      <a href="journey.html" class="side-link sub"><span class="ic">🛤️</span> رحلة الطلب</a>
+      <a href="offers.html" class="side-link sub"><span class="ic">💰</span> العروض</a>
+      <a href="profile.html" class="side-link"><span class="ic">👤</span> بياناتي</a>
+      <a href="files.html" class="side-link active"><span class="ic">📁</span> ملفاتي</a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn ghost" style="width:100%;margin:0;" onclick="signOut()">تسجيل الخروج</button>
+    </div>
+  </aside>
+
+  <div style="flex:1;display:flex;flex-direction:column;">
+    <header class="app-topbar">
+      <a class="topbar-btn" href="https://wa.me/966569051686" target="_blank" title="تواصل معنا">💬</a>
+      <button class="topbar-btn" id="langToggleBtn" onclick="toggleLang()">EN</button>
+      <div id="notifBellContainer"></div>
+    </header>
+    <main class="app-main">
+      <div class="app-main-inner">
+        <h1 class="page-title">ملفاتي</h1>
+
+        <div class="card">
+          <h3 style="margin-bottom:12px;">رفع مستند جديد</h3>
+          <label>نوع المستند</label>
+          <input id="docType" placeholder="مثال: عقد التأسيس، جواز السفر">
+          <label>الملف</label>
+          <input id="docFile" type="file">
+          <button class="btn gold" onclick="uploadDoc()">رفع المستند</button>
+          <div id="uploadMsg"></div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-bottom:12px;">مستنداتي المرفوعة</h3>
+          <table>
+            <thead><tr><th>النوع</th><th>تاريخ الرفع</th><th>الحالة</th></tr></thead>
+            <tbody id="docsBody"><tr><td colspan="3">جارٍ التحميل...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../assets/js/supabaseClient.js"></script>
+<script>
+let profile;
+
+async function init(){
+  profile = await requireRole(['client']);
+  if(!profile) return;
+  initNotificationBell(profile.id);
+  loadDocs();
+}
+
+async function loadDocs(){
+  const { data, error } = await supabase.from('documents').select('*').eq('client_id', profile.id).order('uploaded_at', {ascending:false});
+  const body = document.getElementById('docsBody');
+  if(error){ body.innerHTML = `<tr><td colspan="3">${error.message}</td></tr>`; return; }
+  if(!data || !data.length){ body.innerHTML = '<tr><td colspan="3">لا توجد مستندات مرفوعة بعد</td></tr>'; return; }
+
+  const statusMap = {pending:'<span class="badge pending">قيد المراجعة</span>', verified:'<span class="badge ready">تم التحقق</span>', rejected:'<span class="badge notready">مرفوض</span>'};
+  body.innerHTML = data.map(d => `
+    <tr>
+      <td>${d.doc_type}</td>
+      <td>${new Date(d.uploaded_at).toLocaleDateString('ar-SA')}</td>
+      <td>${statusMap[d.status] || d.status}</td>
+    </tr>`).join('');
+}
+
+async function uploadDoc(){
+  const docType = document.getElementById('docType').value.trim();
+  const fileInput = document.getElementById('docFile');
+  const msg = document.getElementById('uploadMsg');
+
+  if(!docType || !fileInput.files.length){ msg.className = 'msg err'; msg.textContent = 'أدخل نوع المستند واختر الملف'; return; }
+
+  const file = fileInput.files[0];
+  const safeName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+  const filePath = `${profile.id}/${Date.now()}_${safeName}`;
+
+  const { error: upErr } = await supabase.storage.from('client-documents').upload(filePath, file);
+  if(upErr){ msg.className = 'msg err'; msg.textContent = upErr.message; return; }
+
+  const { error: insErr } = await supabase.from('documents').insert({ client_id: profile.id, doc_type: docType, file_path: filePath });
+  if(insErr){ msg.className = 'msg err'; msg.textContent = insErr.message; return; }
+
+  msg.className = 'msg ok'; msg.textContent = 'تم رفع المستند بنجاح.';
+  document.getElementById('docType').value = '';
+  fileInput.value = '';
+  loadDocs();
+}
+
+init();
+</script>
+</body>
+</html>

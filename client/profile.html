@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>بياناتي — إتقان</title>
+<link rel="stylesheet" href="../assets/css/itqan.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="../assets/images/logo.jpeg" alt="إتقان"></div>
+    <nav>
+      <a href="dashboard.html" class="side-link"><span class="ic">🏠</span> نظرة عامة</a>
+      <a href="assessment.html" class="side-link"><span class="ic">📝</span> تقييم الجاهزية</a>
+      <div class="side-group-label">الطلبات</div>
+      <a href="requests.html" class="side-link sub"><span class="ic">🏢</span> طلبات التأسيس</a>
+      <a href="post-incorp.html" class="side-link sub"><span class="ic">🗂️</span> طلبات بعد التأسيس</a>
+      <a href="journey.html" class="side-link sub"><span class="ic">🛤️</span> رحلة الطلب</a>
+      <a href="offers.html" class="side-link sub"><span class="ic">💰</span> العروض</a>
+      <a href="profile.html" class="side-link active"><span class="ic">👤</span> بياناتي</a>
+      <a href="files.html" class="side-link"><span class="ic">📁</span> ملفاتي</a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn ghost" style="width:100%;margin:0;" onclick="signOut()">تسجيل الخروج</button>
+    </div>
+  </aside>
+
+  <div style="flex:1;display:flex;flex-direction:column;">
+    <header class="app-topbar">
+      <a class="topbar-btn" href="https://wa.me/966569051686" target="_blank" title="تواصل معنا">💬</a>
+      <button class="topbar-btn" id="langToggleBtn" onclick="toggleLang()">EN</button>
+      <div id="notifBellContainer"></div>
+    </header>
+    <main class="app-main">
+      <div class="app-main-inner" style="max-width:520px;">
+        <h1 class="page-title">بياناتي</h1>
+        <div class="card">
+          <label>الاسم الكامل</label>
+          <input id="full_name">
+          <label>البريد الإلكتروني</label>
+          <input id="email" disabled style="opacity:.6;">
+          <label>رقم الجوال (مع رمز الدولة)</label>
+          <input id="contact_phone" placeholder="مثال: 966501234567+">
+          <label>الوسيلة المفضلة للتواصل</label>
+          <select id="preferred_contact">
+            <option value="email">البريد الإلكتروني</option>
+            <option value="whatsapp">واتساب</option>
+          </select>
+          <button class="btn gold" onclick="saveProfile()">حفظ التغييرات</button>
+          <div id="msg"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../assets/js/supabaseClient.js"></script>
+<script>
+let profile;
+
+async function init(){
+  profile = await requireRole(['client']);
+  if(!profile) return;
+  initNotificationBell(profile.id);
+
+  const { data: { user } } = await supabase.auth.getUser();
+  document.getElementById('email').value = user.email;
+  document.getElementById('full_name').value = profile.full_name || '';
+  document.getElementById('contact_phone').value = profile.contact_phone || '';
+  document.getElementById('preferred_contact').value = profile.preferred_contact || 'email';
+}
+
+async function saveProfile(){
+  const full_name = document.getElementById('full_name').value.trim();
+  const contact_phone = document.getElementById('contact_phone').value.trim();
+  const preferred_contact = document.getElementById('preferred_contact').value;
+  const msg = document.getElementById('msg');
+
+  const { error } = await supabase.from('profiles').update({ full_name, contact_phone, preferred_contact }).eq('id', profile.id);
+  if(error){ msg.className = 'msg err'; msg.textContent = error.message; return; }
+  msg.className = 'msg ok'; msg.textContent = 'تم الحفظ بنجاح.';
+}
+
+init();
+</script>
+</body>
+</html>

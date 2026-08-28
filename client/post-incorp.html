@@ -12,24 +12,45 @@
 </style>
 </head>
 <body>
-<header class="top">
-  <div class="brand"><img src="../assets/images/logo.jpeg" alt="إتقان"></div>
-  <div style="display:flex;align-items:center;gap:10px;">
-    <a href="dashboard.html" class="btn ghost" style="margin:0;padding:9px 16px;font-size:13px;">التأسيس والاستثمار</a>
-    <div id="notifBellContainer"></div>
-    <button class="btn ghost" onclick="signOut()">تسجيل الخروج</button>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="../assets/images/logo.jpeg" alt="إتقان"></div>
+    <nav>
+      <a href="dashboard.html" class="side-link"><span class="ic">🏠</span> نظرة عامة</a>
+      <a href="assessment.html" class="side-link"><span class="ic">📝</span> تقييم الجاهزية</a>
+      <div class="side-group-label">الطلبات</div>
+      <a href="requests.html" class="side-link sub"><span class="ic">🏢</span> طلبات التأسيس</a>
+      <a href="post-incorp.html" class="side-link sub active"><span class="ic">🗂️</span> طلبات بعد التأسيس</a>
+      <a href="journey.html" class="side-link sub"><span class="ic">🛤️</span> رحلة الطلب</a>
+      <a href="offers.html" class="side-link sub"><span class="ic">💰</span> العروض</a>
+      <a href="profile.html" class="side-link"><span class="ic">👤</span> بياناتي</a>
+      <a href="files.html" class="side-link"><span class="ic">📁</span> ملفاتي</a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn ghost" style="width:100%;margin:0;" onclick="signOut()">تسجيل الخروج</button>
+    </div>
+  </aside>
+
+  <div style="flex:1;display:flex;flex-direction:column;">
+    <header class="app-topbar">
+      <a class="topbar-btn" href="https://wa.me/966569051686" target="_blank" title="تواصل معنا">💬</a>
+      <button class="topbar-btn" id="langToggleBtn" onclick="toggleLang()">EN</button>
+      <div id="notifBellContainer"></div>
+    </header>
+    <main class="app-main">
+      <div class="app-main-inner">
+
+        <div class="hero-card">
+          <h1>خدمات ما بعد التأسيس</h1>
+          <p>كل ما تحتاجه لإدارة شركتك بعد التأسيس، مباشرة من فريق إتقان</p>
+        </div>
+
+        <div class="card" id="postIncorpArea"><p style="color:var(--ink-soft);font-size:13.5px;">جارٍ التحميل...</p></div>
+
+      </div>
+    </main>
   </div>
-</header>
-<main style="max-width:640px;">
-
-  <div class="hero-card">
-    <h1>خدمات ما بعد التأسيس</h1>
-    <p>كل ما تحتاجه لإدارة شركتك بعد التأسيس، مباشرة من فريق إتقان</p>
-  </div>
-
-  <div class="card" id="postIncorpArea"><p style="color:var(--ink-soft);font-size:13.5px;">جارٍ التحميل...</p></div>
-
-</main>
+</div>
 
 <script src="../assets/js/supabaseClient.js"></script>
 <script>
