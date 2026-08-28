@@ -18,22 +18,10 @@
 <main style="max-width:480px;">
   <h1 class="page-title" data-i18n="register_title">إنشاء حساب جديد</h1>
   <div class="card">
-    <label data-i18n="register_role">نوع الحساب</label>
-    <select id="role">
-      <option value="client" data-i18n="register_role_client">عميل (مستثمر)</option>
-      <option value="provider" data-i18n="register_role_provider">مقدّم خدمة</option>
-    </select>
     <label data-i18n="register_fullname">الاسم الكامل</label>
-    <input id="full_name" type="text" placeholder="اسمك الثلاثي أو اسم الشركة">
+    <input id="full_name" type="text" placeholder="اسمك الثلاثي">
     <label data-i18n="register_email">البريد الإلكتروني</label>
     <input id="email" type="email" placeholder="you@example.com">
-    <label data-i18n="register_phone">رقم الجوال (مع رمز الدولة)</label>
-    <input id="contact_phone" type="tel" placeholder="مثال: 966501234567+">
-    <label data-i18n="register_preferred_contact">الوسيلة المفضلة للتواصل</label>
-    <select id="preferred_contact">
-      <option value="email" data-i18n="register_contact_email">البريد الإلكتروني</option>
-      <option value="whatsapp" data-i18n="register_contact_whatsapp">واتساب</option>
-    </select>
     <label data-i18n="register_password">كلمة المرور</label>
     <input id="password" type="password" placeholder="8 أحرف على الأقل">
     <button class="btn" onclick="register()" data-i18n="register_btn">إنشاء الحساب</button>
@@ -44,16 +32,10 @@
 <script src="../assets/js/supabaseClient.js"></script>
 <script src="../assets/js/i18n.js"></script>
 <script>
-const urlRole = new URLSearchParams(window.location.search).get('role');
-if(urlRole === 'client' || urlRole === 'provider'){ document.getElementById('role').value = urlRole; }
-
 async function register(){
   const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
   const full_name = document.getElementById('full_name').value.trim();
-  const role = document.getElementById('role').value;
-  const contact_phone = document.getElementById('contact_phone').value.trim();
-  const preferred_contact = document.getElementById('preferred_contact').value;
   const preferred_language = getLang();
   const msg = document.getElementById('msg');
   msg.className = 'msg'; msg.textContent = '';
@@ -66,14 +48,10 @@ async function register(){
   if(error){ msg.className='msg err'; msg.textContent = error.message; return; }
 
   const userId = data.user.id;
-  const { error: profErr } = await supabase.from('profiles').insert({ id: userId, full_name, role, contact_phone, preferred_contact, preferred_language });
+  const { error: profErr } = await supabase.from('profiles').insert({ id: userId, full_name, role: 'client', preferred_language });
   if(profErr){ msg.className='msg err'; msg.textContent = profErr.message; return; }
 
-  if(role === 'client'){
-    await supabase.from('clients').insert({ id: userId });
-  } else {
-    await supabase.from('service_providers').insert({ id: userId, company_name: full_name });
-  }
+  await supabase.from('clients').insert({ id: userId });
 
   msg.className='msg ok';
   msg.textContent='تم إنشاء الحساب! تحقق من بريدك لتأكيد الحساب ثم سجّل الدخول.';

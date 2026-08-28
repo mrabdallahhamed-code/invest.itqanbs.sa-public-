@@ -167,44 +167,31 @@ async function loadPendingRequests(){
   if(error){ body.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
   if(!requests || !requests.length){ body.innerHTML = '<p style="font-size:13.5px;color:var(--ink-soft);">لا توجد طلبات بانتظار التوجيه حالياً.</p>'; return; }
 
-  const { data: providers } = await supabase.from('service_providers').select('id, company_name, specialty').eq('is_verified', true);
-  const providerList = providers || [];
   const statusMap = {ready:'جاهز', not_ready:'غير جاهز', pending_review:'قيد المراجعة'};
 
   body.innerHTML = requests.map(r => `
     <div style="border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px;">
       <p style="font-size:14px;margin-bottom:4px;"><strong>${r.clients?.profiles?.full_name || r.client_id}</strong></p>
       <p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:12px;">حالة العميل: ${statusMap[r.clients?.readiness_status] || '—'} · تاريخ الطلب: ${new Date(r.created_at).toLocaleDateString('ar-SA')}</p>
-      <p style="font-size:13px;font-weight:700;margin-bottom:8px;">اختر مقدمي الخدمة لتوجيه الطلب إليهم:</p>
-      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;" id="providers-${r.id}">
-        ${providerList.length ? providerList.map(p => `
-          <label style="display:flex;align-items:center;gap:8px;font-size:13.5px;">
-            <input type="checkbox" value="${p.id}"> ${p.company_name} ${p.specialty ? '— ' + p.specialty : ''}
-          </label>
-        `).join('') : '<p style="font-size:13px;color:var(--ink-soft);">لا يوجد مقدمو خدمة معتمدون حالياً — اذهب لتبويب "مقدمو الخدمة" واعتمد واحداً أولاً.</p>'}
-      </div>
-      <button class="btn" style="padding:8px 18px;font-size:13px;" onclick="routeRequest('${r.id}')">توجيه الطلب</button>
+      <button class="btn gold" style="padding:8px 18px;font-size:13px;" onclick="routeRequest('${r.id}')">توجيه إلى إتقان</button>
       <div id="routeMsg-${r.id}"></div>
     </div>
   `).join('');
 }
 
 async function routeRequest(requestId){
-  const container = document.getElementById(`providers-${requestId}`);
-  const checked = [...container.querySelectorAll('input[type=checkbox]:checked')].map(cb => cb.value);
   const msg = document.getElementById(`routeMsg-${requestId}`);
+  const { data: itqan, error: itqanErr } = await supabase.from('service_providers').select('id').eq('is_itqan', true).limit(1).single();
+  if(itqanErr || !itqan){ msg.className='msg err'; msg.textContent='تعذر إيجاد حساب إتقان كمقدّم خدمة'; return; }
 
-  if(!checked.length){ msg.className='msg err'; msg.textContent='اختر مقدّم خدمة واحداً على الأقل'; return; }
-
-  const rows = checked.map(providerId => ({ request_id: requestId, provider_id: providerId }));
-  const { error: invErr } = await supabase.from('request_invitations').insert(rows);
+  const { error: invErr } = await supabase.from('request_invitations').insert({ request_id: requestId, provider_id: itqan.id });
   if(invErr){ msg.className='msg err'; msg.textContent = invErr.message; return; }
 
   const { error: reqErr } = await supabase.from('service_requests').update({ status: 'open' }).eq('id', requestId);
   if(reqErr){ msg.className='msg err'; msg.textContent = reqErr.message; return; }
 
   msg.className='msg ok'; msg.textContent='تم توجيه الطلب بنجاح';
-  checked.forEach(providerId => createNotification(providerId, 'طلب جديد بانتظارك', 'وصلك طلب جديد يمكنك التقديم عليه بعرض', '../provider/dashboard.html'));
+  createNotification(itqan.id, 'طلب جديد بانتظارك', 'وصلك طلب جديد يمكنك التقديم عليه بعرض', '../provider/dashboard.html');
   setTimeout(() => { loadPendingRequests(); loadAllRequests(); }, 1000);
 }
 
