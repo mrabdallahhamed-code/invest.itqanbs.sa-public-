@@ -88,11 +88,6 @@ async function init(){
   const { data: client } = await supabase.from('clients').select('*').eq('id', profile.id).single();
   clientRow = client;
 
-  if(client && client.has_company_in_kingdom === true){
-    window.location.href = 'post-incorp.html';
-    return;
-  }
-
   if(!client || client.has_company_in_kingdom === null || client.has_company_in_kingdom === undefined){
     document.getElementById('gateCard').style.display = 'block';
     return;
@@ -103,10 +98,10 @@ async function init(){
 
 async function answerGate(hasCompany){
   await supabase.from('clients').update({ has_company_in_kingdom: hasCompany }).eq('id', profile.id);
+  if(clientRow) clientRow.has_company_in_kingdom = hasCompany;
   if(hasCompany){
     window.location.href = 'post-incorp.html';
   } else {
-    if(clientRow) clientRow.has_company_in_kingdom = false;
     document.getElementById('gateCard').style.display = 'none';
     showMainContent();
   }
