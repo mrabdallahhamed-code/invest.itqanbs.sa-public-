@@ -89,7 +89,7 @@ async function loadPostIncorpAdmin(){
       : `<p style="font-size:13px;font-weight:700;color:var(--green-dark);">${r.quoted_price || ''} ر.س</p>
            <a href="../post-incorp-offer-view.html?id=${r.id}" class="btn ghost" style="padding:7px 14px;font-size:12.5px;margin-top:0;">عرض التفاصيل</a>`;
     return `
-    <div style="border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px;">
+    <div class="list-item-card">
       <p style="font-size:14px;margin-bottom:4px;"><strong>${r.clients?.profiles?.full_name || r.client_id}</strong> — ${statusLabels[r.status]}</p>
       <p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:6px;">${needsHtml || (r.service_categories||[]).join('، ')}</p>
       ${r.client_notes ? `<p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:10px;">ملاحظات العميل: ${r.client_notes}</p>` : ''}
@@ -143,7 +143,7 @@ async function loadPendingRequests(){
   const statusMap = {ready:'جاهز', not_ready:'غير جاهز', pending_review:'قيد المراجعة'};
 
   body.innerHTML = requests.map(r => `
-    <div style="border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:14px;">
+    <div class="list-item-card">
       <p style="font-size:14px;margin-bottom:4px;"><strong>${r.clients?.profiles?.full_name || r.client_id}</strong></p>
       <p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:12px;">حالة العميل: ${statusMap[r.clients?.readiness_status] || '—'} · تاريخ الطلب: ${new Date(r.created_at).toLocaleDateString('ar-SA')}</p>
       <button class="btn gold" style="padding:8px 18px;font-size:13px;" onclick="routeRequest('${r.id}')">توجيه إلى إتقان</button>

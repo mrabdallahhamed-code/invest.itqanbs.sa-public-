@@ -44,12 +44,12 @@
   /* ---------- Hero ---------- */
   .hero{
     background:
-      linear-gradient(135deg, rgba(51,74,59,.94) 0%, rgba(38,56,45,.92) 60%, rgba(30,45,36,.95) 100%),
+      linear-gradient(135deg, rgba(30,77,56,.90) 0%, rgba(46,125,91,.85) 60%, rgba(30,77,56,.92) 100%),
       url('assets/images/riyadh-skyline.png') center/cover no-repeat;
     padding:90px 20px 70px; text-align:center; position:relative; overflow:hidden;
   }
   .hero::before{
-    content:''; position:absolute; inset:0; opacity:.08;
+    content:''; position:absolute; inset:0; opacity:.12;
     background-image:radial-gradient(circle at 20% 30%, var(--gold) 0, transparent 35%), radial-gradient(circle at 80% 70%, var(--gold) 0, transparent 30%);
   }
   .hero-inner{max-width:720px; margin:0 auto; position:relative; z-index:1;}
@@ -67,7 +67,7 @@
   .section-wrap.bg-cream{background:var(--cream);}
   .section-wrap.bg-white{background:var(--white);}
   .section-wrap.bg-tint{background:var(--green-tint);}
-  .section-wrap.bg-dark{background:linear-gradient(160deg, var(--green-dark) 0%, #26382D 100%); position:relative; overflow:hidden;}
+  .section-wrap.bg-dark{background:linear-gradient(160deg, var(--green-dark) 0%, var(--green) 100%); position:relative; overflow:hidden;}
   .section-wrap.bg-dark::before{content:'';position:absolute;inset:0;opacity:.06;background-image:radial-gradient(circle at 15% 20%, var(--gold) 0, transparent 30%);}
   .section-wrap + .section-wrap{border-top:1px solid var(--line);}
   .section-wrap.bg-dark + .section-wrap, .section-wrap + .section-wrap.bg-dark{border-top:none;}
@@ -81,7 +81,8 @@
 
   .services-grid{display:grid; grid-template-columns:1fr 1fr; gap:18px; align-items:start;}
   @media(max-width:680px){.services-grid{grid-template-columns:1fr;}}
-  .service-card{background:var(--white); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow-sm); transition:box-shadow .2s;}
+  .service-card{background:var(--white); border:1px solid var(--line-soft); border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow-sm); transition:box-shadow .3s var(--ease), transform .3s var(--ease);}
+  .service-card:hover{box-shadow:var(--shadow); transform:translateY(-3px);}
   .service-card.open{box-shadow:var(--shadow);}
   .service-head{display:flex; align-items:center; gap:14px; padding:20px 22px; cursor:pointer; user-select:none; background:none; border:none; width:100%; text-align:right; font-family:inherit;}
   html[dir="ltr"] .service-head{text-align:left;}
@@ -112,9 +113,9 @@
 
   .paths-grid{display:grid; grid-template-columns:1fr 1fr; gap:20px;}
   @media(max-width:640px){.paths-grid{grid-template-columns:1fr;}}
-  .path-card{background:var(--white); border:1px solid var(--line); border-radius:var(--radius); padding:28px; text-align:center; box-shadow:var(--shadow-sm); transition:transform .2s, box-shadow .2s;}
-  .path-card:hover{transform:translateY(-3px); box-shadow:var(--shadow);}
-  .path-card .icon{font-size:30px; margin-bottom:12px;}
+  .path-card{background:linear-gradient(180deg, var(--white) 0%, var(--paper) 100%); border:1px solid var(--line-soft); border-radius:var(--radius); padding:30px; text-align:center; box-shadow:var(--shadow-sm); transition:transform .3s var(--ease), box-shadow .3s var(--ease);}
+  .path-card:hover{transform:translateY(-5px); box-shadow:var(--shadow-lg);}
+  .path-card .icon{font-size:34px; margin-bottom:14px;}
   .path-card h3{font-size:16px; color:var(--green-dark); margin-bottom:6px;}
   .path-card p{font-size:12px; color:var(--ink-soft); margin-bottom:14px;}
 
