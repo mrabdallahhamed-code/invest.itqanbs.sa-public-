@@ -219,7 +219,7 @@ async function sendMsg(){
   if(error){ alert(error.message); return; }
   input.value = '';
   loadMsgs();
-  createNotification(clientId, 'رسالة جديدة من فريق إتقان', text.slice(0,60), '../client/dashboard.html');
+  createNotification(clientId, 'رسالة جديدة من فريق إتقان', text.slice(0,60), '../client/messages.html');
 }
 
 init();

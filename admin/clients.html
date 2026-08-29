@@ -134,7 +134,7 @@ async function sendBulkMsg(){
   const { error } = await supabase.from('admin_messages').insert(rows);
   if(error){ status.className='msg err'; status.textContent = error.message; return; }
 
-  filtered.forEach(c => createNotification(c.id, 'رسالة جديدة من فريق إتقان', text.slice(0,60), '../client/dashboard.html'));
+  filtered.forEach(c => createNotification(c.id, 'رسالة جديدة من فريق إتقان', text.slice(0,60), '../client/messages.html'));
 
   status.className='msg ok'; status.textContent = `تم الإرسال لـ ${filtered.length} عميل`;
   document.getElementById('bulkMsgInput').value = '';
