@@ -20,6 +20,7 @@
 
   .stats-row{display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px;}
   @media(max-width:720px){.stats-row{grid-template-columns:1fr 1fr;}}
+  @media(max-width:420px){.stats-row{grid-template-columns:1fr 1fr;gap:10px;} .stat-box{padding:12px;} .stat-box .n{font-size:20px;}}
   .stat-box{background:var(--white); border:1px solid var(--line-soft); border-radius:var(--radius); padding:18px; text-align:center; box-shadow:var(--shadow-sm); transition:.3s var(--ease);}
   .stat-box:hover{box-shadow:var(--shadow); transform:translateY(-2px);}
   .stat-box .n{font-family:'Amiri',serif; font-size:26px; font-weight:700; color:var(--green-dark);}
@@ -52,6 +53,7 @@
   <aside class="sidebar">
     <div class="brand"><img src="../assets/images/logo.jpeg" alt="إتقان"></div>
     <nav>
+      <a href="dashboard.html" class="side-link active"><span class="ic">🏠</span> نظرة عامة</a>
       <a href="assessment.html" class="side-link"><span class="ic">🧭</span> بوصلة الجاهزية</a>
       <div class="side-group-label">الطلبات</div>
       <a href="requests.html" class="side-link sub"><span class="ic">🏢</span> طلبات التأسيس</a>
@@ -97,35 +99,9 @@
             <div class="stat-box"><div class="n" id="statDays">0</div><div class="l">يوم منذ بداية الطلب</div></div>
           </div>
 
-          <div class="widgets-grid">
-            <a href="assessment.html" class="widget">
-              <div class="widget-head"><div class="widget-icon">🧭</div><h3>بوصلة الجاهزية</h3></div>
-              <p class="sub" id="assessSummary">جارٍ التحميل...</p>
-            </a>
-            <a href="requests.html" class="widget">
-              <div class="widget-head"><div class="widget-icon">🏢</div><h3>طلبات التأسيس</h3></div>
-              <p class="sub" id="reqSummary">جارٍ التحميل...</p>
-            </a>
-            <a href="offers.html" class="widget">
-              <div class="widget-head"><div class="widget-icon">💰</div><h3>العروض</h3></div>
-              <p class="sub" id="offersSummary">جارٍ التحميل...</p>
-            </a>
-            <a href="journey.html" class="widget">
-              <div class="widget-head"><div class="widget-icon">🛤️</div><h3>رحلة الطلب</h3></div>
-              <p class="sub">تابع كل مرحلة من مراحل تنفيذ طلبك.</p>
-            </a>
-            <a href="post-incorp.html" class="widget">
-              <div class="widget-head"><div class="widget-icon">🗂️</div><h3>خدمات ما بعد التأسيس</h3></div>
-              <p class="sub" id="piSummary">جارٍ التحميل...</p>
-            </a>
-            <a href="profile.html" class="widget">
-              <div class="widget-head"><div class="widget-icon">👤</div><h3>بياناتي</h3></div>
-              <p class="sub">عدّل بياناتك الشخصية ووسيلة التواصل.</p>
-            </a>
-            <a href="files.html" class="widget">
-              <div class="widget-head"><div class="widget-icon">📁</div><h3>ملفاتي</h3></div>
-              <p class="sub" id="filesSummary">جارٍ التحميل...</p>
-            </a>
+          <div class="card">
+            <h3 style="margin-bottom:12px;">💬 آخر رسائل من فريق إتقان</h3>
+            <div id="recentMsgs"><p style="font-size:13px;color:var(--ink-soft);">جارٍ التحميل...</p></div>
           </div>
         </div>
 
@@ -170,16 +146,9 @@ async function showMainContent(){
   document.getElementById('mainContent').style.display = 'block';
   document.getElementById('uname').textContent = profile.full_name;
 
-  const statusLabels = {ready:'جاهز ✓', not_ready:'غير جاهز', pending_review:'قيد المراجعة'};
-  document.getElementById('assessSummary').textContent = clientRow?.assessment_completed_at
-    ? 'حالتك: ' + (statusLabels[clientRow.readiness_status] || '—')
-    : 'لسا ما أكملت التقييم — اضغط للبدء.';
-
   const { data: allRequests } = await supabase.from('service_requests').select('id, status, created_at').eq('client_id', profile.id).order('created_at', {ascending:false});
   const requests = allRequests || [];
   const latestRequest = requests[0] || null;
-  const reqStatusLabels = { pending_admin_review:'قيد المراجعة', open:'مفتوح لعروض', offer_selected:'تم اختيار عرض', in_progress:'قيد التنفيذ', completed:'مكتمل', cancelled:'ملغى' };
-  document.getElementById('reqSummary').textContent = latestRequest ? 'حالة طلبك: ' + (reqStatusLabels[latestRequest.status] || latestRequest.status) : 'لا يوجد طلب تأسيس حالياً.';
   document.getElementById('statRequests').textContent = requests.length;
 
   let totalOffers = 0, hasAccepted = false;
@@ -188,7 +157,6 @@ async function showMainContent(){
     totalOffers = offers ? offers.length : 0;
     hasAccepted = offers ? offers.some(o => o.status === 'accepted') : false;
   }
-  document.getElementById('offersSummary').textContent = totalOffers ? `${totalOffers} عرض وصلك` : 'لا توجد عروض بعد.';
   document.getElementById('statOffers').textContent = totalOffers;
 
   // مرحلة العميل الحالية
@@ -206,12 +174,15 @@ async function showMainContent(){
   const days = Math.max(0, Math.floor((Date.now() - startDate.getTime()) / (1000*60*60*24)));
   document.getElementById('statDays').textContent = days;
 
-  const { data: pi } = await supabase.from('post_incorp_requests').select('id, status').eq('client_id', profile.id).order('created_at', {ascending:false}).limit(1);
-  const piLabels = { pending_review:'قيد المراجعة', quoted:'وصلك عرض', accepted:'مقبول ✓', rejected:'مرفوض' };
-  document.getElementById('piSummary').textContent = pi && pi.length ? (piLabels[pi[0].status] || pi[0].status) : 'اطلب خدمات ما بعد التأسيس.';
+  loadRecentMsgs();
+}
 
-  const { data: files } = await supabase.from('documents').select('id').eq('client_id', profile.id);
-  document.getElementById('filesSummary').textContent = files && files.length ? `${files.length} مستند مرفوع` : 'لا توجد مستندات مرفوعة بعد.';
+async function loadRecentMsgs(){
+  const { data, error } = await supabase.from('admin_messages').select('*').eq('recipient_id', profile.id).order('created_at', {ascending:false}).limit(3);
+  const box = document.getElementById('recentMsgs');
+  if(error){ box.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
+  if(!data || !data.length){ box.innerHTML = '<p style="font-size:13px;color:var(--ink-soft);">لا توجد رسائل حتى الآن.</p>'; return; }
+  box.innerHTML = data.map(m => `<div style="font-size:13px;padding:9px 12px;border-radius:10px;margin-bottom:6px;background:${m.sender_id===profile.id?'var(--green-tint)':'var(--paper)'};border:1px solid var(--line-soft);">${m.message}</div>`).join('');
 }
 
 init();

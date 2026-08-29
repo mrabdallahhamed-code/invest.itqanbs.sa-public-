@@ -6,17 +6,20 @@
 <link rel="stylesheet" href="../assets/css/itqan.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  .q-block{border:1px solid var(--line-soft); border-radius:var(--radius-sm); padding:18px 20px; margin-bottom:14px; background:var(--white); transition:.3s var(--ease);}
-  .q-block.answered{background:var(--green-tint); border-color:var(--green-tint2);}
-  .q-block-text{font-size:14.5px; font-weight:700; color:var(--ink); margin-bottom:12px;}
-  .q-block.answered .q-block-text{margin-bottom:4px;}
-  .q-answer-tag{display:inline-block; font-size:12.5px; font-weight:700; color:var(--green-dark); background:var(--white); padding:4px 12px; border-radius:999px; border:1px solid var(--green-tint2);}
-  .q-btns{display:flex; gap:10px;}
-  .q-btns button{flex:1; padding:12px; border-radius:12px; border:1.5px solid var(--line); background:var(--white); font-family:inherit; font-size:13.5px; font-weight:700; cursor:pointer; transition:.2s var(--ease);}
-  .q-btns button:hover{border-color:var(--gold); background:var(--gold-soft);}
+  .toggle-row{display:flex; gap:12px; margin-top:8px;}
+  .toggle-row button{
+    flex:1; padding:14px; border-radius:14px; border:1.5px solid var(--line); background:var(--white);
+    font-family:inherit; font-size:14px; font-weight:700; cursor:pointer; transition:.2s var(--ease); color:var(--ink-soft);
+  }
+  .toggle-row button:hover{border-color:var(--gold);}
+  .toggle-row button.selected{background:linear-gradient(135deg, var(--green-light), var(--green)); border-color:transparent; color:var(--white); box-shadow:0 4px 14px rgba(46,125,91,.25);}
+  .q-group{border-top:1px solid var(--line-soft); margin-top:20px; padding-top:20px;}
+  .q-group:first-child{border-top:none; margin-top:0; padding-top:0;}
+  .q-label{font-size:14px; font-weight:700; color:var(--ink); margin-bottom:10px;}
   .doc-upload-row{border:1px dashed var(--line); border-radius:12px; padding:12px 14px; margin-bottom:10px;}
   .doc-upload-row.uploaded{border-color:var(--green); background:var(--green-tint);}
   .doc-upload-row h4{font-size:13px; margin-bottom:6px;}
+  #conditionalSection{display:none;}
 </style>
 </head>
 <body>
@@ -48,7 +51,63 @@
     <main class="app-main">
       <div class="app-main-inner" style="max-width:560px;">
         <h1 class="page-title">بوصلة الجاهزية</h1>
-        <div id="qFlow"></div>
+        <p style="font-size:13px;color:var(--ink-soft);margin-bottom:20px;margin-top:-14px;">جاوب على الأسئلة اللي تنطبق عليك، واضغط "إنهاء التقييم" بالأسفل.</p>
+
+        <div class="card">
+          <div class="q-group">
+            <div class="q-label">هل تمتلك شركة خارجية حالياً؟</div>
+            <div class="toggle-row">
+              <button id="btn-yes-foreign" onclick="setForeignCompany(true)">نعم</button>
+              <button id="btn-no-foreign" onclick="setForeignCompany(false)">لا</button>
+            </div>
+          </div>
+
+          <div class="q-group" id="noCompanySection" style="display:none;">
+            <div class="q-label">من أي دولة تفضل أن تكون شركتك الخارجية؟</div>
+            <p style="font-size:12px;color:var(--ink-soft);margin-bottom:10px;">بما إنك لا تملك شركة خارجية حالياً، سيقوم فريق إتقان بتوفير شركة مناسبة لك.</p>
+            <input id="preferredCountry" placeholder="مثال: الإمارات، مصر، بريطانيا...">
+          </div>
+
+          <div id="conditionalSection">
+            <div class="q-group">
+              <div class="q-label">هل الشركة ذات مسؤولية محدودة (LLC)؟</div>
+              <div class="toggle-row">
+                <button class="opt-btn" data-key="is_llc" data-val="true" onclick="setToggle(this)">نعم</button>
+                <button class="opt-btn" data-key="is_llc" data-val="false" onclick="setToggle(this)">لا</button>
+              </div>
+            </div>
+            <div class="q-group">
+              <div class="q-label">هل تمتلك عقد تأسيس ساري للشركة؟</div>
+              <div class="toggle-row">
+                <button class="opt-btn" data-key="has_incorporation_contract" data-val="true" onclick="setToggle(this)">نعم</button>
+                <button class="opt-btn" data-key="has_incorporation_contract" data-val="false" onclick="setToggle(this)">لا</button>
+              </div>
+            </div>
+            <div class="q-group">
+              <div class="q-label">هل لديك قوائم مالية مدققة لمدة عام على الأقل؟</div>
+              <div class="toggle-row">
+                <button class="opt-btn" data-key="has_audited_financials" data-val="true" onclick="setToggle(this)">نعم</button>
+                <button class="opt-btn" data-key="has_audited_financials" data-val="false" onclick="setToggle(this)">لا</button>
+              </div>
+            </div>
+            <div class="q-group">
+              <div class="q-label">ما اسم شركتك الأجنبية؟</div>
+              <input id="companyName" placeholder="اسم الشركة">
+            </div>
+            <div class="q-group">
+              <div class="q-label">في أي دولة الشركة مسجّلة؟</div>
+              <input id="companyCountry" placeholder="مثال: الإمارات، مصر، بريطانيا...">
+            </div>
+            <div class="q-group">
+              <div class="q-label">مستندات شركتك الخارجية (اختياري الآن)</div>
+              <p style="font-size:12px;color:var(--ink-soft);margin-bottom:10px;">يمكنك رفعها لاحقاً من "ملفاتي" إن أحببت.</p>
+              <div id="docUploadRows"></div>
+            </div>
+          </div>
+
+          <button class="btn gold" style="width:100%;margin-top:22px;" onclick="finish()">إنهاء التقييم</button>
+          <div id="msg"></div>
+        </div>
       </div>
     </main>
   </div>
@@ -57,7 +116,7 @@
 <script src="../assets/js/supabaseClient.js"></script>
 <script>
 let profile;
-let answers = {};
+let hasForeign = null;
 
 const journeySteps = [
   'تصديق الوثائق من السفارة السعودية بالبلد الأم', 'شحن الوثائق', 'التقديم على رخصة الاستثمار',
@@ -66,135 +125,13 @@ const journeySteps = [
 ];
 const requiredDocTypes = ['عقد التأسيس (الشركة الأم)', 'جواز سفر ممثل الشركة', 'السجل التجاري الأجنبي'];
 const uploadedFiles = {};
+const toggleAnswers = {};
 
 async function init(){
   profile = await requireRole(['client']);
   if(!profile) return;
   initNotificationBell(profile.id);
-  askForeignCompany();
-}
 
-function appendBlock(id, html){
-  const flow = document.getElementById('qFlow');
-  const div = document.createElement('div');
-  div.className = 'q-block';
-  div.id = id;
-  div.innerHTML = html;
-  flow.appendChild(div);
-  div.scrollIntoView({behavior:'smooth', block:'center'});
-  return div;
-}
-
-function lockBlock(id, questionText, answerText){
-  const block = document.getElementById(id);
-  block.className = 'q-block answered';
-  block.innerHTML = `<div class="q-block-text">${questionText}</div><span class="q-answer-tag">${answerText}</span>`;
-}
-
-/* ---------- السؤال 1: هل تمتلك شركة خارجية ---------- */
-function askForeignCompany(){
-  appendBlock('q-has_foreign_company', `
-    <div class="q-block-text">هل تمتلك شركة خارجية حالياً؟</div>
-    <div class="q-btns">
-      <button onclick="answerForeignCompany(true)">نعم</button>
-      <button onclick="answerForeignCompany(false)">لا</button>
-    </div>
-  `);
-}
-
-function answerForeignCompany(value){
-  answers.has_foreign_company = value;
-  lockBlock('q-has_foreign_company', 'هل تمتلك شركة خارجية حالياً؟', value ? 'نعم' : 'لا');
-  if(value){ askIsLLC(); } else { askPreferredCountry(); }
-}
-
-function askPreferredCountry(){
-  appendBlock('q-preferred_country', `
-    <div class="q-block-text">من أي دولة تفضل أن تكون شركتك الخارجية؟</div>
-    <p style="font-size:12px;color:var(--ink-soft);margin-bottom:10px;">بما إنك لا تملك شركة خارجية حالياً، سيقوم فريق إتقان بتوفير شركة مناسبة لك.</p>
-    <input id="countryInput" placeholder="مثال: الإمارات، مصر، بريطانيا...">
-    <button class="btn gold" style="width:100%;margin-top:12px;" onclick="submitPreferredCountry()">متابعة</button>
-  `);
-}
-
-function submitPreferredCountry(){
-  const val = document.getElementById('countryInput').value.trim();
-  answers.preferred_company_country = val;
-  lockBlock('q-preferred_country', 'من أي دولة تفضل أن تكون شركتك الخارجية؟', val || '—');
-  finish();
-}
-
-function askIsLLC(){
-  appendBlock('q-is_llc', `
-    <div class="q-block-text">هل الشركة ذات مسؤولية محدودة (LLC)؟</div>
-    <div class="q-btns"><button onclick="answerIsLLC(true)">نعم</button><button onclick="answerIsLLC(false)">لا</button></div>
-  `);
-}
-function answerIsLLC(value){
-  answers.is_llc = value;
-  lockBlock('q-is_llc', 'هل الشركة ذات مسؤولية محدودة (LLC)؟', value ? 'نعم' : 'لا');
-  askIncorporationContract();
-}
-
-function askIncorporationContract(){
-  appendBlock('q-has_incorporation_contract', `
-    <div class="q-block-text">هل تمتلك عقد تأسيس ساري للشركة؟</div>
-    <div class="q-btns"><button onclick="answerIncorporationContract(true)">نعم</button><button onclick="answerIncorporationContract(false)">لا</button></div>
-  `);
-}
-function answerIncorporationContract(value){
-  answers.has_incorporation_contract = value;
-  lockBlock('q-has_incorporation_contract', 'هل تمتلك عقد تأسيس ساري للشركة؟', value ? 'نعم' : 'لا');
-  askAuditedFinancials();
-}
-
-function askAuditedFinancials(){
-  appendBlock('q-has_audited_financials', `
-    <div class="q-block-text">هل لديك قوائم مالية مدققة لمدة عام على الأقل؟</div>
-    <div class="q-btns"><button onclick="answerAuditedFinancials(true)">نعم</button><button onclick="answerAuditedFinancials(false)">لا</button></div>
-  `);
-}
-function answerAuditedFinancials(value){
-  answers.has_audited_financials = value;
-  lockBlock('q-has_audited_financials', 'هل لديك قوائم مالية مدققة لمدة عام على الأقل؟', value ? 'نعم' : 'لا');
-  askCompanyName();
-}
-
-function askCompanyName(){
-  appendBlock('q-company_name', `
-    <div class="q-block-text">ما اسم شركتك الأجنبية؟</div>
-    <input id="companyNameInput" placeholder="اسم الشركة">
-    <button class="btn gold" style="width:100%;margin-top:12px;" onclick="submitCompanyName()">متابعة</button>
-  `);
-}
-function submitCompanyName(){
-  const val = document.getElementById('companyNameInput').value.trim();
-  answers.foreign_company_name = val;
-  lockBlock('q-company_name', 'ما اسم شركتك الأجنبية؟', val || '—');
-  askCompanyCountry();
-}
-
-function askCompanyCountry(){
-  appendBlock('q-company_country', `
-    <div class="q-block-text">في أي دولة الشركة مسجّلة؟</div>
-    <input id="companyCountryInput" placeholder="مثال: الإمارات، مصر، بريطانيا...">
-    <button class="btn gold" style="width:100%;margin-top:12px;" onclick="submitCompanyCountry()">متابعة</button>
-  `);
-}
-function submitCompanyCountry(){
-  const val = document.getElementById('companyCountryInput').value.trim();
-  answers.foreign_company_country = val;
-  lockBlock('q-company_country', 'في أي دولة الشركة مسجّلة؟', val || '—');
-  askDocs();
-}
-
-function askDocs(){
-  const block = appendBlock('q-docs', `
-    <div class="q-block-text">ارفع مستندات شركتك الخارجية</div>
-    <p style="font-size:12px;color:var(--ink-soft);margin-bottom:10px;">تساعد فريق إتقان يراجع ملفك بدقة أكبر — يمكنك رفعها لاحقاً من "ملفاتي" إن أحببت.</p>
-    <div id="docUploadRows"></div>
-    <button class="btn gold" style="width:100%;margin-top:10px;" onclick="finish()">إنهاء التقييم</button>
-  `);
   const rows = document.getElementById('docUploadRows');
   requiredDocTypes.forEach((docType, i) => {
     const row = document.createElement('div');
@@ -205,6 +142,22 @@ function askDocs(){
   });
 }
 
+function setForeignCompany(value){
+  hasForeign = value;
+  document.getElementById('btn-yes-foreign').classList.toggle('selected', value === true);
+  document.getElementById('btn-no-foreign').classList.toggle('selected', value === false);
+  document.getElementById('noCompanySection').style.display = value === false ? 'block' : 'none';
+  document.getElementById('conditionalSection').style.display = value === true ? 'block' : 'none';
+}
+
+function setToggle(btn){
+  const key = btn.dataset.key;
+  const val = btn.dataset.val === 'true';
+  toggleAnswers[key] = val;
+  document.querySelectorAll(`.opt-btn[data-key="${key}"]`).forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
 function handleDocFile(index, docType, input){
   if(!input.files.length) return;
   uploadedFiles[index] = { docType, file: input.files[0] };
@@ -212,23 +165,25 @@ function handleDocFile(index, docType, input){
 }
 
 async function finish(){
-  document.getElementById('qFlow').insertAdjacentHTML('beforeend', '<p style="text-align:center;color:var(--ink-soft);padding:20px;">جارٍ حفظ النتيجة...</p>');
+  const msg = document.getElementById('msg');
+  if(hasForeign === null){ msg.className = 'msg err'; msg.textContent = 'الرجاء الإجابة على السؤال الأول على الأقل'; return; }
 
   let readiness_status, readiness_notes;
   const checklistItems = [];
 
-  if(answers.has_foreign_company === false){
+  if(hasForeign === false){
     readiness_status = 'not_ready';
     readiness_notes = 'لا تمتلك شركة أجنبية حالياً — سيقوم فريق إتقان بتوفير شركة مناسبة لك، ويمكنك طلب العروض مباشرة.';
   } else {
-    if(answers.is_llc && answers.has_incorporation_contract && answers.has_audited_financials){
+    const { is_llc, has_incorporation_contract, has_audited_financials } = toggleAnswers;
+    if(is_llc && has_incorporation_contract && has_audited_financials){
       readiness_status = 'ready';
       readiness_notes = null;
     } else {
       readiness_status = 'not_ready';
-      if(!answers.is_llc) checklistItems.push('تعديل الشكل القانوني للشركة ليصبح ذا مسؤولية محدودة (LLC)');
-      if(!answers.has_incorporation_contract) checklistItems.push('استخراج أو تجهيز عقد تأسيس ساري للشركة');
-      if(!answers.has_audited_financials) checklistItems.push('إعداد قوائم مالية مدققة لمدة عام على الأقل');
+      if(!is_llc) checklistItems.push('تعديل الشكل القانوني للشركة ليصبح ذا مسؤولية محدودة (LLC)');
+      if(!has_incorporation_contract) checklistItems.push('استخراج أو تجهيز عقد تأسيس ساري للشركة');
+      if(!has_audited_financials) checklistItems.push('إعداد قوائم مالية مدققة لمدة عام على الأقل');
       readiness_notes = 'ملفك يحتاج بعض النقاط قبل التأسيس — راجع مراحل التنفيذ بلوحتك.';
     }
     checklistItems.push(...journeySteps);
@@ -236,22 +191,19 @@ async function finish(){
 
   const payload = {
     id: profile.id,
-    has_foreign_company: answers.has_foreign_company,
-    is_llc: answers.is_llc ?? null,
-    has_incorporation_contract: answers.has_incorporation_contract ?? null,
-    has_audited_financials: answers.has_audited_financials ?? null,
-    foreign_company_name: answers.foreign_company_name || null,
-    foreign_company_country: answers.foreign_company_country || null,
-    preferred_company_country: answers.preferred_company_country || null,
+    has_foreign_company: hasForeign,
+    is_llc: toggleAnswers.is_llc ?? null,
+    has_incorporation_contract: toggleAnswers.has_incorporation_contract ?? null,
+    has_audited_financials: toggleAnswers.has_audited_financials ?? null,
+    foreign_company_name: document.getElementById('companyName')?.value.trim() || null,
+    foreign_company_country: document.getElementById('companyCountry')?.value.trim() || null,
+    preferred_company_country: document.getElementById('preferredCountry')?.value.trim() || null,
     assessment_completed_at: new Date().toISOString(),
     readiness_status, readiness_notes
   };
 
   const { error } = await supabase.from('clients').upsert(payload);
-  if(error){
-    document.getElementById('qFlow').insertAdjacentHTML('beforeend', `<p class="msg err">${error.message}</p>`);
-    return;
-  }
+  if(error){ msg.className = 'msg err'; msg.textContent = error.message; return; }
 
   if(checklistItems.length){
     const rows = checklistItems.map((item, i) => ({ client_id: profile.id, item, position: i }));
