@@ -93,3 +93,8 @@ async function handleNotifClick(id, link){
   if(profile) await refreshNotifBadge(profile.id);
   if(link) window.location.href = link;
 }
+
+// تفعيل PWA — يخلي المنصة قابلة للإضافة كتطبيق على الشاشة الرئيسية
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+}

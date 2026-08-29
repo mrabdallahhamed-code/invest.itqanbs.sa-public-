@@ -2,6 +2,13 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#2E7D5B">
+<link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="إتقان">
+
 <title>إتقان لخدمات الأعمال — تأسيس شركات بملكية أجنبية 100% في السعودية</title>
 <meta name="description" content="إتقان لخدمات الأعمال: منصة وسيطة تربط المستثمرين الأجانب بأفضل مقدمي خدمات تأسيس الشركات في السعودية. تقييم جاهزية فوري، رخصة استثمار MISA، تأسيس شركة بملكية أجنبية كاملة، واستحواذ على شركات قائمة.">
 <meta name="keywords" content="تأسيس شركات السعودية, استثمار أجنبي السعودية, رخصة MISA, ملكية أجنبية 100%, تأسيس شركة أجنبية الرياض, استحواذ شركات السعودية">
@@ -410,6 +417,10 @@ function toggleService(btn){
   const wasOpen = card.classList.contains('open');
   document.querySelectorAll('.service-card').forEach(c => c.classList.remove('open'));
   if(!wasOpen) card.classList.add('open');
+}
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js').catch(()=>{});
 }
 </script>
 
