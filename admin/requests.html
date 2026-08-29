@@ -58,14 +58,15 @@ async function loadAllRequests(){
   if(error){ body.innerHTML = `<tr><td colspan="5">${error.message}</td></tr>`; return; }
   if(!requests || !requests.length){ body.innerHTML = '<tr><td colspan="5">لا توجد طلبات بعد</td></tr>'; return; }
 
-  const { data: offers } = await supabase.from('offers').select('request_id, status');
+  const { data: offers } = await supabase.from('offers').select('id, request_id, status');
   const { data: allStages } = await supabase.from('request_stages').select('request_id, started_at, completed_at, status');
 
   const offerCountMap = {};
   const acceptedSet = new Set();
+  const acceptedOfferIdMap = {};
   (offers || []).forEach(o => {
     offerCountMap[o.request_id] = (offerCountMap[o.request_id] || 0) + 1;
-    if(o.status === 'accepted') acceptedSet.add(o.request_id);
+    if(o.status === 'accepted'){ acceptedSet.add(o.request_id); acceptedOfferIdMap[o.request_id] = o.id; }
   });
 
   const lastActivityMap = {};
@@ -103,6 +104,8 @@ async function loadAllRequests(){
       actionCell = `<a href="submit-offer.html?request_id=${r.id}" class="btn gold" style="padding:6px 12px;font-size:12px;margin-top:0;">تقديم عرض</a>`;
     } else if(!isCompleted && offerCount > 0 && !acceptedSet.has(r.id)){
       actionCell = `<a href="submit-offer.html?request_id=${r.id}" class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;">تعديل العرض</a>`;
+    } else if(!isCompleted && acceptedSet.has(r.id)){
+      actionCell = `<a href="../contract-view.html?offer_id=${acceptedOfferIdMap[r.id]}" class="btn gold" style="padding:6px 12px;font-size:12px;margin-top:0;">العقد والتوقيع</a>`;
     }
 
     return `<tr>

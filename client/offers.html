@@ -118,7 +118,7 @@ async function loadOffers(){
       <td>${o.price} ر.س</td>
       <td>${o.duration_days} يوم</td>
       <td>
-        ${isAccepted ? '<span class="badge ready">تم القبول ✓</span>' : (activeRequest.status === 'open' ? `<button class="btn" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="acceptOffer('${o.id}','${activeRequest.id}')">قبول العرض</button>` : '—')}
+        ${isAccepted ? '<span class="badge ready">تم القبول ✓</span> <a href="../contract-view.html?offer_id=' + o.id + '" class="btn gold" style="padding:6px 12px;font-size:12px;margin-top:0;">عرض العقد والتوقيع</a>' : (activeRequest.status === 'open' ? `<button class="btn" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="acceptOffer('${o.id}','${activeRequest.id}')">قبول العرض</button>` : '—')}
         <a href="../offer-view.html?id=${o.id}" class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;">عرض التفاصيل</a>
         <button class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="toggleChat('${o.id}')">محادثة</button>
         ${isAccepted ? `<button class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;" onclick="togglePayments('${o.id}')">الدفعات</button>` : ''}
@@ -275,6 +275,9 @@ async function confirmAcceptWithSignature(){
   if(reqErr){ msg.className = 'msg err'; msg.textContent = reqErr.message; return; }
 
   await createStagesIfNeeded(requestId);
+
+  await supabase.from('contracts').insert({ request_id: requestId, offer_id: offerId, client_id: profile.id });
+
   closeSignatureModal();
   loadOffers();
 

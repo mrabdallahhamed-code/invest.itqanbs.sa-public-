@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>عقد تقديم خدمات — إتقان</title>
+<link rel="stylesheet" href="assets/css/itqan.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  .contract-doc{max-width:760px;margin:0 auto;background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:44px;line-height:2;}
+  .contract-doc h2{font-family:'Amiri',serif;text-align:center;color:var(--green-dark);font-size:20px;margin-bottom:6px;}
+  .contract-doc .doc-date{text-align:center;color:var(--ink-soft);font-size:12.5px;margin-bottom:26px;padding-bottom:16px;border-bottom:2px solid var(--gold);}
+  .contract-doc h3{font-family:'Amiri',serif;font-size:15px;color:var(--green-dark);margin:22px 0 8px;}
+  .contract-doc p{font-size:13px;color:var(--ink);margin-bottom:8px;}
+  .contract-doc ol, .contract-doc ul{padding-right:20px;margin-bottom:8px;}
+  .contract-doc li{font-size:13px;color:var(--ink);margin-bottom:5px;}
+  .party-box{background:var(--paper);border-radius:12px;padding:16px 18px;margin-bottom:10px;}
+  .party-box .field-row{display:flex;justify-content:space-between;gap:10px;padding:4px 0;font-size:12.5px;border-bottom:1px solid var(--line-soft);}
+  .party-box .field-row:last-child{border-bottom:none;}
+  .party-box .field-row label{color:var(--ink-soft);font-weight:700;}
+  .party-box input{margin:0;padding:6px 10px;font-size:12.5px;max-width:220px;}
+  .sig-block{margin-top:14px;padding:16px;border:1.5px dashed var(--line);border-radius:12px;}
+  .sig-canvas-small{width:100%;height:120px;border:1.5px dashed var(--line);border-radius:10px;background:var(--paper);touch-action:none;cursor:crosshair;margin:8px 0;}
+  .signed-block img{max-height:70px;max-width:160px;}
+  .print-actions{max-width:760px;margin:0 auto 16px;display:flex;gap:10px;justify-content:flex-end;}
+  @media print{
+    header.top, .print-actions, .sig-block:not(.signed), footer.site{display:none !important;}
+    .contract-doc{border:none;box-shadow:none;padding:0;}
+  }
+</style>
+</head>
+<body>
+<header class="top"><div class="brand"><img src="assets/images/logo.jpeg" alt="إتقان"></div></header>
+<main>
+  <div class="print-actions">
+    <button class="btn gold" onclick="window.print()">🖨️ طباعة / حفظ PDF</button>
+  </div>
+  <div class="contract-doc" id="contractDoc">
+    <p style="text-align:center;color:var(--ink-soft);">جارٍ التحميل...</p>
+  </div>
+</main>
+
+<script src="assets/js/supabaseClient.js"></script>
+<script>
+let viewer, viewerRole, contractRow, offer, requestRow, clientProfile;
+const offerId = new URLSearchParams(window.location.search).get('offer_id');
+
+async function init(){
+  const { data: { user } } = await supabase.auth.getUser();
+  if(!user){ window.location.href = 'auth/login.html'; return; }
+  viewer = await getCurrentProfile();
+  viewerRole = viewer?.role;
+
+  if(!offerId){ document.getElementById('contractDoc').innerHTML = '<p>لم يتم تحديد عرض.</p>'; return; }
+
+  const { data: offerData, error: offerErr } = await supabase.from('offers').select('*').eq('id', offerId).single();
+  if(offerErr || !offerData){ document.getElementById('contractDoc').innerHTML = '<p>تعذر تحميل العرض.</p>'; return; }
+  offer = offerData;
+
+  const { data: reqData } = await supabase.from('service_requests').select('*').eq('id', offer.request_id).single();
+  requestRow = reqData;
+
+  const { data: clientData } = await supabase.from('clients').select('*, profiles(*)').eq('id', requestRow.client_id).single();
+  clientProfile = clientData;
+
+  let { data: contract } = await supabase.from('contracts').select('*').eq('offer_id', offerId).maybeSingle();
+  if(!contract){
+    const { data: newContract } = await supabase.from('contracts').insert({ request_id: offer.request_id, offer_id: offerId, client_id: requestRow.client_id }).select().single();
+    contract = newContract;
+  }
+  contractRow = contract;
+
+  render();
+}
+
+async function saveExtraField(key, value){
+  const extra = { ...(contractRow.extra_fields || {}), [key]: value };
+  await supabase.from('contracts').update({ extra_fields: extra }).eq('id', contractRow.id);
+  contractRow.extra_fields = extra;
+}
+
+function money(n){ return (n || 0).toLocaleString('ar-SA'); }
+
+function render(){
+  const ef = contractRow.extra_fields || {};
+  const isClientViewer = viewerRole === 'client';
+  const isAdminViewer = viewerRole === 'admin';
+
+  const clientName = clientProfile?.profiles?.full_name || '—';
+  const clientNationality = clientProfile?.nationality || clientProfile?.foreign_company_country || '—';
+  const clientEmailPlaceholder = ef.client_email || '';
+  const clientPhonePlaceholder = clientProfile?.profiles?.contact_phone || '';
+
+  const scopeText = (offer.scope_items || []).map(s => `<li>${s}</li>`).join('') || '<li>حسب ما هو محدد بالعرض المرفق.</li>';
+
+  const doc = document.getElementById('contractDoc');
+
+  const editableField = (labelText, key, defaultVal, editableByClient) => {
+    const val = ef[key] ?? defaultVal ?? '';
+    const canEdit = (editableByClient && isClientViewer && !contractRow.client_signed_at) || (!editableByClient && isAdminViewer && !contractRow.itqan_signed_at);
+    if(canEdit){
+      return `<div class="field-row"><label>${labelText}</label><input value="${val}" onchange="saveExtraField('${key}', this.value)"></div>`;
+    }
+    return `<div class="field-row"><label>${labelText}</label><span>${val || '—'}</span></div>`;
+  };
+
+  doc.innerHTML = `
+    <h2>عقد تقديم خدمات تأسيس شركة مملوكة بالكامل لمستثمر أجنبي ومتابعة تراخيص الاستثمار</h2>
+    <p class="doc-date">تم تحرير هذا العقد بتاريخ: ${new Date(contractRow.created_at).toLocaleDateString('ar-SA')}</p>
+
+    <h3>أولاً: الطرف الأول — العميل / المستثمر الأجنبي</h3>
+    <div class="party-box">
+      <div class="field-row"><label>الاسم</label><span>${clientName}</span></div>
+      <div class="field-row"><label>الجنسية / دولة التأسيس</label><span>${clientNationality}</span></div>
+      ${editableField('رقم الجواز / الهوية / السجل', 'client_id_number', '', true)}
+      ${editableField('العنوان', 'client_address', '', true)}
+      <div class="field-row"><label>رقم الهاتف</label><span>${clientPhonePlaceholder || '—'}</span></div>
+    </div>
+
+    <h3>ثانياً: الطرف الثاني — مقدّم الخدمة</h3>
+    <div class="party-box">
+      <div class="field-row"><label>اسم المكتب / الشركة</label><span>إتقان لخدمات الأعمال</span></div>
+      ${editableField('رقم السجل التجاري / الترخيص', 'itqan_cr_number', '', false)}
+      ${editableField('العنوان والمقر', 'itqan_address', 'الرياض، المملكة العربية السعودية', false)}
+      ${editableField('يمثلها في هذا العقد', 'itqan_rep_name', '', false)}
+      ${editableField('الصفة', 'itqan_rep_title', '', false)}
+      <div class="field-row"><label>البريد الإلكتروني</label><span>info@itqanbs.sa</span></div>
+      <div class="field-row"><label>رقم الهاتف</label><span>966569051686+</span></div>
+    </div>
+
+    <h3>التمهيد</h3>
+    <p>حيث يرغب الطرف الأول في تأسيس شركة في المملكة العربية السعودية مملوكة له بنسبة (100%)، وممارسة النشاط المحدد في هذا العقد، وحيث يرغب في الاستعانة بالطرف الثاني لتنفيذ ومتابعة الإجراءات المتعلقة بالاستثمار الأجنبي وتأسيس الشركة واستخراج السجل التجاري والتراخيص والعضويات المرتبطة بالنشاط وفقاً لما هو متفق عليه؛</p>
+    <p>وحيث إن تنفيذ إجراءات الاستثمار قد يتطلب — بحسب طبيعة النشاط والمتطلبات النظامية المطبقة — تقديم مستندات وبيانات متعلقة بشركة أجنبية قائمة ومؤهلة، سواء كانت مملوكة للطرف الأول قبل التعاقد أو تم توفيرها أو ترتيبها أو الاستحواذ عليها من خلال الطرف الثاني بناءً على طلب الطرف الأول؛</p>
+    <p>وحيث إن الطرف الثاني يمتلك الخبرة اللازمة لتقديم ومتابعة هذه الخدمات، فقد اتفق الطرفان، وهما بكامل أهليتهما المعتبرة نظاماً، على إبرام هذا العقد وفقاً للأحكام التالية. ويعد هذا التمهيد جزءاً لا يتجزأ من العقد ومكملاً ومفسراً لأحكامه.</p>
+
+    <h3>المادة الأولى: موضوع العقد</h3>
+    <p>يلتزم الطرف الثاني بتقديم الخدمات المهنية والإدارية اللازمة لمساعدة الطرف الأول في تأسيس شركة في المملكة العربية السعودية مملوكة له بنسبة (100%)، ومتابعة إجراءات الترخيص الاستثماري والتسجيل والتأسيس والتراخيص المرتبطة بالنشاط المحدد بهذا العقد، وتشمل الخدمات بحسب طبيعة المشروع والمتطلبات النظامية:</p>
+    <ol>${scopeText}</ol>
+    <p>وأي خدمات أخرى يتم الاتفاق عليها كتابةً بين الطرفين.</p>
+
+    <h3>المادة الثانية: نطاق الخدمات والمخرجات</h3>
+    <p>تحدد الخدمات والمخرجات النهائية المتفق عليها بين الطرفين في هذا العقد وملحق نطاق الخدمات والأسعار (العرض المرفق رقم ${offer.id.slice(0,8)}). ولا تشمل أتعاب الطرف الثاني أي خدمة أو إجراء أو ترخيص غير منصوص عليه صراحة في العقد أو ملحقاته. ويجوز للطرفين إضافة خدمات أخرى بموجب اتفاق كتابي أو عرض سعر مستقل.</p>
+
+    <h3>المادة الثالثة: طبيعة التزام الطرف الثاني</h3>
+    <ol>
+      <li>يلتزم الطرف الثاني ببذل العناية المهنية اللازمة وتنفيذ ومتابعة الإجراءات الداخلة ضمن نطاق الخدمة.</li>
+      <li>يقر الطرف الأول بأن إصدار الترخيص الاستثماري أو الموافقة على تأسيس الشركة يخضع للجهات الحكومية المختصة وللأنظمة واللوائح السارية وقت تقديم الطلب.</li>
+      <li>لا يمثل الطرف الثاني جهة حكومية، ولا يملك صلاحية إصدار أو إلزام أي جهة حكومية بإصدار أي ترخيص أو موافقة.</li>
+      <li>لا يعد توقيع هذا العقد ضماناً من الطرف الثاني لقبول طلب الاستثمار أو تأسيس الشركة أو إصدار أي ترخيص.</li>
+      <li>لا يكون الطرف الثاني مسؤولاً عن رفض أو تأخير أو تعليق صادر من جهة حكومية متى لم يكن ذلك ناتجاً عن خطأ أو تقصير جوهري من الطرف الثاني.</li>
+      <li>يستثنى من ذلك ما يتعلق بالمسؤولية الخاصة بالشركة الأجنبية التي قام الطرف الثاني بتوفيرها أو ترتيبها أو الاستحواذ عليها للعميل، وفقاً لأحكام المادة السادسة.</li>
+    </ol>
+
+    <h3>المادة الرابعة: التزامات الطرف الأول</h3>
+    <ol>
+      <li>تقديم جميع المستندات والبيانات المطلوبة بصورة صحيحة وكاملة وسارية المفعول.</li>
+      <li>تقديم أي مستندات أو بيانات إضافية تطلبها الجهات المختصة خلال مدة مناسبة.</li>
+      <li>تحمل مسؤولية صحة المعلومات والبيانات والمستندات المقدمة منه.</li>
+      <li>إصدار الوكالة أو التفويض النظامي اللازم للطرف الثاني أو من يمثله نظاماً.</li>
+      <li>سداد أتعاب الطرف الثاني والرسوم الحكومية والمصاريف المستحقة في مواعيدها.</li>
+      <li>التعاون مع الطرف الثاني والرد على الملاحظات والطلبات في الوقت المناسب.</li>
+      <li>الإفصاح عن أي معلومات أو وقائع قد تؤثر على أهلية المستثمر أو الشركة الأجنبية أو النشاط المطلوب.</li>
+      <li>عدم تقديم أي معلومات أو مستندات مزورة أو غير صحيحة أو مضللة.</li>
+      <li>الالتزام بجميع الأنظمة والتعليمات المتعلقة بصفته كمستثمر ومالك ومستفيد حقيقي.</li>
+      <li>تحمل أي التزامات أو رسوم أو مصاريف ناشئة عن مستندات أو معلومات غير صحيحة قدمها للطرف الثاني.</li>
+    </ol>
+
+    <h3>المادة الخامسة: الوكالة والتفويض</h3>
+    <p>يلتزم الطرف الأول بإصدار وكالة أو تفويض نظامي للطرف الثاني أو من يمثله نظاماً، بالقدر اللازم لتنفيذ الإجراءات محل هذا العقد، دون أن تمنح الوكالة الطرف الثاني حق التصرف في أموال الطرف الأول أو أصوله إلا بموجب تفويض مستقل وصريح. ويتحمل الطرف الأول مسؤولية استمرار صلاحية الوكالة طوال مدة التنفيذ.</p>
+
+    <h3>المادة السادسة: الشركة الأجنبية ومسؤولية الطرف الثاني عنها</h3>
+    <p><strong>أولاً — في حال كان الطرف الأول لديه شركة أجنبية:</strong> يتحمل الطرف الأول مسؤولية صحة بياناتها ووضعها القانوني والمالي والضريبي، ولا يتحمل الطرف الثاني أي ديون أو التزامات أو منازعات سابقة عليها.</p>
+    <p><strong>ثانياً — في حال قام الطرف الثاني بتوفير أو ترتيب أو الاستحواذ على شركة أجنبية:</strong> يلتزم الطرف الثاني بالتأكد من قيامها نظاماً وقت الإجراء، وبذل العناية المهنية للتحقق من عدم وجود مانع جوهري، وتحمل مسؤولية أي خطأ أو تقصير جوهري صادر منه بهذا الخصوص، ومعالجة أو استبدال الشركة عند الحاجة دون أتعاب إضافية على العميل بسبب ذلك.</p>
+    <p><strong>ثالثاً:</strong> لا تمتد مسؤولية الطرف الثاني إلى أي مشكلة تنشأ بعد التسليم بسبب تصرفات الطرف الأول أو تغييرات لاحقة خارجة عن سيطرة الطرف الثاني.</p>
+    <p><strong>رابعاً — الاستحواذ:</strong> تكون مسؤولية الطرف الثاني في حدود أعمال الفحص والإجراءات المتفق عليها صراحة، ولا يُسأل عن أي التزام سابق للشركة المستحوذ عليها إلا بالتزام صريح مستقل.</p>
+
+    <h3>المادة السابعة: الترخيص الاستثماري والتأسيس في المملكة</h3>
+    <p>يلتزم الطرف الثاني بمتابعة إجراءات طلب الترخيص الاستثماري وتأسيس الشركة وفق المتطلبات النظامية المتاحة وقت تقديم الطلب، ويلتزم الطرف الأول بتوفير جميع المستندات المطلوبة. وإذا أدى أي تغيير نظامي إلى أعمال إضافية جوهرية خارج نطاق العقد، يحق للطرف الثاني الاتفاق على أتعاب إضافية قبل التنفيذ.</p>
+
+    <h3>المادة الثامنة: مدة التنفيذ</h3>
+    <p>تبدأ مدة التنفيذ من تاريخ توقيع العقد وسداد الدفعة المستحقة واستلام المستندات والوكالة اللازمة. وتكون مدة التنفيذ التقديرية: <strong>${offer.duration_days || '—'} يوم عمل</strong>. ولا تشمل هذه المدة الفترات التي تستغرقها الجهات الحكومية أو الأجنبية في دراسة الطلبات، وتمدد تلقائياً بقدر أي تأخير خارج عن السيطرة المعقولة للطرف الثاني.</p>
+
+    <h3>المادة التاسعة: أتعاب الطرف الثاني</h3>
+    <p>إجمالي أتعاب الطرف الثاني عن الخدمات محل العقد: <strong>${money(offer.price)} ريال سعودي</strong> (غير شامل ضريبة القيمة المضافة، وتضاف وفق النسبة النظامية المطبقة).</p>
+    <p><strong>طريقة السداد:</strong> ${offer.payment_schedule || 'حسب ما هو متفق عليه بالعرض المرفق.'}</p>
+    <p>ولا تبدأ الأعمال التي تتطلب سداد الدفعة الأولى إلا بعد استلامها.</p>
+
+    <h3>المادة العاشرة: الرسوم الحكومية والمصاريف الخارجية</h3>
+    <p>أتعاب الطرف الثاني لا تشمل، ما لم ينص صراحة على خلاف ذلك، الرسوم الحكومية أو المهنية أو المصاريف الخارجية (رسوم وزارة الاستثمار، وزارة التجارة، السجل التجاري، الغرف التجارية، التراخيص، التصديق والتوثيق، الترجمة، الجهات الأجنبية، وغيرها)، ويتحملها الطرف الأول وفقاً لما تم الاتفاق عليه.</p>
+    ${(offer.government_fees && offer.government_fees.length) ? `
+      <table class="fees-table" style="width:100%;border-collapse:collapse;margin-top:8px;">
+        <thead><tr><th style="background:var(--green-tint);padding:8px;font-size:12px;">البند</th><th style="background:var(--green-tint);padding:8px;font-size:12px;">الرسم التقديري</th></tr></thead>
+        <tbody>${offer.government_fees.map(f => `<tr><td style="padding:6px 8px;font-size:12px;border-bottom:1px solid var(--line);">${f.service}</td><td style="padding:6px 8px;font-size:12px;border-bottom:1px solid var(--line);">${money(f.fee)} ر.س</td></tr>`).join('')}</tbody>
+      </table>` : ''}
+
+    <h3>المادة الحادية عشرة: رفض الترخيص أو عدم إتمام التأسيس</h3>
+    <p>لا يتحمل الطرف الثاني مسؤولية رفض الترخيص أو عدم إتمام التأسيس إذا كان السبب راجعاً لقرار حكومي أو عدم أهلية المستثمر أو النشاط أو بيانات غير صحيحة قدمها الطرف الأول. أما إذا كان الرفض ناتجاً عن خطأ أو تقصير جوهري من الطرف الثاني، تتم معالجة الأمر وفقاً لطبيعة الخطأ والأعمال المنفذة.</p>
+
+    <h3>المادة الثانية عشرة: الاسترداد</h3>
+    <p>في حال تعذر إتمام الخدمة بسبب جوهري يعود للطرف الثاني ولم يمكن معالجته، تتم تسوية المبالغ وفقاً للأعمال المنفذة فعلياً، ولا تشمل أي مبالغ مستردة الرسوم الحكومية المدفوعة فعلياً.</p>
+
+    <h3>المادة الثالثة عشرة: تعليق المشروع</h3>
+    <p>يجوز للطرف الأول طلب تعليق العمل كتابةً لمدة لا تتجاوز 30 يوماً، وتتوقف خلالها مدة التنفيذ، دون التأثير على استحقاق الطرف الثاني للأعمال المنفذة أو المصروفات المدفوعة قبل التعليق.</p>
+
+    <h3>المادة الرابعة عشرة: إلغاء العقد من قبل الطرف الأول</h3>
+    <p>إذا ألغى الطرف الأول العقد بإرادته المنفردة بعد بدء التنفيذ، يستحق الطرف الثاني قيمة الأعمال المنفذة حتى تاريخ الإلغاء، بالإضافة إلى الرسوم الحكومية والمصروفات الفعلية الموثقة وتكاليف الشركة الأجنبية إن وُجدت.</p>
+
+    <h3>المادة الخامسة عشرة: الخدمات المستمرة للشركة الأجنبية</h3>
+    <p>أي خدمات دورية أو سنوية متعلقة بالشركة الأجنبية (تجديدات، رسوم سنوية، وكيل محلي، محاسبة وضرائب، وغيرها) يجب أن تكون محددة بعرض أو ملحق مستقل، ولا تعتبر مشمولة بأتعاب هذا العقد إلا بنص صريح.</p>
+
+    <h3>المادة السادسة عشرة: السرية</h3>
+    <p>يلتزم الطرفان بالمحافظة على سرية المعلومات والمستندات المتبادلة بسبب هذا العقد، ولا يجوز استخدامها أو الإفصاح عنها إلا بالقدر اللازم لتنفيذ العقد أو بطلب من جهة مختصة.</p>
+
+    <h3>المادة السابعة عشرة: حماية البيانات والمستندات</h3>
+    <p>يلتزم الطرف الثاني باتخاذ الإجراءات المعقولة للمحافظة على المستندات المستلمة وعدم استخدامها إلا لأغراض تنفيذ الخدمة، ويتحمل الطرف الأول مسؤولية أي ضرر ناتج عن مستندات غير صحيحة أو مزورة.</p>
+
+    <h3>المادة الثامنة عشرة: القوة القاهرة</h3>
+    <p>لا يكون أي طرف مسؤولاً عن التأخير الناتج عن ظروف خارجة عن السيطرة المعقولة (كوارث، حروب، قرارات حكومية، أعطال تقنية واسعة، وغيرها)، وتمدد المدة بقدر الفترة اللازمة لتجاوز الظرف.</p>
+
+    <h3>المادة التاسعة عشرة: إنهاء العقد من قبل الطرف الثاني</h3>
+    <p>يحق للطرف الثاني إنهاء العقد بعد إشعار الطرف الأول في حال تأخره بالسداد، أو امتناعه عن تقديم المستندات، أو تقديم بيانات غير صحيحة، أو استمرار عدم التعاون لأكثر من 15 يوم عمل. وتتم تسوية المستحقات حتى تاريخ الإنهاء.</p>
+
+    <h3>المادة العشرون: حدود المسؤولية</h3>
+    <p>لا يتحمل الطرف الثاني الخسائر غير المباشرة أو فقد الأرباح الناتجة عن رفض أو تأخير جهة حكومية أو أجنبية، ولا الالتزامات التشغيلية أو الضريبية للشركة بعد تأسيسها إلا بتعاقد مستقل. وتبقى مسؤولية الشركة الأجنبية خاضعة لأحكام المادة السادسة.</p>
+
+    <h3>المادة الحادية والعشرون: المراسلات والإشعارات</h3>
+    <p>تعتبر المراسلات المرسلة إلى البريد الإلكتروني أو رقم التواصل المعتمد بصدر العقد صحيحة متى أمكن إثبات إرسالها، ويلتزم كل طرف بإبلاغ الآخر بأي تغيير في بيانات التواصل.</p>
+
+    <h3>المادة الثانية والعشرون: عدم التنازل</h3>
+    <p>لا يجوز للطرف الأول التنازل عن حقوقه أو التزاماته لطرف ثالث دون موافقة كتابية من الطرف الثاني. ويحق للطرف الثاني الاستعانة بمستشارين أو مزودي خدمات متخصصين، مع بقائه مسؤولاً عن الأعمال المتفق عليها.</p>
+
+    <h3>المادة الثالثة والعشرون: القانون والاختصاص</h3>
+    <p>يخضع هذا العقد للأنظمة المعمول بها بالمملكة العربية السعودية. وفي حال النزاع، يلتزم الطرفان بمحاولة التسوية الودية خلال 15 يوم عمل، وإلا فالاختصاص للجهة القضائية المختصة نظاماً بالمملكة، ما لم يتفق الطرفان كتابةً على التحكيم.</p>
+
+    <h3>المادة الرابعة والعشرون: الاتفاق الكامل</h3>
+    <p>يمثل هذا العقد وملحقاته كامل الاتفاق بين الطرفين، ولا يجوز تعديل أي بند إلا باتفاق كتابي موقّع من الطرفين.</p>
+
+    <h3>المادة الخامسة والعشرون: قابلية الفصل</h3>
+    <p>إذا أصبح أي بند غير نافذ نظاماً، فلا يؤثر ذلك على صحة باقي البنود، ويُفسَّر البند المتأثر بما يجعله متوافقاً مع الأنظمة المعمول بها.</p>
+
+    <h3>المادة السادسة والعشرون: اللغة</h3>
+    <p>حرر هذا العقد باللغة العربية من نسختين أصليتين، وتكون النسخة العربية هي المرجع عند وجود أي ترجمة، ما لم يتفق الطرفان كتابةً على خلاف ذلك.</p>
+
+    <h3>المادة السابعة والعشرون: الإقرار</h3>
+    <p>يقر الطرف الأول بأنه قرأ جميع بنود العقد وفهم مضمونها وآثارها، وأن إصدار الترخيص يخضع للجهات الحكومية المختصة دون ضمان من الطرف الثاني، وأن صحة المستندات المقدمة مسؤوليته، وأن مسؤولية الطرف الثاني عن الشركة الأجنبية تختلف وفق المادة السادسة. كما يقر الطرف الثاني بالتزامه بتنفيذ الخدمات المتفق عليها بالحدود المنصوص عليها بهذا العقد.</p>
+
+    <h3 style="text-align:center;margin-top:32px;">التوقيعات</h3>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:16px;">
+      ${renderSignatureBlock('الطرف الأول — العميل / المستثمر', 'client', isClientViewer)}
+      ${renderSignatureBlock('الطرف الثاني — إتقان لخدمات الأعمال', 'itqan', isAdminViewer)}
+    </div>
+  `;
+
+  if(isClientViewer && !contractRow.client_signed_at) setTimeout(() => initSigPad('client'), 50);
+  if(isAdminViewer && !contractRow.itqan_signed_at) setTimeout(() => initSigPad('itqan'), 50);
+  loadSignatureImages();
+}
+
+function renderSignatureBlock(title, side, canSignNow){
+  const signedAt = side === 'client' ? contractRow.client_signed_at : contractRow.itqan_signed_at;
+  const signName = side === 'client' ? contractRow.client_signature_name : contractRow.itqan_signature_name;
+
+  if(signedAt){
+    return `
+      <div class="sig-block signed">
+        <p style="font-weight:700;font-size:13px;margin-bottom:6px;">${title}</p>
+        <div class="signed-block" id="signedImg-${side}"></div>
+        <p style="font-size:12.5px;margin-top:6px;">${signName}</p>
+        <p style="font-size:11px;color:var(--ink-soft);">وُقِّع بتاريخ ${new Date(signedAt).toLocaleDateString('ar-SA')}</p>
+      </div>`;
+  }
+
+  if(canSignNow){
+    return `
+      <div class="sig-block">
+        <p style="font-weight:700;font-size:13px;margin-bottom:6px;">${title}</p>
+        <input id="sigName-${side}" placeholder="الاسم الكامل" style="margin-bottom:6px;">
+        <canvas class="sig-canvas-small" id="sigCanvas-${side}"></canvas>
+        <div style="display:flex;gap:8px;">
+          <button class="btn ghost" style="padding:8px 12px;font-size:11.5px;margin:0;" onclick="clearSigPad('${side}')">مسح</button>
+          <button class="btn gold" style="padding:8px 12px;font-size:11.5px;margin:0;" onclick="confirmSign('${side}')">تأكيد التوقيع</button>
+        </div>
+        <div id="sigMsg-${side}"></div>
+      </div>`;
+  }
+
+  return `
+    <div class="sig-block">
+      <p style="font-weight:700;font-size:13px;margin-bottom:6px;">${title}</p>
+      <p style="font-size:12px;color:var(--ink-soft);">بانتظار توقيع هذا الطرف.</p>
+    </div>`;
+}
+
+async function loadSignatureImages(){
+  for(const side of ['client', 'itqan']){
+    const path = side === 'client' ? contractRow.client_signature_path : contractRow.itqan_signature_path;
+    const el = document.getElementById(`signedImg-${side}`);
+    if(path && el){
+      const { data } = await supabase.storage.from('offer-attachments').createSignedUrl(path, 3600);
+      if(data?.signedUrl) el.innerHTML = `<img src="${data.signedUrl}">`;
+    }
+  }
+}
+
+const sigPads = {};
+function initSigPad(side){
+  const canvas = document.getElementById(`sigCanvas-${side}`);
+  if(!canvas) return;
+  canvas.width = canvas.offsetWidth;
+  canvas.height = 120;
+  const ctx = canvas.getContext('2d');
+  ctx.strokeStyle = '#1D2621'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+  sigPads[side] = { ctx, drawing: false, hasDrawn: false };
+
+  const pos = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+    const cy = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: cx - rect.left, y: cy - rect.top };
+  };
+  const start = (e) => { sigPads[side].drawing = true; sigPads[side].hasDrawn = true; const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); e.preventDefault(); };
+  const move = (e) => { if(!sigPads[side].drawing) return; const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); e.preventDefault(); };
+  const end = () => { sigPads[side].drawing = false; };
+
+  canvas.onmousedown = start; canvas.onmousemove = move; canvas.onmouseup = end; canvas.onmouseleave = end;
+  canvas.ontouchstart = start; canvas.ontouchmove = move; canvas.ontouchend = end;
+}
+
+function clearSigPad(side){
+  const canvas = document.getElementById(`sigCanvas-${side}`);
+  sigPads[side].ctx.clearRect(0, 0, canvas.width, canvas.height);
+  sigPads[side].hasDrawn = false;
+}
+
+async function confirmSign(side){
+  const msg = document.getElementById(`sigMsg-${side}`);
+  const name = document.getElementById(`sigName-${side}`).value.trim();
+  if(!name){ msg.className = 'msg err'; msg.textContent = 'اكتب الاسم الكامل'; return; }
+  if(!sigPads[side]?.hasDrawn){ msg.className = 'msg err'; msg.textContent = 'وقّع بخط يدك أولاً'; return; }
+
+  const canvas = document.getElementById(`sigCanvas-${side}`);
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+  const filePath = `${viewer.id}/contract_signature_${side}_${contractRow.id}_${Date.now()}.png`;
+  const { error: upErr } = await supabase.storage.from('offer-attachments').upload(filePath, blob);
+  if(upErr){ msg.className = 'msg err'; msg.textContent = upErr.message; return; }
+
+  const updateData = side === 'client'
+    ? { client_signature_name: name, client_signature_path: filePath, client_signed_at: new Date().toISOString() }
+    : { itqan_signature_name: name, itqan_signature_path: filePath, itqan_signed_at: new Date().toISOString() };
+
+  const { error } = await supabase.from('contracts').update(updateData).eq('id', contractRow.id);
+  if(error){ msg.className = 'msg err'; msg.textContent = error.message; return; }
+
+  Object.assign(contractRow, updateData);
+
+  if(side === 'client'){
+    const { data: admins } = await supabase.from('profiles').select('id').eq('role','admin').limit(3);
+    (admins||[]).forEach(a => createNotification(a.id, 'العميل وقّع العقد', 'بانتظار توقيع إتقان لإتمام العقد', 'admin/requests.html'));
+  } else {
+    createNotification(requestRow.client_id, 'إتقان وقّعت العقد ✓', 'العقد أصبح موقّعاً من الطرفين', 'client/offers.html');
+  }
+
+  render();
+}
+
+init();
+</script>
+</body>
+</html>
