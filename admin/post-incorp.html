@@ -60,7 +60,7 @@ async function loadPostIncorpAdmin(){
   body.innerHTML = data.map(r => {
     const needsHtml = Object.entries(r.service_needs || {}).map(([cat, needs]) => `<strong>${cat}:</strong> ${needs.join('، ')}`).join('<br>');
     const actionHtml = r.status === 'pending_review'
-      ? `<span class="badge pending">بانتظار عرض من إتقان</span>`
+      ? `<a href="submit-postincorp-offer.html?id=${r.id}" class="btn gold" style="padding:8px 18px;font-size:13px;">تجهيز عرض تفصيلي</a>`
       : `<p style="font-size:13px;font-weight:700;color:var(--green-dark);">${r.quoted_price || ''} ر.س</p>
            <a href="../post-incorp-offer-view.html?id=${r.id}" class="btn ghost" style="padding:7px 14px;font-size:12.5px;margin-top:0;">عرض التفاصيل</a>`;
     return `

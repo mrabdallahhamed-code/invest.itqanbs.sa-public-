@@ -28,15 +28,9 @@
     <main class="app-main">
       <div class="app-main-inner">
         <h1 class="page-title">طلبات العروض</h1>
-
         <div class="card">
-          <h3 style="margin-bottom:12px;">طلبات بانتظار التوجيه</h3>
-          <div id="pendingRequestsBody"><p style="font-size:13.5px;color:var(--ink-soft);">جارٍ التحميل...</p></div>
-        </div>
-        <div class="card">
-          <h3 style="margin-bottom:12px;">كل طلبات العروض</h3>
           <table>
-            <thead><tr><th>العميل</th><th>النشاط</th><th>التوجيه</th><th>العروض</th><th>حالة الطلب</th></tr></thead>
+            <thead><tr><th>العميل</th><th>النشاط</th><th>العروض</th><th>حالة الطلب</th><th>إجراء</th></tr></thead>
             <tbody id="allRequestsBody"><tr><td colspan="5">جارٍ التحميل...</td></tr></tbody>
           </table>
         </div>
@@ -51,47 +45,7 @@ async function init(){
   const profile = await requireRole(['admin']);
   if(!profile) return;
   initNotificationBell(profile.id);
-  loadPendingRequests();
   loadAllRequests();
-}
-
-async function loadPendingRequests(){
-  const body = document.getElementById('pendingRequestsBody');
-  const { data: requests, error } = await supabase
-    .from('service_requests')
-    .select('id, created_at, client_id, clients(readiness_status, profiles(full_name))')
-    .eq('status', 'pending_admin_review')
-    .order('created_at');
-
-  if(error){ body.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
-  if(!requests || !requests.length){ body.innerHTML = '<p style="font-size:13.5px;color:var(--ink-soft);">لا توجد طلبات بانتظار التوجيه حالياً.</p>'; return; }
-
-  const statusMap = {ready:'جاهز', not_ready:'غير جاهز', pending_review:'قيد المراجعة'};
-
-  body.innerHTML = requests.map(r => `
-    <div class="list-item-card">
-      <p style="font-size:14px;margin-bottom:4px;"><strong>${r.clients?.profiles?.full_name || r.client_id}</strong></p>
-      <p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:12px;">حالة العميل: ${statusMap[r.clients?.readiness_status] || '—'} · تاريخ الطلب: ${new Date(r.created_at).toLocaleDateString('ar-SA')}</p>
-      <button class="btn gold" style="padding:8px 18px;font-size:13px;" onclick="routeRequest('${r.id}')">توجيه إلى إتقان</button>
-      <div id="routeMsg-${r.id}"></div>
-    </div>
-  `).join('');
-}
-
-async function routeRequest(requestId){
-  const msg = document.getElementById(`routeMsg-${requestId}`);
-  const { data: itqan, error: itqanErr } = await supabase.from('service_providers').select('id').eq('is_itqan', true).limit(1).single();
-  if(itqanErr || !itqan){ msg.className='msg err'; msg.textContent='تعذر إيجاد حساب إتقان كمقدّم خدمة'; return; }
-
-  const { error: invErr } = await supabase.from('request_invitations').insert({ request_id: requestId, provider_id: itqan.id });
-  if(invErr){ msg.className='msg err'; msg.textContent = invErr.message; return; }
-
-  const { error: reqErr } = await supabase.from('service_requests').update({ status: 'open' }).eq('id', requestId);
-  if(reqErr){ msg.className='msg err'; msg.textContent = reqErr.message; return; }
-
-  msg.className='msg ok'; msg.textContent='تم توجيه الطلب بنجاح';
-  createNotification(itqan.id, 'طلب جديد بانتظارك', 'وصلك طلب جديد يمكنك التقديم عليه بعرض', '../provider/dashboard.html');
-  setTimeout(() => { loadPendingRequests(); loadAllRequests(); }, 1000);
 }
 
 async function loadAllRequests(){
@@ -104,11 +58,9 @@ async function loadAllRequests(){
   if(error){ body.innerHTML = `<tr><td colspan="5">${error.message}</td></tr>`; return; }
   if(!requests || !requests.length){ body.innerHTML = '<tr><td colspan="5">لا توجد طلبات بعد</td></tr>'; return; }
 
-  const { data: invitations } = await supabase.from('request_invitations').select('request_id');
   const { data: offers } = await supabase.from('offers').select('request_id, status');
   const { data: allStages } = await supabase.from('request_stages').select('request_id, started_at, completed_at, status');
 
-  const invitedSet = new Set((invitations || []).map(i => i.request_id));
   const offerCountMap = {};
   const acceptedSet = new Set();
   (offers || []).forEach(o => {
@@ -128,15 +80,13 @@ async function loadAllRequests(){
   const now = new Date();
 
   body.innerHTML = requests.map(r => {
-    const routed = invitedSet.has(r.id);
     const offerCount = offerCountMap[r.id] || 0;
     const isCompleted = r.status === 'completed';
     let statusLabel;
     if(isCompleted) statusLabel = '<span class="badge ready">مكتمل ✓</span>';
     else if(acceptedSet.has(r.id)) statusLabel = '<span class="badge pending">قيد التنفيذ</span>';
     else if(offerCount > 0) statusLabel = '<span class="badge pending">بانتظار موافقة العميل</span>';
-    else if(routed) statusLabel = '<span class="badge pending">بانتظار عروض</span>';
-    else statusLabel = '<span class="badge notready">بانتظار التوجيه</span>';
+    else statusLabel = '<span class="badge notready">بانتظار عرض من إتقان</span>';
 
     let stallBadge = '';
     if(!isCompleted && acceptedSet.has(r.id)){
@@ -148,12 +98,16 @@ async function loadAllRequests(){
       }
     }
 
+    const actionCell = (offerCount === 0 && !isCompleted)
+      ? `<a href="submit-offer.html?request_id=${r.id}" class="btn gold" style="padding:6px 12px;font-size:12px;margin-top:0;">تقديم عرض</a>`
+      : '—';
+
     return `<tr>
       <td>${r.clients?.profiles?.full_name || r.client_id}</td>
       <td>${r.activity_type || '—'}</td>
-      <td>${routed ? '✅ تم التوجيه' : '⬜ لم يُوجَّه'}</td>
       <td>${offerCount} عرض</td>
       <td>${statusLabel}${stallBadge}</td>
+      <td>${actionCell}</td>
     </tr>`;
   }).join('');
 }
