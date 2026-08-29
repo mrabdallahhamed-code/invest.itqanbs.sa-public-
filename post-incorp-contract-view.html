@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>اتفاقية تقديم خدمات تجارية — إتقان</title>
+<link rel="stylesheet" href="assets/css/itqan.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  .contract-doc{max-width:760px;margin:0 auto;background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:44px;line-height:2;position:relative;overflow:hidden;}
+  .letterhead{display:flex;align-items:center;gap:14px;padding-bottom:20px;margin-bottom:24px;border-bottom:3px solid var(--gold);}
+  .letterhead img{height:52px;}
+  .letterhead .lh-text{flex:1;}
+  .letterhead .lh-name-ar{font-family:'Amiri',serif;font-size:17px;color:var(--green-dark);font-weight:700;}
+  .letterhead .lh-name-en{font-size:11px;color:var(--ink-soft);letter-spacing:1px;}
+  .letterhead .lh-meta{font-size:10.5px;color:var(--ink-faint);text-align:left;line-height:1.7;}
+  .watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-25deg);opacity:.16;width:480px;pointer-events:none;z-index:0;}
+  .contract-doc > *:not(.watermark){position:relative;z-index:1;}
+  .contract-doc h2{font-family:'Amiri',serif;text-align:center;color:var(--green-dark);font-size:20px;margin-bottom:6px;}
+  .contract-doc .doc-date{text-align:center;color:var(--ink-soft);font-size:12.5px;margin-bottom:26px;padding-bottom:16px;border-bottom:2px solid var(--gold);}
+  .contract-doc h3{font-family:'Amiri',serif;font-size:15px;color:var(--green-dark);margin:22px 0 8px;}
+  .contract-doc p{font-size:13px;color:var(--ink);margin-bottom:8px;}
+  .contract-doc ol, .contract-doc ul{padding-right:20px;margin-bottom:8px;}
+  .contract-doc li{font-size:13px;color:var(--ink);margin-bottom:5px;}
+  .party-box{background:var(--paper);border-radius:12px;padding:16px 18px;margin-bottom:10px;}
+  .party-box .field-row{display:flex;justify-content:space-between;gap:10px;padding:4px 0;font-size:12.5px;border-bottom:1px solid var(--line-soft);}
+  .party-box .field-row:last-child{border-bottom:none;}
+  .party-box .field-row label{color:var(--ink-soft);font-weight:700;}
+  .party-box input{margin:0;padding:6px 10px;font-size:12.5px;max-width:220px;}
+  .sig-block{margin-top:14px;padding:16px;border:1.5px dashed var(--line);border-radius:12px;}
+  .sig-canvas-small{width:100%;height:120px;border:1.5px dashed var(--line);border-radius:10px;background:var(--paper);touch-action:none;cursor:crosshair;margin:8px 0;}
+  .signed-block img{max-height:70px;max-width:160px;}
+  .print-actions{max-width:760px;margin:0 auto 16px;display:flex;gap:10px;justify-content:space-between;}
+  @media print{
+    header.top, .print-actions, .sig-block:not(.signed), footer.site{display:none !important;}
+    .contract-doc{border:none;box-shadow:none;padding:0;}
+  }
+</style>
+</head>
+<body>
+<header class="top"><div class="brand"><img src="assets/images/logo.jpeg" alt="إتقان"></div></header>
+<main>
+  <div class="print-actions">
+    <button class="btn ghost" onclick="history.back()">→ رجوع</button>
+    <button class="btn gold" onclick="window.print()">🖨️ طباعة / حفظ PDF</button>
+  </div>
+  <div class="contract-doc" id="contractDoc">
+    <p style="text-align:center;color:var(--ink-soft);">جارٍ التحميل...</p>
+  </div>
+</main>
+
+<script src="assets/js/supabaseClient.js"></script>
+<script>
+let viewer, viewerRole, contractRow, request, clientProfile, companySettings;
+const requestId = new URLSearchParams(window.location.search).get('request_id');
+
+async function init(){
+  const { data: { user } } = await supabase.auth.getUser();
+  if(!user){ window.location.href = 'auth/login.html'; return; }
+  viewer = await getCurrentProfile();
+  viewerRole = viewer?.role;
+
+  const { data: company } = await supabase.from('company_settings').select('*').eq('id', 1).single();
+  companySettings = company || {};
+
+  if(!requestId){ document.getElementById('contractDoc').innerHTML = '<p>لم يتم تحديد طلب.</p>'; return; }
+
+  const { data: reqData, error: reqErr } = await supabase.from('post_incorp_requests').select('*').eq('id', requestId).single();
+  if(reqErr || !reqData){ document.getElementById('contractDoc').innerHTML = '<p>تعذر تحميل الطلب.</p>'; return; }
+  request = reqData;
+
+  const { data: clientData } = await supabase.from('clients').select('*, profiles(*)').eq('id', request.client_id).single();
+  clientProfile = clientData;
+
+  let { data: contract } = await supabase.from('post_incorp_contracts').select('*').eq('post_incorp_request_id', requestId).maybeSingle();
+  if(!contract){
+    const { data: newContract } = await supabase.from('post_incorp_contracts').insert({ post_incorp_request_id: requestId, client_id: request.client_id }).select().single();
+    contract = newContract;
+  }
+  contractRow = contract;
+
+  render();
+}
+
+async function saveExtraField(key, value){
+  const extra = { ...(contractRow.extra_fields || {}), [key]: value };
+  await supabase.from('post_incorp_contracts').update({ extra_fields: extra }).eq('id', contractRow.id);
+  contractRow.extra_fields = extra;
+}
+
+function money(n){ return (n || 0).toLocaleString('ar-SA'); }
+
+function render(){
+  const ef = contractRow.extra_fields || {};
+  const isClientViewer = viewerRole === 'client';
+  const isAdminViewer = viewerRole === 'admin';
+
+  const clientName = clientProfile?.profiles?.full_name || '—';
+  const clientPhone = clientProfile?.profiles?.contact_phone || '';
+
+  const purposeHtml = Object.entries(request.service_needs || {}).map(([cat, needs]) => `
+    <li><strong>${cat}:</strong> ${needs.join('، ')}</li>
+  `).join('') || '<li>حسب ما هو محدد بالعرض المرفق.</li>';
+
+  const doc = document.getElementById('contractDoc');
+
+  const editableField = (labelText, key, defaultVal, editableByClient) => {
+    const val = ef[key] ?? defaultVal ?? '';
+    const canEdit = (editableByClient && isClientViewer && !contractRow.client_signed_at) || (!editableByClient && isAdminViewer && !contractRow.itqan_signed_at);
+    if(canEdit){
+      return `<div class="field-row"><label>${labelText}</label><input value="${val}" onchange="saveExtraField('${key}', this.value)"></div>`;
+    }
+    return `<div class="field-row"><label>${labelText}</label><span>${val || '—'}</span></div>`;
+  };
+
+  doc.innerHTML = `
+    <img class="watermark" src="assets/images/logo.jpeg">
+    <div class="letterhead">
+      <img src="assets/images/logo.jpeg">
+      <div class="lh-text">
+        <div class="lh-name-ar">${companySettings.company_name_ar || 'إتقان لخدمات الأعمال'}</div>
+        <div class="lh-name-en">${companySettings.company_name_en || 'Itqan Business Services'}</div>
+      </div>
+      <div class="lh-meta">
+        ${companySettings.cr_number ? `س.ت: ${companySettings.cr_number}<br>` : ''}
+        ${companySettings.address || 'الرياض، السعودية'}<br>
+        ${companySettings.phone || ''}
+      </div>
+    </div>
+
+    <h2>اتفاقية تقديم خدمات تجارية</h2>
+    <p class="doc-date">تم تحرير هذه الاتفاقية بتاريخ: ${new Date(contractRow.created_at).toLocaleDateString('ar-SA')} — بمدينة الرياض</p>
+
+    <h3>الطرف الأول — مقدّم الخدمة</h3>
+    <div class="party-box">
+      <div class="field-row"><label>اسم الشركة</label><span>${companySettings.company_name_ar || 'إتقان لخدمات الأعمال'}</span></div>
+      <div class="field-row"><label>رقم السجل التجاري</label><span>${companySettings.cr_number || '—'}</span></div>
+      <div class="field-row"><label>العنوان</label><span>${companySettings.address || 'الرياض، المملكة العربية السعودية'}</span></div>
+      ${editableField('يمثلها في هذا العقد', 'itqan_rep_name', '', false)}
+      ${editableField('الصفة', 'itqan_rep_title', '', false)}
+      <div class="field-row"><label>البريد الإلكتروني</label><span>${companySettings.email || 'info@itqanbs.sa'}</span></div>
+      <div class="field-row"><label>رقم الهاتف</label><span>${companySettings.phone || '966569051686+'}</span></div>
+    </div>
+    <p style="font-size:12px;color:var(--ink-soft);">ويشار إليها فيما بعد لأغراض هذا العقد بـ "الطرف الأول".</p>
+
+    <h3>الطرف الثاني — العميل</h3>
+    <div class="party-box">
+      <div class="field-row"><label>الاسم / اسم الشركة</label><span>${clientName}</span></div>
+      ${editableField('رقم السجل التجاري / الهوية', 'client_id_number', '', true)}
+      ${editableField('العنوان', 'client_address', '', true)}
+      <div class="field-row"><label>رقم الهاتف</label><span>${clientPhone || '—'}</span></div>
+      ${editableField('يمثله في هذا العقد', 'client_rep_name', clientName, true)}
+      ${editableField('الصفة', 'client_rep_title', '', true)}
+    </div>
+    <p style="font-size:12px;color:var(--ink-soft);">ويشار إليه فيما بعد لأغراض هذا العقد بـ "الطرف الثاني".</p>
+
+    <h3>التمهيد</h3>
+    <p>لما كان الطرف الأول شركة متخصصة في توفير خدمات الدعم الإداري والمحاسبي والتسويقي والتشغيلي للشركات والاستشارات، ولرغبة الطرف الثاني في الاستفادة من الطرف الأول في عملية التشغيل من خلال إبرام هذا العقد وفقاً لما يتم الاتفاق عليه بين الطرفين بموجبه، وبناءً على رغبة الطرفين في إيجاد علاقة تعامل بينهما لخدمة مصالحهما المشتركة وتحديد حقوق والتزامات كل طرف تجاه الآخر، فقد اتفق الطرفان وهما بكامل أهليتهما المعتبرة شرعاً على ما يلي.</p>
+
+    <h3>أولاً: تضمين الاتفاقية</h3>
+    <p>يعتبر التمهيد أعلاه وملاحق هذه الاتفاقية جزءاً لا يتجزأ منها، وتعتبر أي ملاحق أو تعديلات أو إضافات أو مكاتبات لاحقة ومتفق عليها بين الطرفين جزءاً منها.</p>
+
+    <h3>ثانياً: الغرض من الاتفاقية</h3>
+    <p>يقدّم الطرف الأول للطرف الثاني الخدمات التالية، بحسب ما هو متفق عليه بالعرض المرفق:</p>
+    <ol>${purposeHtml}</ol>
+    <p>ولا تترتب على هذا العقد أي التزامات خارجة عما تضمنه من شروط وأحكام، وهو لا يمثل شراكة بين الطرفين ولا يخول أياً منهما تمثيل الآخر إلا في حدود نطاق العقد.</p>
+
+    <h3>ثالثاً: التزامات الطرف الأول</h3>
+    <ol>
+      <li>عدم إفشاء أو استخدام أي معلومات تتعلق بأعمال الطرف الثاني، سواء أثناء سريان الاتفاقية أو بعد انتهائها.</li>
+      <li>تحمّل المسؤولية الكاملة عن تنفيذ الأعمال المتفق عليها.</li>
+      <li>تسليم الطرف الثاني كافة المعلومات والتقارير اللازمة المتعلقة بالخدمة.</li>
+      <li>توفير الكوادر المهنية المتخصصة ذات الكفاءة والخبرة اللازمة لتنفيذ الخدمات.</li>
+      <li>تقديم الخدمات وفق أعلى الممارسات المهنية.</li>
+    </ol>
+
+    <h3>رابعاً: التزامات الطرف الثاني</h3>
+    <ol>
+      <li>إشعار الطرف الأول بمتطلباته واحتياجاته.</li>
+      <li>تقديم المعلومات والبيانات اللازمة التي يحتاجها الطرف الأول لتنفيذ العمل الموكل إليه.</li>
+      <li>تقديم كل سبل المساعدة للطرف الأول فيما يتعلق بمهامه.</li>
+      <li>تحمّل أي رسوم أو مصاريف خارجية مرتبطة بطبيعة الخدمة (تصاريح، تصاميم، اشتراكات حكومية، وما شابه) ما لم يُتفق كتابةً على خلاف ذلك.</li>
+    </ol>
+
+    <h3>خامساً: مستحقات الطرفين</h3>
+    <div class="fee-box" style="background:var(--green-tint);border-radius:12px;padding:16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+      <span style="font-size:13.5px;color:var(--ink);">مقابل الخدمات محل هذه الاتفاقية</span>
+      <span style="font-family:'Amiri',serif;font-size:22px;color:var(--green-dark);font-weight:700;">${money(request.quoted_price)} ريال</span>
+    </div>
+    <p><strong>آلية السداد:</strong> ${request.payment_schedule || 'حسب ما هو متفق عليه، عبر فاتورة شهرية أو دفعات يحددها الطرفان كتابةً.'}</p>
+    <p>${request.exclusions_notes || 'المبلغ المذكور لا يشمل ضريبة القيمة المضافة ولا أي رسوم إضافية تفرضها الجهات المختصة، وفي حال تفعيل أي ضريبة أو رسم جديد يُضاف على المطالبة.'}</p>
+
+    <h3>سادساً: مدة الاتفاقية</h3>
+    ${editableField('تاريخ بداية الاتفاقية', 'agreement_start_date', '', true)}
+    <p style="margin-top:10px;">تُبرم هذه الاتفاقية لمدة سنة ميلادية واحدة قابلة للتجديد لمدد مماثلة بشرط موافقة الطرفين الكتابية.</p>
+
+    <h3>سابعاً: سرية المعلومات</h3>
+    <p>يقر الطرفان بسرية محتويات هذه الاتفاقية والشؤون الخاصة بالعملاء والمعلومات التي يتم الحصول عليها جراء تنفيذها، ولا يجوز استخدامها بخلاف ما يتصل بها أو إفشاؤها لأي طرف آخر.</p>
+
+    <h3>ثامناً: أحكام عامة</h3>
+    <ol>
+      <li>لا يحق للطرف الثاني فسخ الاتفاقية أثناء سريانها إلا بعد إشعار الطرف الأول بمدة لا تقل عن 15 يوماً.</li>
+      <li>يحق للطرف الأول فسخ الاتفاقية بإشعار مسبق للطرف الثاني بمدة لا تقل عن 15 يوم عمل، خصوصاً في حال الإخلال بشروط الاتفاقية أو التأخر في السداد.</li>
+      <li>التقويم الميلادي هو الأساس لجميع التواريخ الواردة بهذه الاتفاقية.</li>
+      <li>تعتبر هذه الاتفاقية وملاحقها الاتفاق الكامل بين الطرفين، ولا يُعتد بأي تعديل أو كشط بخط اليد.</li>
+      <li>لا يجوز التنازل عن هذه الاتفاقية أو جزء منها للغير دون موافقة كتابية من الطرف الآخر.</li>
+      <li>إذا أصبح أي بند غير نافذ نظاماً، فلا يؤثر ذلك على صحة باقي البنود.</li>
+      <li>تخضع هذه الاتفاقية للأنظمة المعمول بها بالمملكة العربية السعودية، وفي حال النزاع تتم التسوية الودية خلال 30 يوماً، وإلا فالاختصاص للمحكمة المختصة بمدينة الرياض.</li>
+      <li>المبلغ المذكور بهذه الاتفاقية لا يشمل ضريبة القيمة المضافة أو أي رسوم إضافية تفرضها الجهات المختصة مستقبلاً.</li>
+    </ol>
+
+    <h3>تاسعاً: اللغة والمراسلات</h3>
+    <p>اللغة العربية هي اللغة المعتمدة لأي مراسلات بين الطرفين، وتكون أي إشعارات كتابية عبر البريد الإلكتروني المعتمد بصدر هذه الاتفاقية.</p>
+
+    <h3>عاشراً: نسخ الاتفاقية</h3>
+    <p>حُررت هذه الاتفاقية من نسختين أصليتين، تُسلَّم كل نسخة لأحد الطرفين للعمل بموجبها، وتُعتبر جميع النسخ الأصلية مستنداً واحداً له حجيته الكاملة.</p>
+
+    <h3 style="text-align:center;margin-top:32px;">التوقيعات</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:16px;">
+      ${renderSignatureBlock('الطرف الأول — إتقان لخدمات الأعمال', 'itqan', isAdminViewer)}
+      ${renderSignatureBlock('الطرف الثاني — العميل', 'client', isClientViewer)}
+    </div>
+  `;
+
+  if(isClientViewer && !contractRow.client_signed_at) setTimeout(() => initSigPad('client'), 50);
+  if(isAdminViewer && !contractRow.itqan_signed_at) setTimeout(() => initSigPad('itqan'), 50);
+  loadSignatureImages();
+}
+
+function renderSignatureBlock(title, side, canSignNow){
+  const signedAt = side === 'client' ? contractRow.client_signed_at : contractRow.itqan_signed_at;
+  const signName = side === 'client' ? contractRow.client_signature_name : contractRow.itqan_signature_name;
+
+  if(signedAt){
+    return `
+      <div class="sig-block signed">
+        <p style="font-weight:700;font-size:13px;margin-bottom:6px;">${title}</p>
+        <div class="signed-block" id="signedImg-${side}"></div>
+        <p style="font-size:12.5px;margin-top:6px;">${signName}</p>
+        <p style="font-size:11px;color:var(--ink-soft);">وُقِّع بتاريخ ${new Date(signedAt).toLocaleDateString('ar-SA')}</p>
+      </div>`;
+  }
+
+  if(canSignNow){
+    return `
+      <div class="sig-block">
+        <p style="font-weight:700;font-size:13px;margin-bottom:6px;">${title}</p>
+        <input id="sigName-${side}" placeholder="الاسم الكامل" style="margin-bottom:6px;">
+        <canvas class="sig-canvas-small" id="sigCanvas-${side}"></canvas>
+        <div style="display:flex;gap:8px;">
+          <button class="btn ghost" style="padding:8px 12px;font-size:11.5px;margin:0;" onclick="clearSigPad('${side}')">مسح</button>
+          <button class="btn gold" style="padding:8px 12px;font-size:11.5px;margin:0;" onclick="confirmSign('${side}')">تأكيد التوقيع</button>
+        </div>
+        <div id="sigMsg-${side}"></div>
+      </div>`;
+  }
+
+  return `
+    <div class="sig-block">
+      <p style="font-weight:700;font-size:13px;margin-bottom:6px;">${title}</p>
+      <p style="font-size:12px;color:var(--ink-soft);">بانتظار توقيع هذا الطرف.</p>
+    </div>`;
+}
+
+async function loadSignatureImages(){
+  for(const side of ['client', 'itqan']){
+    const path = side === 'client' ? contractRow.client_signature_path : contractRow.itqan_signature_path;
+    const el = document.getElementById(`signedImg-${side}`);
+    if(path && el){
+      const { data } = await supabase.storage.from('offer-attachments').createSignedUrl(path, 3600);
+      if(data?.signedUrl) el.innerHTML = `<img src="${data.signedUrl}">`;
+    }
+  }
+}
+
+const sigPads = {};
+function initSigPad(side){
+  const canvas = document.getElementById(`sigCanvas-${side}`);
+  if(!canvas) return;
+  canvas.width = canvas.offsetWidth;
+  canvas.height = 120;
+  const ctx = canvas.getContext('2d');
+  ctx.strokeStyle = '#1D2621'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+  sigPads[side] = { ctx, drawing: false, hasDrawn: false };
+
+  const pos = (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+    const cy = e.touches ? e.touches[0].clientY : e.clientY;
+    return { x: cx - rect.left, y: cy - rect.top };
+  };
+  const start = (e) => { sigPads[side].drawing = true; sigPads[side].hasDrawn = true; const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); e.preventDefault(); };
+  const move = (e) => { if(!sigPads[side].drawing) return; const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); e.preventDefault(); };
+  const end = () => { sigPads[side].drawing = false; };
+
+  canvas.onmousedown = start; canvas.onmousemove = move; canvas.onmouseup = end; canvas.onmouseleave = end;
+  canvas.ontouchstart = start; canvas.ontouchmove = move; canvas.ontouchend = end;
+}
+
+function clearSigPad(side){
+  const canvas = document.getElementById(`sigCanvas-${side}`);
+  sigPads[side].ctx.clearRect(0, 0, canvas.width, canvas.height);
+  sigPads[side].hasDrawn = false;
+}
+
+async function confirmSign(side){
+  const msg = document.getElementById(`sigMsg-${side}`);
+  const name = document.getElementById(`sigName-${side}`).value.trim();
+  if(!name){ msg.className = 'msg err'; msg.textContent = 'اكتب الاسم الكامل'; return; }
+  if(!sigPads[side]?.hasDrawn){ msg.className = 'msg err'; msg.textContent = 'وقّع بخط يدك أولاً'; return; }
+
+  const canvas = document.getElementById(`sigCanvas-${side}`);
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+  const filePath = `${viewer.id}/pi_contract_signature_${side}_${contractRow.id}_${Date.now()}.png`;
+  const { error: upErr } = await supabase.storage.from('offer-attachments').upload(filePath, blob);
+  if(upErr){ msg.className = 'msg err'; msg.textContent = upErr.message; return; }
+
+  const updateData = side === 'client'
+    ? { client_signature_name: name, client_signature_path: filePath, client_signed_at: new Date().toISOString() }
+    : { itqan_signature_name: name, itqan_signature_path: filePath, itqan_signed_at: new Date().toISOString() };
+
+  const { error } = await supabase.from('post_incorp_contracts').update(updateData).eq('id', contractRow.id);
+  if(error){ msg.className = 'msg err'; msg.textContent = error.message; return; }
+
+  Object.assign(contractRow, updateData);
+
+  if(side === 'client'){
+    const { data: admins } = await supabase.from('profiles').select('id').eq('role','admin').limit(3);
+    (admins||[]).forEach(a => createNotification(a.id, 'العميل وقّع اتفاقية ما بعد التأسيس', 'بانتظار توقيع إتقان لإتمام الاتفاقية', 'admin/post-incorp.html'));
+  } else {
+    createNotification(request.client_id, 'إتقان وقّعت الاتفاقية ✓', 'اتفاقية خدمات ما بعد التأسيس أصبحت موقّعة من الطرفين', 'client/post-incorp.html');
+  }
+
+  render();
+}
+
+init();
+</script>
+</body>
+</html>

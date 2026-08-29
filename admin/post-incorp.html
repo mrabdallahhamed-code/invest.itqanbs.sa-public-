@@ -64,7 +64,8 @@ async function loadPostIncorpAdmin(){
     const actionHtml = r.status === 'pending_review'
       ? `<a href="submit-postincorp-offer.html?id=${r.id}" class="btn gold" style="padding:8px 18px;font-size:13px;">تجهيز عرض تفصيلي</a>`
       : `<p style="font-size:13px;font-weight:700;color:var(--green-dark);">${r.quoted_price || ''} ر.س</p>
-           <a href="../post-incorp-offer-view.html?id=${r.id}" class="btn ghost" style="padding:7px 14px;font-size:12.5px;margin-top:0;">عرض التفاصيل</a>`;
+           <a href="../post-incorp-offer-view.html?id=${r.id}" class="btn ghost" style="padding:7px 14px;font-size:12.5px;margin-top:0;">عرض التفاصيل</a>
+           ${r.status === 'accepted' ? `<a href="../post-incorp-contract-view.html?request_id=${r.id}" class="btn gold" style="padding:7px 14px;font-size:12.5px;margin-top:0;">الاتفاقية والتوقيع</a>` : ''}`;
     return `
     <div class="list-item-card">
       <p style="font-size:14px;margin-bottom:4px;"><strong>${r.clients?.profiles?.full_name || r.client_id}</strong> — ${statusLabels[r.status]}</p>
