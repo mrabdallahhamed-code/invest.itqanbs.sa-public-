@@ -48,7 +48,7 @@ async function register(){
   if(error){ msg.className='msg err'; msg.textContent = error.message; return; }
 
   const userId = data.user.id;
-  const { error: profErr } = await supabase.from('profiles').insert({ id: userId, full_name, role: 'client', preferred_language });
+  const { error: profErr } = await supabase.from('profiles').insert({ id: userId, full_name, role: 'client', preferred_language, email });
   if(profErr){ msg.className='msg err'; msg.textContent = profErr.message; return; }
 
   await supabase.from('clients').insert({ id: userId });

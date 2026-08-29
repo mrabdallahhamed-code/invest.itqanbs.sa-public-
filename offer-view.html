@@ -6,7 +6,15 @@
 <link rel="stylesheet" href="assets/css/itqan.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  .offer-doc{max-width:720px;margin:0 auto;background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:40px;}
+  .offer-doc{max-width:720px;margin:0 auto;background:var(--white);border:1px solid var(--line);border-radius:var(--radius);padding:40px;position:relative;overflow:hidden;}
+  .letterhead{display:flex;align-items:center;gap:14px;padding-bottom:20px;margin-bottom:24px;border-bottom:3px solid var(--gold);}
+  .letterhead img{height:52px;}
+  .letterhead .lh-text{flex:1;}
+  .letterhead .lh-name-ar{font-family:'Amiri',serif;font-size:17px;color:var(--green-dark);font-weight:700;}
+  .letterhead .lh-name-en{font-size:11px;color:var(--ink-soft);letter-spacing:1px;}
+  .letterhead .lh-meta{font-size:10.5px;color:var(--ink-faint);text-align:left;line-height:1.7;}
+  .watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-25deg);opacity:.045;width:420px;pointer-events:none;z-index:0;}
+  .offer-doc > *:not(.watermark){position:relative;z-index:1;}
   .offer-doc h2{font-family:'Amiri',serif;color:var(--green-dark);font-size:23px;margin-bottom:4px;}
   .offer-doc .sub{color:var(--ink-soft);font-size:13px;margin-bottom:26px;padding-bottom:16px;border-bottom:2px solid var(--gold);}
   .sec-title{font-family:'Amiri',serif;font-size:16px;color:var(--green-dark);margin:26px 0 10px;}
@@ -54,6 +62,8 @@ async function init(){
   if(!user){ window.location.href = 'auth/login.html'; return; }
   if(!offerId){ document.getElementById('offerDoc').innerHTML = '<p>لم يتم تحديد عرض.</p>'; return; }
 
+  const { data: company } = await supabase.from('company_settings').select('*').eq('id', 1).single();
+
   const { data: offer, error } = await supabase
     .from('offers')
     .select('*, service_providers(company_name, specialty), service_requests(activity_type, activity_description)')
@@ -97,6 +107,19 @@ async function init(){
     </table>` : '';
 
   doc.innerHTML = `
+    <img class="watermark" src="assets/images/logo.jpeg">
+    <div class="letterhead">
+      <img src="assets/images/logo.jpeg">
+      <div class="lh-text">
+        <div class="lh-name-ar">${company?.company_name_ar || 'إتقان لخدمات الأعمال'}</div>
+        <div class="lh-name-en">${company?.company_name_en || 'Itqan Business Services'}</div>
+      </div>
+      <div class="lh-meta">
+        ${company?.cr_number ? `س.ت: ${company.cr_number}<br>` : ''}
+        ${company?.address || 'الرياض، السعودية'}<br>
+        ${company?.phone || ''}
+      </div>
+    </div>
     <h2>عرض تقديم خدمات — ${offer.service_providers?.company_name || ''}</h2>
     <p class="sub">النشاط: ${offer.service_requests?.activity_type || '—'} · تاريخ العرض: ${new Date(offer.created_at).toLocaleDateString('ar-SA')} · مدة التنفيذ: ${offer.duration_days} يوم عمل تقريباً</p>
 

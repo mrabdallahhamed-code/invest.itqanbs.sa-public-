@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>الفريق — إتقان</title>
+<link rel="stylesheet" href="../assets/css/itqan.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="../assets/images/logo.jpeg" alt="إتقان"></div>
+    <nav>
+      <a href="dashboard.html" class="side-link"><span class="ic">🏠</span> نظرة عامة</a>
+      <a href="clients.html" class="side-link"><span class="ic">👥</span> العملاء وتصنيفاتها</a>
+      <a href="requests.html" class="side-link"><span class="ic">🏢</span> طلبات العروض</a>
+      <a href="post-incorp.html" class="side-link"><span class="ic">🗂️</span> خدمات ما بعد التأسيس</a>
+      <a href="company-settings.html" class="side-link"><span class="ic">🏛️</span> بيانات الشركة</a>
+      <a href="team.html" class="side-link active"><span class="ic">🧑‍💼</span> الفريق</a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn ghost" style="width:100%;margin:0;" onclick="signOut()">تسجيل الخروج</button>
+    </div>
+  </aside>
+
+  <div style="flex:1;display:flex;flex-direction:column;">
+    <header class="app-topbar"><div id="notifBellContainer"></div></header>
+    <main class="app-main">
+      <div class="app-main-inner">
+        <h1 class="page-title">فريق إتقان الإداري</h1>
+
+        <div class="card">
+          <h3 style="margin-bottom:10px;">كيف يُضاف موظف جديد؟</h3>
+          <ol style="font-size:13px;color:var(--ink-soft);padding-right:18px;line-height:2;">
+            <li>اطلب من الموظف يسجّل حساب عادي من الصفحة الرئيسية للموقع (نفس فورم التسجيل العادي)</li>
+            <li>بعد ما يسجّل، دوّر عن حسابه بالبحث أدناه بواسطة بريده الإلكتروني</li>
+            <li>اضغط "ترقية لأدمن" — يصير عنده صلاحيات كاملة فوراً بدون ما يحتاج يسجّل خروج ودخول</li>
+          </ol>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-bottom:10px;">البحث وترقية حساب</h3>
+          <div style="display:flex;gap:8px;">
+            <input id="searchInput" placeholder="ابحث بالبريد الإلكتروني...">
+            <button class="btn" style="margin:0;padding:11px 20px;" onclick="searchAccounts()">بحث</button>
+          </div>
+          <div id="searchResults" style="margin-top:14px;"></div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-bottom:10px;">الأعضاء الحاليون بصلاحية أدمن</h3>
+          <div id="adminsList"><p style="font-size:13px;color:var(--ink-soft);">جارٍ التحميل...</p></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../assets/js/supabaseClient.js"></script>
+<script>
+let myProfile;
+
+async function init(){
+  myProfile = await requireRole(['admin']);
+  if(!myProfile) return;
+  initNotificationBell(myProfile.id);
+  loadAdmins();
+}
+
+async function loadAdmins(){
+  const { data, error } = await supabase.from('profiles').select('id, full_name, email').eq('role', 'admin').order('full_name');
+  const list = document.getElementById('adminsList');
+  if(error){ list.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
+  if(!data || !data.length){ list.innerHTML = '<p style="font-size:13px;color:var(--ink-soft);">لا يوجد أعضاء أدمن.</p>'; return; }
+
+  list.innerHTML = data.map(a => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line-soft);">
+      <div><strong style="font-size:13.5px;">${a.full_name}</strong><br><span style="font-size:12px;color:var(--ink-soft);">${a.email || 'بريد غير مسجّل (حساب قديم)'}</span></div>
+      ${a.id !== myProfile.id ? `<button class="btn ghost" style="padding:6px 14px;font-size:12px;margin-top:0;" onclick="demote('${a.id}')">تنزيل لعميل</button>` : `<span class="badge ready">أنت</span>`}
+    </div>`).join('');
+}
+
+async function searchAccounts(){
+  const q = document.getElementById('searchInput').value.trim();
+  const results = document.getElementById('searchResults');
+  if(!q){ results.innerHTML = ''; return; }
+
+  const { data, error } = await supabase.from('profiles').select('id, full_name, email, role').ilike('email', `%${q}%`).limit(10);
+  if(error){ results.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
+  if(!data || !data.length){ results.innerHTML = '<p style="font-size:13px;color:var(--ink-soft);">لا توجد نتائج — تأكد الحساب مسجّل حديثاً (الحسابات القديمة قبل هذا التحديث ما تحتوي بريدها هنا، دوّر عنها بـ Supabase Table Editor بدلاً من ذلك).</p>'; return; }
+
+  results.innerHTML = data.map(p => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--line-soft);">
+      <div><strong style="font-size:13.5px;">${p.full_name}</strong><br><span style="font-size:12px;color:var(--ink-soft);">${p.email} — ${p.role === 'admin' ? 'أدمن حالياً' : 'حساب عميل'}</span></div>
+      ${p.role !== 'admin' ? `<button class="btn gold" style="padding:6px 14px;font-size:12px;margin-top:0;" onclick="promote('${p.id}')">ترقية لأدمن</button>` : '<span class="badge ready">أدمن ✓</span>'}
+    </div>`).join('');
+}
+
+async function promote(id){
+  if(!confirm('تأكيد ترقية هذا الحساب لصلاحية أدمن كاملة؟')) return;
+  const { error } = await supabase.from('profiles').update({ role: 'admin' }).eq('id', id);
+  if(error){ alert(error.message); return; }
+  searchAccounts();
+  loadAdmins();
+}
+
+async function demote(id){
+  if(!confirm('تأكيد تنزيل هذا الحساب لعميل عادي؟')) return;
+  const { error } = await supabase.from('profiles').update({ role: 'client' }).eq('id', id);
+  if(error){ alert(error.message); return; }
+  loadAdmins();
+}
+
+init();
+</script>
+</body>
+</html>
