@@ -28,10 +28,28 @@
     <main class="app-main">
       <div class="app-main-inner">
         <h1 class="page-title">العملاء وتصنيفاتها</h1>
+
+        <div class="tabs" id="filterTabs">
+          <button class="active" onclick="setFilter('all')">الكل</button>
+          <button onclick="setFilter('incomplete')">لم يكمل التقييم</button>
+          <button onclick="setFilter('not_ready')">غير جاهز</button>
+          <button onclick="setFilter('ready')">جاهز</button>
+        </div>
+
+        <div class="card" id="bulkMsgCard" style="display:none;">
+          <h3 style="margin-bottom:10px;">إرسال تذكير جماعي</h3>
+          <p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:10px;">سيُرسَل هذا النص لكل العملاء الظاهرين حالياً بالقائمة (<span id="bulkCount">0</span> عميل).</p>
+          <div style="display:flex;gap:8px;">
+            <input id="bulkMsgInput" placeholder="مثال: فضلاً أكمل بوصلة الجاهزية لمتابعة طلبك">
+            <button class="btn gold" style="margin:0;padding:10px 18px;" onclick="sendBulkMsg()">إرسال للكل</button>
+          </div>
+          <div id="bulkMsgStatus"></div>
+        </div>
+
         <div class="card">
           <table>
-            <thead><tr><th>العميل</th><th>الجنسية</th><th>الحالة الحالية</th><th>مستندات العميل</th><th>الإجراءات</th></tr></thead>
-            <tbody id="clientsBody"><tr><td colspan="5">جارٍ التحميل...</td></tr></tbody>
+            <thead><tr><th>العميل</th><th>الجنسية</th><th>الحالة الحالية</th><th>مستندات العميل</th><th>الإجراءات</th><th>مراسلة</th></tr></thead>
+            <tbody id="clientsBody"><tr><td colspan="6">جارٍ التحميل...</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -41,6 +59,9 @@
 
 <script src="../assets/js/supabaseClient.js"></script>
 <script>
+let allClients = [];
+let currentFilter = 'all';
+
 async function init(){
   const profile = await requireRole(['admin']);
   if(!profile) return;
@@ -51,22 +72,72 @@ async function init(){
 async function loadClients(){
   const { data, error } = await supabase
     .from('clients')
-    .select('id, nationality, readiness_status, profiles(full_name)')
+    .select('id, nationality, readiness_status, assessment_completed_at, profiles(full_name)')
     .order('created_at', {ascending:false});
 
+  if(error || !data){ document.getElementById('clientsBody').innerHTML = '<tr><td colspan="6">تعذر التحميل</td></tr>'; return; }
+  allClients = data;
+  renderClients();
+}
+
+function setFilter(filter){
+  currentFilter = filter;
+  document.querySelectorAll('#filterTabs button').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+  renderClients();
+}
+
+function getFiltered(){
+  if(currentFilter === 'incomplete') return allClients.filter(c => !c.assessment_completed_at);
+  if(currentFilter === 'not_ready') return allClients.filter(c => c.assessment_completed_at && c.readiness_status === 'not_ready');
+  if(currentFilter === 'ready') return allClients.filter(c => c.readiness_status === 'ready');
+  return allClients;
+}
+
+function renderClients(){
   const body = document.getElementById('clientsBody');
-  if(error || !data || !data.length){ body.innerHTML = '<tr><td colspan="5">لا يوجد عملاء بعد</td></tr>'; return; }
+  const bulkCard = document.getElementById('bulkMsgCard');
+  const filtered = getFiltered();
+
+  bulkCard.style.display = currentFilter === 'all' ? 'none' : 'block';
+  document.getElementById('bulkCount').textContent = filtered.length;
+
+  if(!filtered.length){ body.innerHTML = '<tr><td colspan="6">لا يوجد عملاء مطابقون</td></tr>'; return; }
 
   const statusMap = {pending_review:'<span class="badge pending">قيد المراجعة</span>', ready:'<span class="badge ready">جاهز</span>', not_ready:'<span class="badge notready">غير جاهز</span>'};
 
-  body.innerHTML = data.map(c => `
+  body.innerHTML = filtered.map(c => {
+    const statusBadge = !c.assessment_completed_at
+      ? '<span class="badge notready">⚠ لم يبدأ التقييم</span>'
+      : (statusMap[c.readiness_status] || '—');
+    return `
     <tr>
       <td>${c.profiles?.full_name || c.id}</td>
       <td>${c.nationality || '—'}</td>
-      <td>${statusMap[c.readiness_status] || '—'}</td>
+      <td>${statusBadge}</td>
       <td><a href="client-detail.html?id=${c.id}#docsSection" class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;">عرض المستندات</a></td>
       <td><a href="client-detail.html?id=${c.id}#checklistSection" class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;">عرض الإجراءات</a></td>
-    </tr>`).join('');
+      <td><a href="client-detail.html?id=${c.id}#messagesSection" class="btn gold" style="padding:6px 12px;font-size:12px;margin-top:0;">💬 مراسلة</a></td>
+    </tr>`;
+  }).join('');
+}
+
+async function sendBulkMsg(){
+  const text = document.getElementById('bulkMsgInput').value.trim();
+  const status = document.getElementById('bulkMsgStatus');
+  if(!text){ status.className='msg err'; status.textContent='اكتب نص الرسالة أولاً'; return; }
+
+  const profile = await getCurrentProfile();
+  const filtered = getFiltered();
+  const rows = filtered.map(c => ({ recipient_id: c.id, sender_id: profile.id, message: text }));
+
+  const { error } = await supabase.from('admin_messages').insert(rows);
+  if(error){ status.className='msg err'; status.textContent = error.message; return; }
+
+  filtered.forEach(c => createNotification(c.id, 'رسالة جديدة من فريق إتقان', text.slice(0,60), '../client/dashboard.html'));
+
+  status.className='msg ok'; status.textContent = `تم الإرسال لـ ${filtered.length} عميل`;
+  document.getElementById('bulkMsgInput').value = '';
 }
 
 init();

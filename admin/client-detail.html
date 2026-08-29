@@ -52,6 +52,11 @@
     </div>
   </div>
 
+  <div class="card">
+    <h3 style="margin-bottom:10px;">إجابات بوصلة الجاهزية</h3>
+    <div id="assessmentAnswers"><p style="font-size:13px;color:var(--ink-soft);">جارٍ التحميل...</p></div>
+  </div>
+
   <div class="card" id="docsSection">
     <h3 style="margin-bottom:10px;">مستندات العميل</h3>
     <table>
@@ -60,7 +65,7 @@
     </table>
   </div>
 
-  <div class="card">
+  <div class="card" id="messagesSection">
     <h3 style="margin-bottom:10px;">مراسلة العميل</h3>
     <p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:10px;">مفيدة مثلاً لطلب إكمال مستنداته قبل اعتماده.</p>
     <div id="msgsList"><p style="font-size:13px;color:var(--ink-soft);">جارٍ التحميل...</p></div>
@@ -96,9 +101,37 @@ async function init(){
   document.getElementById('clientNationality').textContent = clientData?.nationality || '—';
   document.getElementById('statusSelect').value = clientData?.readiness_status || 'pending_review';
 
+  renderAssessmentAnswers(clientData);
   loadChecklist();
   loadDocs();
   loadMsgs();
+}
+
+function renderAssessmentAnswers(c){
+  const box = document.getElementById('assessmentAnswers');
+  if(!c || !c.assessment_completed_at){
+    box.innerHTML = '<p style="font-size:13px;color:var(--danger);font-weight:700;">⚠ لم يكمل العميل بوصلة الجاهزية بعد.</p>';
+    return;
+  }
+  const yn = v => v === true ? '<span class="badge ready">نعم</span>' : v === false ? '<span class="badge notready">لا</span>' : '<span class="badge pending">—</span>';
+  let html = `<p style="font-size:13px;margin-bottom:8px;"><strong>يمتلك شركة خارجية؟</strong> ${yn(c.has_foreign_company)}</p>`;
+
+  if(c.has_foreign_company){
+    html += `
+      <p style="font-size:13px;margin-bottom:8px;"><strong>ذات مسؤولية محدودة (LLC)؟</strong> ${yn(c.is_llc)}</p>
+      <p style="font-size:13px;margin-bottom:8px;"><strong>عقد تأسيس ساري؟</strong> ${yn(c.has_incorporation_contract)}</p>
+      <p style="font-size:13px;margin-bottom:8px;"><strong>قوائم مالية مدققة؟</strong> ${yn(c.has_audited_financials)}</p>
+      <p style="font-size:13px;margin-bottom:8px;"><strong>اسم الشركة الأجنبية:</strong> ${c.foreign_company_name || '—'}</p>
+      <p style="font-size:13px;margin-bottom:8px;"><strong>دولة الشركة:</strong> ${c.foreign_company_country || '—'}</p>
+    `;
+  } else {
+    html += `
+      <p style="font-size:13px;margin-bottom:8px;"><strong>الدولة المفضلة للشركة:</strong> ${c.preferred_company_country || '—'}</p>
+      <p style="font-size:13px;margin-bottom:8px;"><strong>نوع النشاط المطلوب:</strong> ${c.activity_type || '—'}</p>
+    `;
+  }
+  html += `<p style="font-size:11.5px;color:var(--ink-faint);margin-top:6px;">تاريخ إكمال التقييم: ${new Date(c.assessment_completed_at).toLocaleDateString('ar-SA')}</p>`;
+  box.innerHTML = html;
 }
 
 async function updateStatus(){
