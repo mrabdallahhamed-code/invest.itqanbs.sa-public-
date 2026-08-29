@@ -98,9 +98,12 @@ async function loadAllRequests(){
       }
     }
 
-    const actionCell = (offerCount === 0 && !isCompleted)
-      ? `<a href="submit-offer.html?request_id=${r.id}" class="btn gold" style="padding:6px 12px;font-size:12px;margin-top:0;">تقديم عرض</a>`
-      : '—';
+    let actionCell = '—';
+    if(!isCompleted && offerCount === 0){
+      actionCell = `<a href="submit-offer.html?request_id=${r.id}" class="btn gold" style="padding:6px 12px;font-size:12px;margin-top:0;">تقديم عرض</a>`;
+    } else if(!isCompleted && offerCount > 0 && !acceptedSet.has(r.id)){
+      actionCell = `<a href="submit-offer.html?request_id=${r.id}" class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;">تعديل العرض</a>`;
+    }
 
     return `<tr>
       <td>${r.clients?.profiles?.full_name || r.client_id}</td>

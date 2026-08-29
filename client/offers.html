@@ -63,7 +63,11 @@ async function init(){
 
 async function loadOffers(){
   const area = document.getElementById('offersArea');
-  const { data: requests } = await supabase.from('service_requests').select('*').eq('client_id', profile.id).order('created_at', {ascending:false}).limit(1);
+  const requestIdParam = new URLSearchParams(window.location.search).get('request_id');
+
+  let query = supabase.from('service_requests').select('*').eq('client_id', profile.id);
+  query = requestIdParam ? query.eq('id', requestIdParam) : query.order('created_at', {ascending:false}).limit(1);
+  const { data: requests } = await query;
 
   if(!requests || !requests.length){
     area.innerHTML = '<p style="font-size:13.5px;color:var(--ink-soft);">ما عندك طلب تأسيس، فما فيه عروض بعد. <a href="requests.html">اطلب عروض من هنا</a></p>';

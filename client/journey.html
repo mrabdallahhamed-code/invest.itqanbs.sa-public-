@@ -50,7 +50,10 @@ async function init(){
   if(!profile) return;
   initNotificationBell(profile.id);
 
-  const { data: requests } = await supabase.from('service_requests').select('id, status').eq('client_id', profile.id).order('created_at', {ascending:false}).limit(1);
+  const requestIdParam = new URLSearchParams(window.location.search).get('request_id');
+  let query = supabase.from('service_requests').select('id, status').eq('client_id', profile.id);
+  query = requestIdParam ? query.eq('id', requestIdParam) : query.order('created_at', {ascending:false}).limit(1);
+  const { data: requests } = await query;
   const area = document.getElementById('journeyArea');
 
   if(!requests || !requests.length){

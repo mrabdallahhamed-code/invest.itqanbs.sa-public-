@@ -142,6 +142,8 @@ const defaultFees = [
   ['الاشتراك في منصة مدد', 460],
 ];
 
+let existingOffer = null;
+
 async function init(){
   profile = await requireRole(['admin']);
   if(!profile) return;
@@ -160,7 +162,35 @@ async function init(){
       <input type="checkbox" id="doc-${i}" value="${d}">
     </div>`).join('');
 
-  defaultFees.forEach(([name, fee]) => addFeeRow(name, fee));
+  const { data: existing } = await supabase.from('offers').select('*').eq('request_id', requestId).neq('status', 'accepted').maybeSingle();
+
+  if(existing){
+    existingOffer = existing;
+    document.querySelector('h1.page-title').textContent = 'تعديل العرض';
+    document.querySelector('button.btn.gold[onclick="submitOffer()"]').textContent = 'حفظ التعديلات وإعادة الإرسال';
+    prefillFromExisting(existing);
+  } else {
+    defaultFees.forEach(([name, fee]) => addFeeRow(name, fee));
+  }
+}
+
+function prefillFromExisting(o){
+  (o.scope_items || []).forEach(label => {
+    const opt = scopeOptions.find(s => s.label === label);
+    if(opt) document.getElementById(`scope-${opt.key}`).checked = true;
+  });
+  (o.required_documents_list || []).forEach(label => {
+    const i = docOptions.indexOf(label);
+    if(i > -1) document.getElementById(`doc-${i}`).checked = true;
+  });
+  document.getElementById('required_documents').value = o.required_documents || '';
+  document.getElementById('duration_days').value = o.duration_days || '';
+  (o.government_fees || []).forEach(f => addFeeRow(f.service, f.fee));
+  document.getElementById('price').value = o.price || '';
+  document.getElementById('payment_schedule').value = o.payment_schedule || '';
+  document.getElementById('exclusions_notes').value = o.exclusions_notes || '';
+  document.getElementById('additional_services_discount').value = o.additional_services_discount || '';
+  document.getElementById('provider_signature_name').value = o.provider_signature_name || '';
 }
 
 function addFeeRow(name, fee){
@@ -203,13 +233,19 @@ async function submitOffer(){
   const additional_services_discount = parseFloat(document.getElementById('additional_services_discount').value) || null;
   const provider_signature_name = document.getElementById('provider_signature_name').value.trim();
 
-  const { data: offerRow, error } = await supabase.from('offers').insert({
-    request_id: requestId, provider_id: profile.id,
+  const offerData = {
     price, duration_days,
     scope_items, required_documents_list, required_documents,
     government_fees, payment_schedule, exclusions_notes,
     additional_services_discount, provider_signature_name
-  }).select().single();
+  };
+
+  let offerRow, error;
+  if(existingOffer){
+    ({ data: offerRow, error } = await supabase.from('offers').update(offerData).eq('id', existingOffer.id).select().single());
+  } else {
+    ({ data: offerRow, error } = await supabase.from('offers').insert({ request_id: requestId, provider_id: profile.id, ...offerData }).select().single());
+  }
 
   if(error){ msg.className = 'msg err'; msg.textContent = error.message; return; }
 
@@ -243,7 +279,11 @@ async function submitOffer(){
   await supabase.from('service_requests').update({ status: 'open' }).eq('id', requestId);
 
   const { data: reqRow } = await supabase.from('service_requests').select('client_id').eq('id', requestId).single();
-  if(reqRow) await createNotification(reqRow.client_id, 'وصلك عرض جديد', 'إتقان قدّمت لك عرضاً', '../client/offers.html');
+  if(reqRow){
+    const title = existingOffer ? 'تم تحديث عرضك' : 'وصلك عرض جديد';
+    const body = existingOffer ? 'إتقان حدّثت العرض المرسل لك — راجعه من جديد' : 'إتقان قدّمت لك عرضاً';
+    await createNotification(reqRow.client_id, title, body, '../client/offers.html');
+  }
 
   window.location.href = 'requests.html';
 }

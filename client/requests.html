@@ -35,7 +35,8 @@
     <main class="app-main">
       <div class="app-main-inner">
         <h1 class="page-title">طلبات التأسيس</h1>
-        <div class="card" id="reqArea"><p style="color:var(--ink-soft);font-size:13.5px;">جارٍ التحميل...</p></div>
+        <button class="btn gold" onclick="handleNewRequestClick()">+ طلب عرض سعر جديد</button>
+        <div id="reqList" style="margin-top:18px;"><p style="color:var(--ink-soft);font-size:13.5px;">جارٍ التحميل...</p></div>
       </div>
     </main>
   </div>
@@ -43,67 +44,54 @@
 
 <script src="../assets/js/supabaseClient.js"></script>
 <script>
-let profile;
+let profile, assessmentDone;
+const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
 
 async function init(){
   profile = await requireRole(['client']);
   if(!profile) return;
   initNotificationBell(profile.id);
-  loadRequest();
+
+  const { data: client } = await supabase.from('clients').select('assessment_completed_at').eq('id', profile.id).single();
+  assessmentDone = !!client?.assessment_completed_at;
+
+  loadRequests();
 }
 
-function handleOffersClick(activeRequest, assessmentDone){
-  if(activeRequest){
-    const statusLabels = {
-      pending_admin_review: 'قيد المراجعة — بانتظار توجيه فريق إتقان',
-      open: 'تم توجيه طلبك — بانتظار عروض من مقدمي الخدمة',
-      offer_selected: 'تم اختيار عرض بالفعل',
-      in_progress: 'قيد التنفيذ', completed: 'مكتمل', cancelled: 'ملغى'
-    };
-    alert('لديك طلب بالفعل: ' + (statusLabels[activeRequest.status] || 'بانتظار التوجيه'));
-    return;
-  }
+function handleNewRequestClick(){
   if(!assessmentDone){ alert('فضلاً أكمل بوصلة الجاهزية أولاً للحصول على عروض.'); return; }
   window.location.href = 'request-offers.html';
 }
 
-async function loadRequest(){
-  const area = document.getElementById('reqArea');
-  const { data: client } = await supabase.from('clients').select('assessment_completed_at').eq('id', profile.id).single();
-
+async function loadRequests(){
+  const list = document.getElementById('reqList');
   const { data: requests, error } = await supabase
     .from('service_requests')
     .select('*')
     .eq('client_id', profile.id)
-    .order('created_at', {ascending:false})
-    .limit(1);
+    .order('created_at', {ascending:false});
 
-  if(error){ area.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
-
-  const activeRequest = requests && requests.length ? requests[0] : null;
-  window.handleOffersClickBound = () => handleOffersClick(activeRequest, !!client?.assessment_completed_at);
-
-  if(!activeRequest){
-    area.innerHTML = `
-      <p style="font-size:13.5px;color:var(--ink-soft);margin-bottom:16px;">ما عندك طلب تأسيس حالياً.</p>
-      <button class="btn gold" onclick="handleOffersClickBound()">الحصول على عروض</button>
-    `;
-    return;
-  }
+  if(error){ list.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
+  if(!requests || !requests.length){ list.innerHTML = '<p style="font-size:13.5px;color:var(--ink-soft);">ما عندك أي طلب تأسيس حالياً.</p>'; return; }
 
   const statusMap = {
-    pending_admin_review: 'قيد المراجعة — فريق إتقان يحدد مقدمي الخدمة المناسبين',
-    open: 'مفتوح — بانتظار عروض من مقدمي الخدمة',
+    pending_admin_review: 'قيد المراجعة — فريق إتقان يجهّز عرضك',
+    open: 'وصلك عرض — بانتظار موافقتك',
     offer_selected: 'تم اختيار عرض',
     in_progress: 'قيد التنفيذ', completed: 'مكتمل', cancelled: 'ملغى'
   };
 
-  let html = `<p style="font-size:13.5px;margin-bottom:10px;">حالة الطلب: <strong>${statusMap[activeRequest.status] || activeRequest.status}</strong></p>`;
-  html += `<p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:16px;">النشاط: ${activeRequest.activity_type || '—'}</p>`;
-  html += `<a href="offers.html" class="btn ghost" style="margin-left:8px;">عرض العروض الواردة</a>`;
-  html += `<a href="journey.html" class="btn ghost">متابعة رحلة الطلب</a>`;
-
-  area.innerHTML = html;
+  list.innerHTML = requests.map(r => {
+    const canEdit = r.status === 'pending_admin_review' && (Date.now() - new Date(r.created_at).getTime()) < TWO_HOURS_MS;
+    return `
+    <div class="list-item-card">
+      <p style="font-size:14px;margin-bottom:4px;"><strong>${statusMap[r.status] || r.status}</strong></p>
+      <p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:12px;">النشاط: ${r.activity_type || '—'} · تاريخ الطلب: ${new Date(r.created_at).toLocaleDateString('ar-SA')}</p>
+      <a href="offers.html?request_id=${r.id}" class="btn ghost" style="padding:7px 14px;font-size:12.5px;margin-top:0;">عرض العروض</a>
+      <a href="journey.html?request_id=${r.id}" class="btn ghost" style="padding:7px 14px;font-size:12.5px;margin-top:0;">رحلة الطلب</a>
+      ${canEdit ? `<a href="request-offers.html?edit_id=${r.id}" class="btn gold" style="padding:7px 14px;font-size:12.5px;margin-top:0;">تعديل الطلب</a>` : ''}
+    </div>`;
+  }).join('');
 }
 
 init();
