@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>طلبات العروض — إتقان</title>
+<link rel="stylesheet" href="../assets/css/itqan.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="../assets/images/logo.jpeg" alt="إتقان"></div>
+    <nav>
+      <a href="dashboard.html" class="side-link"><span class="ic">🏠</span> نظرة عامة</a>
+      <a href="clients.html" class="side-link"><span class="ic">👥</span> العملاء وتصنيفاتها</a>
+      <a href="requests.html" class="side-link active"><span class="ic">🏢</span> طلبات العروض</a>
+      <a href="post-incorp.html" class="side-link"><span class="ic">🗂️</span> خدمات ما بعد التأسيس</a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn ghost" style="width:100%;margin:0;" onclick="signOut()">تسجيل الخروج</button>
+    </div>
+  </aside>
+
+  <div style="flex:1;display:flex;flex-direction:column;">
+    <header class="app-topbar">
+      <div id="notifBellContainer"></div>
+    </header>
+    <main class="app-main">
+      <div class="app-main-inner">
+        <h1 class="page-title">طلبات العروض</h1>
+
+        <div class="card">
+          <h3 style="margin-bottom:12px;">طلبات بانتظار التوجيه</h3>
+          <div id="pendingRequestsBody"><p style="font-size:13.5px;color:var(--ink-soft);">جارٍ التحميل...</p></div>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:12px;">كل طلبات العروض</h3>
+          <table>
+            <thead><tr><th>العميل</th><th>النشاط</th><th>التوجيه</th><th>العروض</th><th>حالة الطلب</th></tr></thead>
+            <tbody id="allRequestsBody"><tr><td colspan="5">جارٍ التحميل...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../assets/js/supabaseClient.js"></script>
+<script>
+async function init(){
+  const profile = await requireRole(['admin']);
+  if(!profile) return;
+  initNotificationBell(profile.id);
+  loadPendingRequests();
+  loadAllRequests();
+}
+
+async function loadPendingRequests(){
+  const body = document.getElementById('pendingRequestsBody');
+  const { data: requests, error } = await supabase
+    .from('service_requests')
+    .select('id, created_at, client_id, clients(readiness_status, profiles(full_name))')
+    .eq('status', 'pending_admin_review')
+    .order('created_at');
+
+  if(error){ body.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
+  if(!requests || !requests.length){ body.innerHTML = '<p style="font-size:13.5px;color:var(--ink-soft);">لا توجد طلبات بانتظار التوجيه حالياً.</p>'; return; }
+
+  const statusMap = {ready:'جاهز', not_ready:'غير جاهز', pending_review:'قيد المراجعة'};
+
+  body.innerHTML = requests.map(r => `
+    <div class="list-item-card">
+      <p style="font-size:14px;margin-bottom:4px;"><strong>${r.clients?.profiles?.full_name || r.client_id}</strong></p>
+      <p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:12px;">حالة العميل: ${statusMap[r.clients?.readiness_status] || '—'} · تاريخ الطلب: ${new Date(r.created_at).toLocaleDateString('ar-SA')}</p>
+      <button class="btn gold" style="padding:8px 18px;font-size:13px;" onclick="routeRequest('${r.id}')">توجيه إلى إتقان</button>
+      <div id="routeMsg-${r.id}"></div>
+    </div>
+  `).join('');
+}
+
+async function routeRequest(requestId){
+  const msg = document.getElementById(`routeMsg-${requestId}`);
+  const { data: itqan, error: itqanErr } = await supabase.from('service_providers').select('id').eq('is_itqan', true).limit(1).single();
+  if(itqanErr || !itqan){ msg.className='msg err'; msg.textContent='تعذر إيجاد حساب إتقان كمقدّم خدمة'; return; }
+
+  const { error: invErr } = await supabase.from('request_invitations').insert({ request_id: requestId, provider_id: itqan.id });
+  if(invErr){ msg.className='msg err'; msg.textContent = invErr.message; return; }
+
+  const { error: reqErr } = await supabase.from('service_requests').update({ status: 'open' }).eq('id', requestId);
+  if(reqErr){ msg.className='msg err'; msg.textContent = reqErr.message; return; }
+
+  msg.className='msg ok'; msg.textContent='تم توجيه الطلب بنجاح';
+  createNotification(itqan.id, 'طلب جديد بانتظارك', 'وصلك طلب جديد يمكنك التقديم عليه بعرض', '../provider/dashboard.html');
+  setTimeout(() => { loadPendingRequests(); loadAllRequests(); }, 1000);
+}
+
+async function loadAllRequests(){
+  const body = document.getElementById('allRequestsBody');
+  const { data: requests, error } = await supabase
+    .from('service_requests')
+    .select('id, status, activity_type, created_at, client_id, clients(profiles(full_name))')
+    .order('created_at', {ascending:false});
+
+  if(error){ body.innerHTML = `<tr><td colspan="5">${error.message}</td></tr>`; return; }
+  if(!requests || !requests.length){ body.innerHTML = '<tr><td colspan="5">لا توجد طلبات بعد</td></tr>'; return; }
+
+  const { data: invitations } = await supabase.from('request_invitations').select('request_id');
+  const { data: offers } = await supabase.from('offers').select('request_id, status');
+  const { data: allStages } = await supabase.from('request_stages').select('request_id, started_at, completed_at, status');
+
+  const invitedSet = new Set((invitations || []).map(i => i.request_id));
+  const offerCountMap = {};
+  const acceptedSet = new Set();
+  (offers || []).forEach(o => {
+    offerCountMap[o.request_id] = (offerCountMap[o.request_id] || 0) + 1;
+    if(o.status === 'accepted') acceptedSet.add(o.request_id);
+  });
+
+  const lastActivityMap = {};
+  (allStages || []).forEach(s => {
+    const t = s.completed_at || s.started_at;
+    if(t && (!lastActivityMap[s.request_id] || new Date(t) > new Date(lastActivityMap[s.request_id]))){
+      lastActivityMap[s.request_id] = t;
+    }
+  });
+
+  const STALL_DAYS = 14;
+  const now = new Date();
+
+  body.innerHTML = requests.map(r => {
+    const routed = invitedSet.has(r.id);
+    const offerCount = offerCountMap[r.id] || 0;
+    const isCompleted = r.status === 'completed';
+    let statusLabel;
+    if(isCompleted) statusLabel = '<span class="badge ready">مكتمل ✓</span>';
+    else if(acceptedSet.has(r.id)) statusLabel = '<span class="badge pending">قيد التنفيذ</span>';
+    else if(offerCount > 0) statusLabel = '<span class="badge pending">بانتظار موافقة العميل</span>';
+    else if(routed) statusLabel = '<span class="badge pending">بانتظار عروض</span>';
+    else statusLabel = '<span class="badge notready">بانتظار التوجيه</span>';
+
+    let stallBadge = '';
+    if(!isCompleted && acceptedSet.has(r.id)){
+      const lastActivity = lastActivityMap[r.id];
+      const refDate = lastActivity ? new Date(lastActivity) : new Date(r.created_at);
+      const daysSince = Math.floor((now - refDate) / (1000*60*60*24));
+      if(daysSince >= STALL_DAYS){
+        stallBadge = ` <span class="badge notready" title="لا تحديث منذ ${daysSince} يوم">⚠ متأخر (${daysSince} يوم)</span>`;
+      }
+    }
+
+    return `<tr>
+      <td>${r.clients?.profiles?.full_name || r.client_id}</td>
+      <td>${r.activity_type || '—'}</td>
+      <td>${routed ? '✅ تم التوجيه' : '⬜ لم يُوجَّه'}</td>
+      <td>${offerCount} عرض</td>
+      <td>${statusLabel}${stallBadge}</td>
+    </tr>`;
+  }).join('');
+}
+
+init();
+</script>
+</body>
+</html>

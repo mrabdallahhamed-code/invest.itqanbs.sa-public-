@@ -5,232 +5,123 @@
 <title>لوحة الإدارة — إتقان</title>
 <link rel="stylesheet" href="../assets/css/itqan.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  body{background:var(--paper);}
+  .welcome-banner{background:linear-gradient(135deg, var(--green-dark), var(--green)); border-radius:var(--radius-lg); padding:30px 34px; color:var(--white); margin-bottom:28px; position:relative; overflow:hidden;}
+  .welcome-banner::before{content:'';position:absolute;top:-40px;left:-40px;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,.07);}
+  .welcome-banner h1{font-family:'Amiri',serif; font-size:24px; margin-bottom:6px; position:relative;}
+  .welcome-banner p{color:rgba(255,255,255,.82); font-size:13.5px; position:relative;}
+  .stats-row{display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px;}
+  @media(max-width:720px){.stats-row{grid-template-columns:1fr 1fr;}}
+  .stat-box{background:var(--white); border:1px solid var(--line-soft); border-radius:var(--radius); padding:18px; text-align:center; box-shadow:var(--shadow-sm); transition:.3s var(--ease);}
+  .stat-box:hover{box-shadow:var(--shadow); transform:translateY(-2px);}
+  .stat-box .n{font-family:'Amiri',serif; font-size:26px; font-weight:700; color:var(--green-dark);}
+  .stat-box .l{font-size:11.5px; color:var(--ink-soft); margin-top:4px;}
+</style>
 </head>
 <body>
-<header class="top">
-  <div class="brand"><img src="../assets/images/logo.jpeg" alt="إتقان"></div>
-  <div style="display:flex;align-items:center;gap:10px;">
-    <div id="notifBellContainer"></div>
-    <button class="btn ghost" onclick="signOut()">تسجيل الخروج</button>
-  </div>
-</header>
-<main>
-  <h1 class="page-title">مركز التحقق والإدارة</h1>
-
-  <div class="tabs">
-    <button class="active" onclick="switchTab('clients')">العملاء وتصنيفاتها</button>
-    <button onclick="switchTab('requests')">طلبات العروض</button>
-    <button onclick="switchTab('postIncorp')">خدمات ما بعد التأسيس</button>
-  </div>
-
-  <!-- ===================== العملاء وتصنيفاتها ===================== -->
-  <div id="tab-clients">
-    <div class="card">
-      <table>
-        <thead><tr><th>العميل</th><th>الجنسية</th><th>الحالة الحالية</th><th>مستندات العميل</th><th>الإجراءات</th></tr></thead>
-        <tbody id="clientsBody"><tr><td colspan="5">جارٍ التحميل...</td></tr></tbody>
-      </table>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="../assets/images/logo.jpeg" alt="إتقان"></div>
+    <nav>
+      <a href="dashboard.html" class="side-link active"><span class="ic">🏠</span> نظرة عامة</a>
+      <a href="clients.html" class="side-link"><span class="ic">👥</span> العملاء وتصنيفاتها</a>
+      <a href="requests.html" class="side-link"><span class="ic">🏢</span> طلبات العروض</a>
+      <a href="post-incorp.html" class="side-link"><span class="ic">🗂️</span> خدمات ما بعد التأسيس</a>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn ghost" style="width:100%;margin:0;" onclick="signOut()">تسجيل الخروج</button>
     </div>
-  </div>
+  </aside>
 
-  <!-- ===================== طلبات العروض ===================== -->
-  <div id="tab-requests" style="display:none;">
-    <div class="card">
-      <h3 style="margin-bottom:12px;">طلبات بانتظار التوجيه</h3>
-      <div id="pendingRequestsBody"><p style="font-size:13.5px;color:var(--ink-soft);">جارٍ التحميل...</p></div>
-    </div>
-    <div class="card">
-      <h3 style="margin-bottom:12px;">كل طلبات العروض</h3>
-      <table>
-        <thead><tr><th>العميل</th><th>النشاط</th><th>التوجيه</th><th>العروض</th><th>حالة الطلب</th></tr></thead>
-        <tbody id="allRequestsBody"><tr><td colspan="5">جارٍ التحميل...</td></tr></tbody>
-      </table>
-    </div>
-  </div>
+  <div style="flex:1;display:flex;flex-direction:column;">
+    <header class="app-topbar">
+      <div id="notifBellContainer"></div>
+    </header>
+    <main class="app-main">
+      <div class="app-main-inner">
+        <div class="welcome-banner">
+          <h1>مركز التحقق والإدارة 👋</h1>
+          <p>نظرة سريعة على حالة المنصة الآن</p>
+        </div>
 
-  <!-- ===================== خدمات ما بعد التأسيس ===================== -->
-  <div id="tab-postIncorp" style="display:none;">
-    <div class="card">
-      <div id="postIncorpBody"><p style="font-size:13.5px;color:var(--ink-soft);">جارٍ التحميل...</p></div>
-    </div>
+        <div class="stats-row">
+          <div class="stat-box"><div class="n" id="statClients">0</div><div class="l">إجمالي العملاء</div></div>
+          <div class="stat-box"><div class="n" id="statPending">0</div><div class="l">طلبات بانتظار التوجيه</div></div>
+          <div class="stat-box"><div class="n" id="statActiveRequests">0</div><div class="l">طلبات قيد التنفيذ</div></div>
+          <div class="stat-box"><div class="n" id="statPostIncorp">0</div><div class="l">طلبات ما بعد التأسيس بانتظار عرض</div></div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-bottom:12px;">⚠ طلبات متأخرة تحتاج متابعة</h3>
+          <div id="stalledArea"><p style="font-size:13px;color:var(--ink-soft);">جارٍ التحميل...</p></div>
+        </div>
+      </div>
+    </main>
   </div>
-</main>
+</div>
 
 <script src="../assets/js/supabaseClient.js"></script>
 <script>
 let profile;
 
-function switchTab(tab){
-  document.getElementById('tab-clients').style.display = tab==='clients' ? 'block':'none';
-  document.getElementById('tab-requests').style.display = tab==='requests' ? 'block':'none';
-  document.getElementById('tab-postIncorp').style.display = tab==='postIncorp' ? 'block':'none';
-  document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active'));
-  event.target.classList.add('active');
-  if(tab==='requests'){ loadPendingRequests(); loadAllRequests(); }
-  if(tab==='postIncorp') loadPostIncorpAdmin();
-}
-
-async function loadPostIncorpAdmin(){
-  const body = document.getElementById('postIncorpBody');
-  const { data, error } = await supabase
-    .from('post_incorp_requests')
-    .select('id, service_needs, service_categories, client_notes, status, quoted_price, client_id, clients(profiles(full_name))')
-    .order('created_at', {ascending:false});
-
-  if(error){ body.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
-  if(!data || !data.length){ body.innerHTML = '<p style="font-size:13.5px;color:var(--ink-soft);">لا توجد طلبات خدمات ما بعد التأسيس بعد.</p>'; return; }
-
-  const statusLabels = { pending_review:'قيد المراجعة من إتقان', quoted:'تم إرسال عرض', accepted:'مقبول ✓', rejected:'مرفوض' };
-
-  body.innerHTML = data.map(r => {
-    const needsHtml = Object.entries(r.service_needs || {}).map(([cat, needs]) => `<strong>${cat}:</strong> ${needs.join('، ')}`).join('<br>');
-    const actionHtml = r.status === 'pending_review'
-      ? `<span class="badge pending">بانتظار عرض من إتقان</span>`
-      : `<p style="font-size:13px;font-weight:700;color:var(--green-dark);">${r.quoted_price || ''} ر.س</p>
-           <a href="../post-incorp-offer-view.html?id=${r.id}" class="btn ghost" style="padding:7px 14px;font-size:12.5px;margin-top:0;">عرض التفاصيل</a>`;
-    return `
-    <div class="list-item-card">
-      <p style="font-size:14px;margin-bottom:4px;"><strong>${r.clients?.profiles?.full_name || r.client_id}</strong> — ${statusLabels[r.status]}</p>
-      <p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:6px;">${needsHtml || (r.service_categories||[]).join('، ')}</p>
-      ${r.client_notes ? `<p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:10px;">ملاحظات العميل: ${r.client_notes}</p>` : ''}
-      ${actionHtml}
-    </div>`;
-  }).join('');
-}
-
-
 async function init(){
   profile = await requireRole(['admin']);
   if(!profile) return;
   initNotificationBell(profile.id);
-  loadClients();
+  loadStats();
 }
 
-// ---------- العملاء وتصنيفاتها ----------
-async function loadClients(){
-  const { data, error } = await supabase
-    .from('clients')
-    .select('id, nationality, readiness_status, profiles(full_name)')
-    .order('created_at', {ascending:false});
+async function loadStats(){
+  const { count: clientsCount } = await supabase.from('clients').select('id', {count:'exact', head:true});
+  document.getElementById('statClients').textContent = clientsCount || 0;
 
-  const body = document.getElementById('clientsBody');
-  if(error || !data || !data.length){ body.innerHTML = '<tr><td colspan="5">لا يوجد عملاء بعد</td></tr>'; return; }
+  const { count: pendingCount } = await supabase.from('service_requests').select('id', {count:'exact', head:true}).eq('status', 'pending_admin_review');
+  document.getElementById('statPending').textContent = pendingCount || 0;
 
-  const statusMap = {pending_review:'<span class="badge pending">قيد المراجعة</span>', ready:'<span class="badge ready">جاهز</span>', not_ready:'<span class="badge notready">غير جاهز</span>'};
+  const { data: offers } = await supabase.from('offers').select('request_id, status').eq('status', 'accepted');
+  const { data: allRequests } = await supabase.from('service_requests').select('id, status');
+  const acceptedReqIds = new Set((offers||[]).map(o => o.request_id));
+  const activeCount = (allRequests||[]).filter(r => acceptedReqIds.has(r.id) && r.status !== 'completed').length;
+  document.getElementById('statActiveRequests').textContent = activeCount;
 
-  body.innerHTML = data.map(c => `
-    <tr>
-      <td>${c.profiles?.full_name || c.id}</td>
-      <td>${c.nationality || '—'}</td>
-      <td>${statusMap[c.readiness_status] || '—'}</td>
-      <td><a href="client-detail.html?id=${c.id}#docsSection" class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;">عرض المستندات</a></td>
-      <td><a href="client-detail.html?id=${c.id}#checklistSection" class="btn ghost" style="padding:6px 12px;font-size:12px;margin-top:0;">عرض الإجراءات</a></td>
-    </tr>`).join('');
+  const { count: piCount } = await supabase.from('post_incorp_requests').select('id', {count:'exact', head:true}).eq('status', 'pending_review');
+  document.getElementById('statPostIncorp').textContent = piCount || 0;
+
+  loadStalled(allRequests || [], offers || []);
 }
 
-// ---------- طلبات العروض: قائمة بانتظار التوجيه ----------
-async function loadPendingRequests(){
-  const body = document.getElementById('pendingRequestsBody');
-  const { data: requests, error } = await supabase
-    .from('service_requests')
-    .select('id, created_at, client_id, clients(readiness_status, profiles(full_name))')
-    .eq('status', 'pending_admin_review')
-    .order('created_at');
-
-  if(error){ body.innerHTML = `<p class="msg err">${error.message}</p>`; return; }
-  if(!requests || !requests.length){ body.innerHTML = '<p style="font-size:13.5px;color:var(--ink-soft);">لا توجد طلبات بانتظار التوجيه حالياً.</p>'; return; }
-
-  const statusMap = {ready:'جاهز', not_ready:'غير جاهز', pending_review:'قيد المراجعة'};
-
-  body.innerHTML = requests.map(r => `
-    <div class="list-item-card">
-      <p style="font-size:14px;margin-bottom:4px;"><strong>${r.clients?.profiles?.full_name || r.client_id}</strong></p>
-      <p style="font-size:12.5px;color:var(--ink-soft);margin-bottom:12px;">حالة العميل: ${statusMap[r.clients?.readiness_status] || '—'} · تاريخ الطلب: ${new Date(r.created_at).toLocaleDateString('ar-SA')}</p>
-      <button class="btn gold" style="padding:8px 18px;font-size:13px;" onclick="routeRequest('${r.id}')">توجيه إلى إتقان</button>
-      <div id="routeMsg-${r.id}"></div>
-    </div>
-  `).join('');
-}
-
-async function routeRequest(requestId){
-  const msg = document.getElementById(`routeMsg-${requestId}`);
-  const { data: itqan, error: itqanErr } = await supabase.from('service_providers').select('id').eq('is_itqan', true).limit(1).single();
-  if(itqanErr || !itqan){ msg.className='msg err'; msg.textContent='تعذر إيجاد حساب إتقان كمقدّم خدمة'; return; }
-
-  const { error: invErr } = await supabase.from('request_invitations').insert({ request_id: requestId, provider_id: itqan.id });
-  if(invErr){ msg.className='msg err'; msg.textContent = invErr.message; return; }
-
-  const { error: reqErr } = await supabase.from('service_requests').update({ status: 'open' }).eq('id', requestId);
-  if(reqErr){ msg.className='msg err'; msg.textContent = reqErr.message; return; }
-
-  msg.className='msg ok'; msg.textContent='تم توجيه الطلب بنجاح';
-  createNotification(itqan.id, 'طلب جديد بانتظارك', 'وصلك طلب جديد يمكنك التقديم عليه بعرض', '../provider/dashboard.html');
-  setTimeout(() => { loadPendingRequests(); loadAllRequests(); }, 1000);
-}
-
-// ---------- طلبات العروض: الجدول الكامل ----------
-async function loadAllRequests(){
-  const body = document.getElementById('allRequestsBody');
-  const { data: requests, error } = await supabase
-    .from('service_requests')
-    .select('id, status, activity_type, created_at, client_id, clients(profiles(full_name))')
-    .order('created_at', {ascending:false});
-
-  if(error){ body.innerHTML = `<tr><td colspan="5">${error.message}</td></tr>`; return; }
-  if(!requests || !requests.length){ body.innerHTML = '<tr><td colspan="5">لا توجد طلبات بعد</td></tr>'; return; }
-
-  const { data: invitations } = await supabase.from('request_invitations').select('request_id');
-  const { data: offers } = await supabase.from('offers').select('request_id, status');
+async function loadStalled(requests, acceptedOffers){
+  const area = document.getElementById('stalledArea');
   const { data: allStages } = await supabase.from('request_stages').select('request_id, started_at, completed_at, status');
+  const { data: clientsData } = await supabase.from('clients').select('id, profiles(full_name)');
+  const nameMap = {}; (clientsData||[]).forEach(c => nameMap[c.id] = c.profiles?.full_name);
 
-  const invitedSet = new Set((invitations || []).map(i => i.request_id));
-  const offerCountMap = {};
-  const acceptedSet = new Set();
-  (offers || []).forEach(o => {
-    offerCountMap[o.request_id] = (offerCountMap[o.request_id] || 0) + 1;
-    if(o.status === 'accepted') acceptedSet.add(o.request_id);
-  });
-
+  const acceptedReqIds = new Set(acceptedOffers.map(o => o.request_id));
   const lastActivityMap = {};
-  (allStages || []).forEach(s => {
+  (allStages||[]).forEach(s => {
     const t = s.completed_at || s.started_at;
-    if(t && (!lastActivityMap[s.request_id] || new Date(t) > new Date(lastActivityMap[s.request_id]))){
-      lastActivityMap[s.request_id] = t;
-    }
+    if(t && (!lastActivityMap[s.request_id] || new Date(t) > new Date(lastActivityMap[s.request_id]))) lastActivityMap[s.request_id] = t;
   });
 
   const STALL_DAYS = 14;
   const now = new Date();
+  const stalled = requests.filter(r => acceptedReqIds.has(r.id) && r.status !== 'completed').map(r => {
+    const lastActivity = lastActivityMap[r.id];
+    const refDate = lastActivity ? new Date(lastActivity) : null;
+    if(!refDate) return null;
+    const days = Math.floor((now - refDate) / (1000*60*60*24));
+    return days >= STALL_DAYS ? { clientId: r.id, requestId: r.id, days } : null;
+  }).filter(Boolean);
 
-  body.innerHTML = requests.map(r => {
-    const routed = invitedSet.has(r.id);
-    const offerCount = offerCountMap[r.id] || 0;
-    const isCompleted = r.status === 'completed';
-    let statusLabel;
-    if(isCompleted) statusLabel = '<span class="badge ready">مكتمل ✓</span>';
-    else if(acceptedSet.has(r.id)) statusLabel = '<span class="badge pending">قيد التنفيذ</span>';
-    else if(offerCount > 0) statusLabel = '<span class="badge pending">بانتظار موافقة العميل</span>';
-    else if(routed) statusLabel = '<span class="badge pending">بانتظار عروض</span>';
-    else statusLabel = '<span class="badge notready">بانتظار التوجيه</span>';
+  if(!stalled.length){ area.innerHTML = '<p style="font-size:13px;color:var(--ink-soft);">لا توجد طلبات متأخرة حالياً. 👍</p>'; return; }
 
-    let stallBadge = '';
-    if(!isCompleted && acceptedSet.has(r.id)){
-      const lastActivity = lastActivityMap[r.id];
-      const refDate = lastActivity ? new Date(lastActivity) : new Date(r.created_at);
-      const daysSince = Math.floor((now - refDate) / (1000*60*60*24));
-      if(daysSince >= STALL_DAYS){
-        stallBadge = ` <span class="badge notready" title="لا تحديث منذ ${daysSince} يوم">⚠ متأخر (${daysSince} يوم)</span>`;
-      }
-    }
-
-    return `<tr>
-      <td>${r.clients?.profiles?.full_name || r.client_id}</td>
-      <td>${r.activity_type || '—'}</td>
-      <td>${routed ? '✅ تم التوجيه' : '⬜ لم يُوجَّه'}</td>
-      <td>${offerCount} عرض</td>
-      <td>${statusLabel}${stallBadge}</td>
-    </tr>`;
-  }).join('');
+  area.innerHTML = stalled.map(s => `
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line-soft);">
+      <span style="font-size:13px;">${nameMap[s.clientId] || s.clientId}</span>
+      <span class="badge notready">⚠ ${s.days} يوم بدون تحديث</span>
+    </div>
+  `).join('');
 }
 
 init();
