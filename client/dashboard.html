@@ -78,15 +78,7 @@
     <main class="app-main">
       <div class="app-main-inner">
 
-        <div class="card gate-card" id="gateCard" style="display:none;">
-          <h2>هل لديك شركة داخل المملكة حالياً؟</h2>
-          <div class="gate-options">
-            <button onclick="answerGate(true)">نعم، عندي شركة</button>
-            <button onclick="answerGate(false)">لا، أبي أؤسس شركة</button>
-          </div>
-        </div>
-
-        <div id="mainContent" style="display:none;">
+        <div id="mainContent">
           <div class="welcome-banner">
             <h1>مرحباً بك، <span id="uname">...</span> 👋</h1>
             <p>هذه لوحتك الخاصة من فريق إتقان — تابع حالة ملفك وطلباتك من مكان واحد</p>
@@ -123,23 +115,7 @@ async function init(){
   const { data: client } = await supabase.from('clients').select('*').eq('id', profile.id).single();
   clientRow = client;
 
-  if(!client || client.has_company_in_kingdom === null || client.has_company_in_kingdom === undefined){
-    document.getElementById('gateCard').style.display = 'block';
-    return;
-  }
-
   showMainContent();
-}
-
-async function answerGate(hasCompany){
-  await supabase.from('clients').update({ has_company_in_kingdom: hasCompany }).eq('id', profile.id);
-  if(clientRow) clientRow.has_company_in_kingdom = hasCompany;
-  if(hasCompany){
-    window.location.href = 'post-incorp.html';
-  } else {
-    document.getElementById('gateCard').style.display = 'none';
-    showMainContent();
-  }
 }
 
 async function showMainContent(){

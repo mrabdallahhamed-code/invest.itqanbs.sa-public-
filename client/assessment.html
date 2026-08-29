@@ -66,6 +66,18 @@
             <div class="q-label">من أي دولة تفضل أن تكون شركتك الخارجية؟</div>
             <p style="font-size:12px;color:var(--ink-soft);margin-bottom:10px;">بما إنك لا تملك شركة خارجية حالياً، سيقوم فريق إتقان بتوفير شركة مناسبة لك.</p>
             <input id="preferredCountry" placeholder="مثال: الإمارات، مصر، بريطانيا...">
+
+            <div class="q-label" style="margin-top:18px;">ما هو نوع النشاط المطلوب؟</div>
+            <select id="noCompanyActivityType">
+              <option value="">اختر...</option>
+              <option>خدمي</option>
+              <option>صناعي</option>
+              <option>زراعي</option>
+              <option>تجاري</option>
+            </select>
+
+            <div class="q-label" style="margin-top:18px;">ما هي جنسيتك؟</div>
+            <input id="noCompanyNationality" placeholder="مثال: مصري، هندي، باكستاني...">
           </div>
 
           <div id="conditionalSection">
@@ -198,6 +210,8 @@ async function finish(){
     foreign_company_name: document.getElementById('companyName')?.value.trim() || null,
     foreign_company_country: document.getElementById('companyCountry')?.value.trim() || null,
     preferred_company_country: document.getElementById('preferredCountry')?.value.trim() || null,
+    activity_type: document.getElementById('noCompanyActivityType')?.value || null,
+    nationality: document.getElementById('noCompanyNationality')?.value.trim() || null,
     assessment_completed_at: new Date().toISOString(),
     readiness_status, readiness_notes
   };
