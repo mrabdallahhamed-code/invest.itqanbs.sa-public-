@@ -143,12 +143,17 @@ const defaultFees = [
 ];
 
 let existingOffer = null;
+let itqanProviderId = null;
 
 async function init(){
   profile = await requireRole(['admin']);
   if(!profile) return;
   initNotificationBell(profile.id);
   if(!requestId){ document.body.innerHTML = '<p style="padding:40px;text-align:center;">لم يتم تحديد الطلب.</p>'; return; }
+
+  const { data: itqan, error: itqanErr } = await supabase.from('service_providers').select('id').eq('is_itqan', true).limit(1).single();
+  if(itqanErr || !itqan){ document.body.innerHTML = '<p style="padding:40px;text-align:center;">تعذر إيجاد حساب إتقان كمقدّم خدمة. تأكد من عمود is_itqan بجدول service_providers.</p>'; return; }
+  itqanProviderId = itqan.id;
 
   document.getElementById('scopeList').innerHTML = scopeOptions.map(o => `
     <div class="check-item">
@@ -244,7 +249,7 @@ async function submitOffer(){
   if(existingOffer){
     ({ data: offerRow, error } = await supabase.from('offers').update(offerData).eq('id', existingOffer.id).select().single());
   } else {
-    ({ data: offerRow, error } = await supabase.from('offers').insert({ request_id: requestId, provider_id: profile.id, ...offerData }).select().single());
+    ({ data: offerRow, error } = await supabase.from('offers').insert({ request_id: requestId, provider_id: itqanProviderId, ...offerData }).select().single());
   }
 
   if(error){ msg.className = 'msg err'; msg.textContent = error.message; return; }
