@@ -29,6 +29,8 @@
     <input id="full_name" type="text" placeholder="اسمك الثلاثي">
     <label data-i18n="register_email">البريد الإلكتروني</label>
     <input id="email" type="email" placeholder="you@example.com">
+    <label>رقم الجوال (بالصيغة الدولية)</label>
+    <input id="contact_phone" type="tel" dir="ltr" style="text-align:left;" placeholder="+966501234567">
     <label data-i18n="register_password">كلمة المرور</label>
     <input id="password" type="password" placeholder="8 أحرف على الأقل">
     <button class="btn" onclick="register()" data-i18n="register_btn">إنشاء الحساب</button>
@@ -43,19 +45,27 @@ async function register(){
   const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value;
   const full_name = document.getElementById('full_name').value.trim();
+  const contact_phone = document.getElementById('contact_phone').value.trim().replace(/\s|-/g, '');
   const preferred_language = getLang();
   const msg = document.getElementById('msg');
   msg.className = 'msg'; msg.textContent = '';
 
-  if(!email || !password || !full_name){
+  if(!email || !password || !full_name || !contact_phone){
     msg.className='msg err'; msg.textContent='الرجاء تعبئة كل الحقول'; return;
+  }
+
+  const phoneRegex = /^\+[1-9]\d{7,14}$/;
+  if(!phoneRegex.test(contact_phone)){
+    msg.className='msg err';
+    msg.textContent='رقم الجوال غير صحيح — لازم يبدأ برمز الدولة، مثال: 966501234567+';
+    return;
   }
 
   const { data, error } = await supabase.auth.signUp({ email, password });
   if(error){ msg.className='msg err'; msg.textContent = error.message; return; }
 
   const userId = data.user.id;
-  const { error: profErr } = await supabase.from('profiles').insert({ id: userId, full_name, role: 'client', preferred_language, email });
+  const { error: profErr } = await supabase.from('profiles').insert({ id: userId, full_name, role: 'client', preferred_language, email, contact_phone });
   if(profErr){ msg.className='msg err'; msg.textContent = profErr.message; return; }
 
   await supabase.from('clients').insert({ id: userId });

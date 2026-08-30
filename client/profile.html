@@ -49,7 +49,7 @@
           <label>البريد الإلكتروني</label>
           <input id="email" disabled style="opacity:.6;">
           <label>رقم الجوال (مع رمز الدولة)</label>
-          <input id="contact_phone" placeholder="مثال: 966501234567+">
+          <input id="contact_phone" type="tel" dir="ltr" style="text-align:left;" placeholder="+966501234567">
           <label>الوسيلة المفضلة للتواصل</label>
           <select id="preferred_contact">
             <option value="email">البريد الإلكتروني</option>
@@ -81,9 +81,16 @@ async function init(){
 
 async function saveProfile(){
   const full_name = document.getElementById('full_name').value.trim();
-  const contact_phone = document.getElementById('contact_phone').value.trim();
+  const contact_phone = document.getElementById('contact_phone').value.trim().replace(/\s|-/g, '');
   const preferred_contact = document.getElementById('preferred_contact').value;
   const msg = document.getElementById('msg');
+
+  const phoneRegex = /^\+[1-9]\d{7,14}$/;
+  if(!phoneRegex.test(contact_phone)){
+    msg.className = 'msg err';
+    msg.textContent = 'رقم الجوال غير صحيح — لازم يبدأ برمز الدولة، مثال: 966501234567+';
+    return;
+  }
 
   const { error } = await supabase.from('profiles').update({ full_name, contact_phone, preferred_contact }).eq('id', profile.id);
   if(error){ msg.className = 'msg err'; msg.textContent = error.message; return; }
