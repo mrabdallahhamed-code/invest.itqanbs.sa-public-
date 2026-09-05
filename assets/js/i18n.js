@@ -72,26 +72,6 @@ const I18N = {
 
     footer_text: '© إتقان لخدمات الأعمال — Itqan Business Services',
 
-    // ---------- الصفحة الرئيسية: البوابة الذكية ----------
-    gw_eyebrow: 'منصة إتقان الرقمية',
-    gw_title: 'منصة إتقان لإدارة رحلة تأسيس واستثمار شركتك في السعودية',
-    gw_sub: 'قيّم جاهزيتك، اطلب عروض أسعار، وقّع عقودك إلكترونياً، وتابع كل خطوة من تأسيس شركتك — كله من مكان واحد.',
-    gw_cta_main: 'ابدأ بتقييم جاهزيتك', gw_cta_secondary: 'لدي حساب بالفعل',
-    gw_func_label: 'داخل المنصة', gw_func_title: 'وش تقدر تسوي بعد ما تدخل؟',
-    gw_func1_h: 'بوصلة الجاهزية', gw_func1_p: 'تقييم سريع يحدد مسارك الصحيح خطوة بخطوة',
-    gw_func2_h: 'طلب الخدمات', gw_func2_p: 'اطلب عرض سعر لتأسيس شركتك بضغطة زر',
-    gw_func3_h: 'العروض', gw_func3_p: 'راجع العرض التفصيلي وتواصل مباشرة قبل القبول',
-    gw_func4_h: 'التوقيع والعقود', gw_func4_p: 'وقّع عقدك إلكترونياً بخط يدك، بدون ورق',
-    gw_func5_h: 'متابعة الطلبات', gw_func5_p: 'تابع كل مرحلة لحظة بلحظة من لوحتك الخاصة',
-    gw_func6_h: 'ملفاتك ومستنداتك', gw_func6_p: 'كل مستنداتك محفوظة وآمنة بمكان واحد',
-    gw_journey_label: 'رحلتك', gw_journey_title: 'من التقييم إلى التنفيذ، بخطوات واضحة',
-    gw_j1: 'تقييم الجاهزية', gw_j2: 'تحديد المسار', gw_j3: 'طلب الخدمة', gw_j4: 'العرض', gw_j5: 'التوقيع', gw_j6: 'العقد', gw_j7: 'متابعة التنفيذ',
-    gw_trust1: 'توقيع إلكتروني معتمد', gw_trust2: 'حفظ آمن للمستندات', gw_trust3: 'سرية تامة لبياناتك', gw_trust4: 'تتبع لحظي لكل طلب',
-    gw_paths_label: 'ابدأ الآن', gw_paths_title: 'اختر وضعك الحالي',
-    gw_new_h: 'عميل جديد', gw_new_p: 'ابدأ بتقييم جاهزيتك مجاناً — يستغرق دقيقتين',
-    gw_existing_h: 'عميل حالي', gw_existing_p: 'تابع طلباتك وعروضك من لوحتك',
-    gw_learn_more: 'تعرّف على إتقان وخدماتنا ←',
-
     // ---------- تسجيل الدخول / إنشاء حساب ----------
     login_title: 'تسجيل الدخول', login_email: 'البريد الإلكتروني', login_password: 'كلمة المرور',
     login_btn: 'دخول', login_no_account: 'ليس لديك حساب؟', login_register_link: 'إنشاء حساب جديد',
@@ -157,25 +137,6 @@ const I18N = {
     contact_whatsapp: 'WhatsApp', contact_location: 'Riyadh, Saudi Arabia',
 
     footer_text: '© Itqan Business Services — إتقان لخدمات الأعمال',
-
-    gw_eyebrow: 'The Itqan Digital Platform',
-    gw_title: 'The Itqan Platform for Managing Your Company Incorporation and Investment Journey in Saudi Arabia',
-    gw_sub: 'Assess your readiness, request quotes, sign your contracts electronically, and track every step of establishing your company — all from one place.',
-    gw_cta_main: 'Start Your Readiness Assessment', gw_cta_secondary: 'I Already Have an Account',
-    gw_func_label: 'Inside the Platform', gw_func_title: 'What Can You Do Once You\'re In?',
-    gw_func1_h: 'Readiness Compass', gw_func1_p: 'A quick assessment that determines your correct path step by step',
-    gw_func2_h: 'Request Services', gw_func2_p: 'Request a quote for your company incorporation in one click',
-    gw_func3_h: 'Offers', gw_func3_p: 'Review the detailed offer and communicate directly before accepting',
-    gw_func4_h: 'Signing & Contracts', gw_func4_p: 'Sign your contract electronically, by hand — no paper needed',
-    gw_func5_h: 'Track Requests', gw_func5_p: 'Follow every stage in real time from your own dashboard',
-    gw_func6_h: 'Your Files & Documents', gw_func6_p: 'All your documents stored securely in one place',
-    gw_journey_label: 'Your Journey', gw_journey_title: 'From Assessment to Execution, with Clear Steps',
-    gw_j1: 'Readiness Assessment', gw_j2: 'Path Determined', gw_j3: 'Service Request', gw_j4: 'Offer', gw_j5: 'Signature', gw_j6: 'Contract', gw_j7: 'Execution Tracking',
-    gw_trust1: 'Certified Electronic Signature', gw_trust2: 'Secure Document Storage', gw_trust3: 'Full Data Confidentiality', gw_trust4: 'Real-Time Request Tracking',
-    gw_paths_label: 'Get Started', gw_paths_title: 'Choose Your Current Status',
-    gw_new_h: 'New Client', gw_new_p: 'Start your free readiness assessment — takes two minutes',
-    gw_existing_h: 'Existing Client', gw_existing_p: 'Track your requests and offers from your dashboard',
-    gw_learn_more: 'Learn about Itqan and our services →',
 
     login_title: 'Log In', login_email: 'Email', login_password: 'Password',
     login_btn: 'Log In', login_no_account: "Don't have an account?", login_register_link: 'Create a new account',
