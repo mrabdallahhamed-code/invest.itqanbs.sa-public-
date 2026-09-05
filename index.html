@@ -192,6 +192,7 @@
     <a href="#services" data-i18n="nav_services">خدماتنا</a>
     <a href="#paths" data-i18n="nav_paths">ابدأ الآن</a>
     <a href="#contact" data-i18n="nav_contact">تواصل معنا</a>
+    <a href="https://invest.itqanbs.sa" target="_blank" data-i18n="nav_learn_more">تعرّف على إتقان</a>
     <a href="auth/login.html" class="btn ghost" style="margin:0;padding:9px 20px;font-size:13px;" data-i18n="nav_login">تسجيل الدخول</a>
     <a href="auth/register.html?role=client" class="btn gold" style="margin:0;padding:9px 20px;font-size:13px;" data-i18n="nav_register">إنشاء حساب</a>
     <div class="top-contact">
@@ -206,15 +207,14 @@
 <section class="hero">
   <div class="hero-inner">
     <img class="logo-mark" src="assets/images/logo.jpeg" alt="إتقان">
-    <h1 data-i18n="hero_title">أسّس شركتك في السعودية بثقة تامة</h1>
+    <h1 data-i18n="hero_title">منصة إتقان لإدارة رحلة تأسيس شركتك في السعودية</h1>
     <p data-i18n="hero_p">
-      إتقان لخدمات الأعمال شركة متخصصة في تقديم حلول متكاملة للمستثمرين الأجانب الراغبين بدخول السوق
-      السعودي، تجمع بين الخبرة والمعرفة الدقيقة ببيئة الأعمال المحلية، وتخدم عملاءها
-      عبر فريق متخصص حاضر في 14 دولة حول العالم.
+      من تقييم جاهزيتك، لطلب عروض الأسعار، للتوقيع الإلكتروني على عقدك، ومتابعة كل خطوة لحظة بلحظة —
+      منصة رقمية واحدة تدير رحلة تأسيس شركتك واستثمارك بالسعودية من البداية للنهاية.
     </p>
     <div class="hero-actions">
-      <a href="auth/register.html?role=client" class="btn gold" data-i18n="hero_btn_start">ابدأ الآن</a>
-      <a href="#services" class="btn ghost" style="border-color:rgba(255,255,255,.3);color:var(--white);" data-i18n="hero_btn_services">تعرّف على الخدمات</a>
+      <a href="auth/register.html?role=client" class="btn gold" data-i18n="hero_btn_start">ابدأ بتقييم جاهزيتك</a>
+      <a href="#services" class="btn ghost" style="border-color:rgba(255,255,255,.3);color:var(--white);" data-i18n="hero_btn_services">وش بتلقى بالمنصة؟</a>
     </div>
     <div class="stats-row">
       <div class="stat-box"><div class="n">+500</div><div class="l" data-i18n="stat_investors">مستثمر أجنبي</div></div>
@@ -225,6 +225,88 @@
   </div>
 </section>
 
+<!-- ===== قسم: وش بتلقى بالمنصة ===== -->
+<div class="section-wrap bg-white" id="platform-features">
+  <section class="block">
+    <span class="section-eyebrow" data-i18n="pf_eyebrow">داخل المنصة</span>
+    <h2 class="section-title" data-i18n="pf_title">وش بتلقى بعد ما تسجّل؟</h2>
+    <div class="services-grid">
+
+      <div class="service-card">
+        <button class="service-head" onclick="toggleService(this)">
+          <span class="icon-circle">🧭</span>
+          <h3 data-i18n="pf1_title">بوصلة الجاهزية</h3>
+          <span class="chevron">▾</span>
+        </button>
+        <div class="service-body">
+          <div class="service-body-inner">
+            <p data-i18n="pf1_p">أول خطوة إلزامية بالمنصة — تقييم سريع (دقيقتين بس) يحدد بالضبط مسارك المناسب: هل عندك شركة أجنبية جاهزة، أو تحتاج مساعدتنا بتوفير واحدة.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="service-card">
+        <button class="service-head" onclick="toggleService(this)">
+          <span class="icon-circle">🏢</span>
+          <h3 data-i18n="pf2_title">طلب العروض</h3>
+          <span class="chevron">▾</span>
+        </button>
+        <div class="service-body">
+          <div class="service-body-inner">
+            <p data-i18n="pf2_p">بعد التقييم، تقدر تطلب عرض سعر مخصص لتأسيس شركتك بضغطة زر — بدون أي اتصالات أو مواعيد.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="service-card">
+        <button class="service-head" onclick="toggleService(this)">
+          <span class="icon-circle">✍️</span>
+          <h3 data-i18n="pf3_title">التوقيع والعقود</h3>
+          <span class="chevron">▾</span>
+        </button>
+        <div class="service-body">
+          <div class="service-body-inner">
+            <p data-i18n="pf3_p">وقّع على العرض والعقد إلكترونياً بخط يدك مباشرة من المنصة — بدون طباعة ولا مواعيد حضور.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="service-card">
+        <button class="service-head" onclick="toggleService(this)">
+          <span class="icon-circle">🛤️</span>
+          <h3 data-i18n="pf4_title">متابعة لحظية</h3>
+          <span class="chevron">▾</span>
+        </button>
+        <div class="service-body">
+          <div class="service-body-inner">
+            <p data-i18n="pf4_p">تابع كل مرحلة من مراحل تأسيس شركتك أول بأول من لوحتك الخاصة، بدون ما تحتاج تسأل "وين وصل طلبي؟"</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</div>
+
+<!-- ===== شريط الرحلة ===== -->
+<div class="section-wrap bg-tint">
+  <section class="block">
+    <span class="section-eyebrow" data-i18n="journey_eyebrow">رحلتك معنا</span>
+    <h2 class="section-title" style="margin-bottom:30px;" data-i18n="journey_title">من التقييم إلى التنفيذ</h2>
+    <div style="display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:8px;">
+      <span style="background:var(--white);border:1px solid var(--line);border-radius:999px;padding:9px 18px;font-size:12.5px;font-weight:700;color:var(--green-dark);" data-i18n="j1">تقييم الجاهزية</span>
+      <span style="color:var(--gold);">←</span>
+      <span style="background:var(--white);border:1px solid var(--line);border-radius:999px;padding:9px 18px;font-size:12.5px;font-weight:700;color:var(--green-dark);" data-i18n="j2">تحديد المسار</span>
+      <span style="color:var(--gold);">←</span>
+      <span style="background:var(--white);border:1px solid var(--line);border-radius:999px;padding:9px 18px;font-size:12.5px;font-weight:700;color:var(--green-dark);" data-i18n="j3">طلب العروض</span>
+      <span style="color:var(--gold);">←</span>
+      <span style="background:var(--white);border:1px solid var(--line);border-radius:999px;padding:9px 18px;font-size:12.5px;font-weight:700;color:var(--green-dark);" data-i18n="j4">التوقيع الإلكتروني</span>
+      <span style="color:var(--gold);">←</span>
+      <span style="background:var(--white);border:1px solid var(--line);border-radius:999px;padding:9px 18px;font-size:12.5px;font-weight:700;color:var(--green-dark);" data-i18n="j5">متابعة التنفيذ</span>
+    </div>
+  </section>
+</div>
+
 <!-- ===== قسم: عن إتقان ===== -->
 <div class="section-wrap bg-cream" id="about">
   <section class="block">
@@ -233,8 +315,7 @@
       <div class="text-side">
         <span class="section-eyebrow" style="text-align:right;" data-i18n="about_eyebrow">عن إتقان</span>
         <h2 class="section-title" style="text-align:right;" data-i18n="about_title">وسيط موثوق بينك وبين التأسيس</h2>
-        <p data-i18n="about_p">من التحقق من مستنداتك إلى توقيع عقد شركتك — نرافقك في كل خطوة عبر منصة رقمية تجمع بين
-        السرعة والشفافية، وفريق متخصص يتابع ملفك لحظة بلحظة حتى تصل لعقد تأسيس شركتك بثقة تامة.</p>
+        <p data-i18n="about_p">من تقييم جاهزيتك للتوقيع الإلكتروني على عقدك — نرافقك بمنصة رقمية واحدة تجمع السرعة والشفافية، مع متابعة لحظية لملفك حتى تصل لعقد تأسيس شركتك.</p>
       </div>
     </div>
   </section>
@@ -247,8 +328,7 @@
       <div class="text-side">
         <span class="section-eyebrow" style="text-align:right;" data-i18n="invest_eyebrow">فرصة استثمارية</span>
         <h2 class="section-title" style="text-align:right;" data-i18n="invest_title">استثمر بذكاء، استثمر الآن</h2>
-        <p data-i18n="invest_p">السوق السعودي يفتح أبوابه للمستثمرين الأجانب بثقة غير مسبوقة — ملكية كاملة، إجراءات مبسّطة،
-        وفرص نمو حقيقية بمختلف القطاعات. إتقان تختصر عليك الطريق من الفكرة إلى عقد التأسيس.</p>
+        <p data-i18n="invest_p">ملكية كاملة، إجراءات مبسّطة، وفرص نمو حقيقية بمختلف القطاعات — إتقان تختصر عليك الطريق من الفكرة إلى عقد التأسيس، عبر منصة واحدة تدير رحلتك كاملة.</p>
       </div>
       <img src="assets/images/invest-icons.png" alt="فرص الاستثمار في السعودية">
     </div>
@@ -429,9 +509,21 @@
       <div class="path-card">
         <div class="icon">🆕</div>
         <h3 data-i18n="client_new_title">عميل جديد</h3>
-        <p data-i18n="client_new_p">ابدأ رحلة استثمارك الآن</p>
+        <p data-i18n="client_new_p">ابدأ بتقييم جاهزيتك المجاني (دقيقتين بس)</p>
         <a href="auth/register.html?role=client" class="btn gold" style="margin-top:0;" data-i18n="client_new_btn">إنشاء حساب</a>
       </div>
+    </div>
+  </section>
+</div>
+
+<!-- ===== شريط الثقة ===== -->
+<div class="section-wrap bg-white">
+  <section class="block" style="text-align:center;">
+    <div style="display:flex;justify-content:center;gap:30px;flex-wrap:wrap;">
+      <span style="font-size:13px;font-weight:700;color:var(--green-dark);">✍️ <span data-i18n="trust1">توقيع إلكتروني معتمد</span></span>
+      <span style="font-size:13px;font-weight:700;color:var(--green-dark);">🔒 <span data-i18n="trust2">حفظ آمن للمستندات</span></span>
+      <span style="font-size:13px;font-weight:700;color:var(--green-dark);">🤐 <span data-i18n="trust3">سرية تامة لبياناتك</span></span>
+      <span style="font-size:13px;font-weight:700;color:var(--green-dark);">📡 <span data-i18n="trust4">تتبع لحظي لكل طلب</span></span>
     </div>
   </section>
 </div>

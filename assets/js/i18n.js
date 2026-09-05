@@ -8,21 +8,36 @@ const I18N = {
   ar: {
     // ---------- شريط التنقل ----------
     nav_about: 'عن الشركة', nav_services: 'خدماتنا', nav_paths: 'ابدأ الآن', nav_contact: 'تواصل معنا',
+    nav_learn_more: 'تعرّف على إتقان',
     nav_login: 'تسجيل الدخول', nav_register: 'إنشاء حساب',
 
     // ---------- Hero ----------
-    hero_title: 'أسّس شركتك في السعودية بثقة تامة',
-    hero_p: 'إتقان لخدمات الأعمال شركة متخصصة في تقديم حلول متكاملة للمستثمرين الأجانب الراغبين بدخول السوق السعودي، تجمع بين الخبرة والمعرفة الدقيقة ببيئة الأعمال المحلية، وتخدم عملاءها عبر فريق متخصص حاضر في 14 دولة حول العالم.',
-    hero_btn_start: 'ابدأ الآن', hero_btn_services: 'تعرّف على الخدمات',
+    hero_title: 'منصة إتقان لإدارة رحلة تأسيس شركتك في السعودية',
+    hero_p: 'من تقييم جاهزيتك، لطلب عروض الأسعار، للتوقيع الإلكتروني على عقدك، ومتابعة كل خطوة لحظة بلحظة — منصة رقمية واحدة تدير رحلة تأسيس شركتك واستثمارك بالسعودية من البداية للنهاية.',
+    hero_btn_start: 'ابدأ بتقييم جاهزيتك', hero_btn_services: 'وش بتلقى بالمنصة؟',
     stat_investors: 'مستثمر أجنبي', stat_ownership: 'ملكية أجنبية كاملة', stat_countries: 'دولة حول العالم', stat_days: 'يوماً للتأسيس',
+
+    // ---------- وش بتلقى بالمنصة ----------
+    pf_eyebrow: 'داخل المنصة', pf_title: 'وش بتلقى بعد ما تسجّل؟',
+    pf1_title: 'بوصلة الجاهزية', pf1_p: 'أول خطوة إلزامية بالمنصة — تقييم سريع (دقيقتين بس) يحدد بالضبط مسارك المناسب: هل عندك شركة أجنبية جاهزة، أو تحتاج مساعدتنا بتوفير واحدة.',
+    pf2_title: 'طلب العروض', pf2_p: 'بعد التقييم، تقدر تطلب عرض سعر مخصص لتأسيس شركتك بضغطة زر — بدون أي اتصالات أو مواعيد.',
+    pf3_title: 'التوقيع والعقود', pf3_p: 'وقّع على العرض والعقد إلكترونياً بخط يدك مباشرة من المنصة — بدون طباعة ولا مواعيد حضور.',
+    pf4_title: 'متابعة لحظية', pf4_p: 'تابع كل مرحلة من مراحل تأسيس شركتك أول بأول من لوحتك الخاصة، بدون ما تحتاج تسأل "وين وصل طلبي؟"',
+
+    // ---------- شريط الرحلة ----------
+    journey_eyebrow: 'رحلتك معنا', journey_title: 'من التقييم إلى التنفيذ',
+    j1: 'تقييم الجاهزية', j2: 'تحديد المسار', j3: 'طلب العروض', j4: 'التوقيع الإلكتروني', j5: 'متابعة التنفيذ',
+
+    // ---------- شريط الثقة ----------
+    trust1: 'توقيع إلكتروني معتمد', trust2: 'حفظ آمن للمستندات', trust3: 'سرية تامة لبياناتك', trust4: 'تتبع لحظي لكل طلب',
 
     // ---------- عن إتقان ----------
     about_eyebrow: 'عن إتقان', about_title: 'وسيط موثوق بينك وبين التأسيس',
-    about_p: 'من التحقق من مستنداتك إلى توقيع عقد شركتك — نرافقك في كل خطوة عبر منصة رقمية تجمع بين السرعة والشفافية، وفريق متخصص يتابع ملفك لحظة بلحظة حتى تصل لعقد تأسيس شركتك بثقة تامة.',
+    about_p: 'من تقييم جاهزيتك للتوقيع الإلكتروني على عقدك — نرافقك بمنصة رقمية واحدة تجمع السرعة والشفافية، مع متابعة لحظية لملفك حتى تصل لعقد تأسيس شركتك.',
 
     // ---------- فرصة استثمارية ----------
     invest_eyebrow: 'فرصة استثمارية', invest_title: 'استثمر بذكاء، استثمر الآن',
-    invest_p: 'السوق السعودي يفتح أبوابه للمستثمرين الأجانب بثقة غير مسبوقة — ملكية كاملة، إجراءات مبسّطة، وفرص نمو حقيقية بمختلف القطاعات. إتقان تختصر عليك الطريق من الفكرة إلى عقد التأسيس.',
+    invest_p: 'ملكية كاملة، إجراءات مبسّطة، وفرص نمو حقيقية بمختلف القطاعات — إتقان تختصر عليك الطريق من الفكرة إلى عقد التأسيس، عبر منصة واحدة تدير رحلتك كاملة.',
 
     // ---------- خدماتنا ----------
     services_eyebrow: 'خدماتنا', services_title: 'اضغط على أي خدمة لمعرفة التفاصيل',
@@ -59,7 +74,7 @@ const I18N = {
     // ---------- ابدأ الآن (عميل) ----------
     paths_eyebrow: 'ابدأ الآن', paths_title: 'هل أنت مستثمر يبحث عن التأسيس؟',
     client_existing_title: 'عميل حالي', client_existing_p: 'لديك حساب مسبق؟', client_existing_btn: 'تسجيل الدخول',
-    client_new_title: 'عميل جديد', client_new_p: 'ابدأ رحلة استثمارك الآن', client_new_btn: 'إنشاء حساب',
+    client_new_title: 'عميل جديد', client_new_p: 'ابدأ بتقييم جاهزيتك المجاني (دقيقتين بس)', client_new_btn: 'إنشاء حساب',
 
     // ---------- كن شريكاً لنا ----------
     partner_eyebrow: 'كن شريكاً لنا', partner_title: 'هل أنت مقدّم خدمة تأسيس شركات؟',
@@ -83,18 +98,30 @@ const I18N = {
 
   en: {
     nav_about: 'About', nav_services: 'Services', nav_paths: 'Get Started', nav_contact: 'Contact',
+    nav_learn_more: 'Learn About Itqan',
     nav_login: 'Log In', nav_register: 'Sign Up',
 
-    hero_title: 'Establish Your Company in Saudi Arabia with Full Confidence',
-    hero_p: 'Itqan Business Services is a specialized firm delivering end-to-end solutions for foreign investors entering the Saudi market, combining deep local expertise with a dedicated team present in 14 countries worldwide.',
-    hero_btn_start: 'Get Started', hero_btn_services: 'Explore Services',
+    hero_title: 'The Itqan Platform for Managing Your Company Incorporation Journey in Saudi Arabia',
+    hero_p: 'From assessing your readiness, to requesting quotes, to electronically signing your contract, to tracking every step in real time — one digital platform managing your incorporation and investment journey in Saudi Arabia from start to finish.',
+    hero_btn_start: 'Start Your Readiness Assessment', hero_btn_services: "What's Inside the Platform?",
     stat_investors: 'Foreign investors', stat_ownership: 'Full foreign ownership', stat_countries: 'Countries worldwide', stat_days: 'Days to incorporate',
 
+    pf_eyebrow: 'Inside the Platform', pf_title: 'What Do You Get After Signing Up?',
+    pf1_title: 'Readiness Compass', pf1_p: 'The first mandatory step — a quick 2-minute assessment that determines your exact path: whether you already have a foreign company or need our help sourcing one.',
+    pf2_title: 'Request Offers', pf2_p: 'After the assessment, request a customized quote for your incorporation in one click — no calls or appointments needed.',
+    pf3_title: 'Signing & Contracts', pf3_p: 'Sign your offer and contract electronically, by hand, directly from the platform — no printing, no in-person appointments.',
+    pf4_title: 'Real-Time Tracking', pf4_p: "Track every stage of your incorporation as it happens from your own dashboard — no need to ask 'where's my request?'",
+
+    journey_eyebrow: 'Your Journey With Us', journey_title: 'From Assessment to Execution',
+    j1: 'Readiness Assessment', j2: 'Path Determined', j3: 'Request Offers', j4: 'Electronic Signature', j5: 'Execution Tracking',
+
+    trust1: 'Certified Electronic Signature', trust2: 'Secure Document Storage', trust3: 'Full Data Confidentiality', trust4: 'Real-Time Request Tracking',
+
     about_eyebrow: 'About Itqan', about_title: 'Your Trusted Partner from Start to Incorporation',
-    about_p: 'From document verification to signing your incorporation contract — we guide you through every step via a digital platform built on speed and transparency, with a dedicated team tracking your file in real time until your company is officially incorporated.',
+    about_p: 'From assessing your readiness to electronically signing your contract — we guide you through one digital platform built on speed and transparency, with real-time tracking of your file until your company is incorporated.',
 
     invest_eyebrow: 'Investment Opportunity', invest_title: 'Invest Smart, Invest Now',
-    invest_p: 'The Saudi market is opening its doors to foreign investors with unprecedented confidence — full ownership, streamlined procedures, and genuine growth opportunities across sectors. Itqan shortens the distance between your idea and your incorporation contract.',
+    invest_p: 'Full ownership, streamlined procedures, and genuine growth opportunities across sectors — Itqan shortens the distance between your idea and your incorporation contract, through one platform managing your entire journey.',
 
     services_eyebrow: 'Our Services', services_title: 'Click any service to see the details',
     svc1_title: 'Foreign Investment License (MISA)',
@@ -127,7 +154,7 @@ const I18N = {
 
     paths_eyebrow: 'Get Started', paths_title: 'Are you an investor looking to incorporate?',
     client_existing_title: 'Existing Client', client_existing_p: 'Already have an account?', client_existing_btn: 'Log In',
-    client_new_title: 'New Client', client_new_p: 'Start your investment journey now', client_new_btn: 'Sign Up',
+    client_new_title: 'New Client', client_new_p: 'Start your free readiness assessment (just 2 minutes)', client_new_btn: 'Sign Up',
 
     partner_eyebrow: 'Become Our Partner', partner_title: 'Are you a company-incorporation service provider?',
     provider_existing_title: 'Existing Provider', provider_existing_p: 'Log in to view available requests', provider_existing_btn: 'Log In',
